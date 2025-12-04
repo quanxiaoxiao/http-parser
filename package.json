@@ -10,7 +10,7 @@
     "build": "tsc",
     "test": "node --import tsx --test **/*.test.ts",
     "test:coverage": "node --import tsx --test --experimental-test-coverage **/*.test.ts",
-    "test:single": "node --import tsx --test"
+    "test:single": "node --import tsx --test --test-only"
   },
   "devDependencies": {
     "@types/node": "^24.10.1",
