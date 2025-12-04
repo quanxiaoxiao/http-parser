@@ -1,5 +1,5 @@
-import createHeaderGetter from './createHeaderGetter';
-import { type Header } from './types';
+import createHeaderGetter from './createHeaderGetter.js';
+import { type Header } from './types.js';
 
 export default (header: Header): boolean => {
 

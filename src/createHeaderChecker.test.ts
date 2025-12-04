@@ -1,7 +1,7 @@
 import * as assert from 'node:assert';
 import { describe, it } from 'node:test';
 
-import createHeaderChecker from './createHeaderChecker';
+import createHeaderChecker from './createHeaderChecker.js';
 
 describe('Header Checker', () => {
   it('should return true for existing header (case insensitive)', () => {

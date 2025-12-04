@@ -2,8 +2,8 @@ import * as assert from 'node:assert';
 import { Buffer } from 'node:buffer';
 import { describe, it } from 'node:test';
 
-import decodeHttpLine from './decodeHttpLine';
-import { DecodeHttpError } from './errors';
+import decodeHttpLine from './decodeHttpLine.js';
+import { DecodeHttpError } from './errors.js';
 
 describe('decodeHttpLine', () => {
   describe('参数验证', () => {

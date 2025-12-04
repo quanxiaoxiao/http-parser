@@ -1,5 +1,5 @@
-import createHeaderGetter from './createHeaderGetter';
-import { type Header, type HttpMethod } from './types';
+import createHeaderGetter from './createHeaderGetter.js';
+import { type Header, type HttpMethod } from './types.js';
 
 export default (method: HttpMethod, header: Header): boolean => {
   if (method !== 'GET') {

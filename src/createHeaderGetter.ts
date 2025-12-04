@@ -1,4 +1,4 @@
-import { type Header } from './types';
+import { type Header } from './types.js';
 
 export default (obj: Header) => {
   const headers: Header = {};

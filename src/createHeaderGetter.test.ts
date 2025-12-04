@@ -1,7 +1,7 @@
 import * as assert from 'node:assert';
 import { describe, test } from 'node:test';
 
-import createHeaderGetter from './createHeaderGetter';
+import createHeaderGetter from './createHeaderGetter.js';
 
 describe('createHeaderGetter', () => {
   test('应该正确转换 header 名称为小写', () => {

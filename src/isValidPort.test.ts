@@ -1,7 +1,7 @@
 import * as assert from 'node:assert';
 import { describe, it } from 'node:test';
 
-import isValidPort from './isValidPort';
+import isValidPort from './isValidPort.js';
 
 describe('isValidPort', () => {
   describe('有效端口号', () => {

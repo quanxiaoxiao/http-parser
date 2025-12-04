@@ -1,7 +1,7 @@
 import * as assert from 'node:assert';
 import { describe,test } from 'node:test';
 
-import parseRange from './parseRange';
+import parseRange from './parseRange.js';
 
 describe('Range Parser', () => {
   describe('正常情况', () => {

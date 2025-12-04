@@ -1,7 +1,7 @@
 import * as assert from 'node:assert';
 import { describe, it } from 'node:test';
 
-import hasBody from './hasBody';
+import hasBody from './hasBody.js';
 
 describe('hasBody', () => {
   describe('当存在 transfer-encoding 头时', () => {

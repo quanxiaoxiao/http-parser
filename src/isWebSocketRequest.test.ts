@@ -1,8 +1,8 @@
 import * as assert from 'node:assert';
 import { describe, it } from 'node:test';
 
-import isWebSocketRequest from './isWebSocketRequest';
-import { type Header,type HttpMethod } from './types';
+import isWebSocketRequest from './isWebSocketRequest.js';
+import { type Header,type HttpMethod } from './types.js';
 
 describe('isWebSocketRequest', () => {
   describe('HTTP 方法验证', () => {

@@ -1,8 +1,11 @@
-import createHttpError from './createHttpError';
+import createHttpError from './createHttpError.js';
 
 type RangeResult = [number, number];
 
-const parseNumber = (str: string, fieldName = 'number'): number => {
+const parseNumber = (str: string | null | undefined, fieldName = 'number'): number => {
+  if (str == null) {
+    throw createHttpError(400, `Invalid range: empty ${fieldName}`);
+  }
   const trimmed = str.trim();
 
   if (trimmed === '') {
