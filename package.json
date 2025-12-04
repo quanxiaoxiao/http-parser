@@ -1,0 +1,25 @@
+{
+  "name": "http-parser",
+  "version": "0.0.1",
+  "description": "parse http at http1.1",
+  "license": "ISC",
+  "author": "",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "test": "node --import tsx --test **/*.test.ts",
+    "test:coverage": "node --import tsx --test --experimental-test-coverage **/*.test.ts",
+    "test:single": "node --import tsx --test"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "eslint": "^9.39.1",
+    "eslint-plugin-simple-import-sort": "^12.1.1",
+    "globals": "^16.5.0",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.47.0"
+  }
+}
