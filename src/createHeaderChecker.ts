@@ -1,4 +1,6 @@
-export default (obj: Record<string, string | number | string[]>) => {
+import { type Header } from './types';
+
+export default (obj: Header) => {
   const lowerCaseKeys = new Set(Object.keys(obj).map(key => key.toLowerCase()));
 
   return (headerName: string | string[]): boolean => {

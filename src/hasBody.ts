@@ -1,8 +1,9 @@
 import createHeaderGetter from './createHeaderGetter';
+import { type Header } from './types';
 
-export default (headers: Record<string, string | string[] | number>): boolean => {
+export default (header: Header): boolean => {
 
-  const getter = createHeaderGetter(headers);
+  const getter = createHeaderGetter(header);
 
   if (getter('transfer-encoding')) {
     return true;

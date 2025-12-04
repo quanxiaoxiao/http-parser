@@ -1,5 +1,7 @@
-export default (obj: Record<string, string | number | string[]>) => {
-  const headers: Record<string, string | number | string[]> = {};
+import { type Header } from './types';
+
+export default (obj: Header) => {
+  const headers: Header = {};
   for (const key in obj) {
     const headerValue = obj[key];
     if (headerValue != null) {
