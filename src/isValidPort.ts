@@ -1,9 +1,10 @@
+import parseInteger from './parseInteger.js';
+
 export default (port: string | number): boolean => {
-  const value = typeof port === 'string' ? parseInt(port, 10) : port;
+  const value = parseInteger(port);
 
   return (
-    `${port}` === `${value}` &&
-    Number.isInteger(value) &&
+    value !== null &&
     value >= 0 &&
     value <= 65535
   );
