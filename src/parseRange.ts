@@ -25,8 +25,8 @@ const parseNumber = (str: string | null | undefined, fieldName = 'number'): numb
   return num;
 };
 
-export default (rangeHeader: string, contentSize: number): RangeResult => {
-  if (typeof rangeHeader !== 'string') {
+export default (rangeHeaderValue: string, contentSize: number): RangeResult => {
+  if (typeof rangeHeaderValue !== 'string') {
     throw createHttpError(400, 'Range header must be a string');
   }
 
@@ -39,7 +39,7 @@ export default (rangeHeader: string, contentSize: number): RangeResult => {
   }
 
   const rangeRegex = /^\s*bytes\s*=\s*(\d*)\s*-\s*(\d*)\s*$/i;
-  const matches = rangeHeader.match(rangeRegex);
+  const matches = rangeHeaderValue.match(rangeRegex);
 
   if (!matches) {
     throw createHttpError(400, 'Invalid range format. Expected: bytes=start-end');
