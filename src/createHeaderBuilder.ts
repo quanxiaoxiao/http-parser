@@ -1,4 +1,5 @@
-type Header = Record<string, string | string[]>;
+import { type Header } from './types.js';
+
 type HeaderEntry = [data: Header, raw: string[]];
 
 const normalizeHeaderKey = (key: string): string => key.toLowerCase();
