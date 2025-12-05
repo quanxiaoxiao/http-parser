@@ -43,7 +43,6 @@ export default [
       'no-shadow': 2,
       'object-shorthand': 2,
       'quote-props': ['error', 'as-needed'],
-      'no-unused-vars': ['error', { caughtErrors: 'none' }],
       quotes: [
         'error',
         'single',
@@ -88,6 +87,16 @@ export default [
       'class-methods-use-this': 0,
       'no-plusplus': 0,
       'global-require': 0,
+      // 'no-unused-vars': ['error', { caughtErrors: 'none' }],
+      'no-unused-vars': 'off',
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        {
+          args: 'after-used',
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+        },
+      ],
     },
   },
 ];
