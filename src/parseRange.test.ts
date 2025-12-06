@@ -47,6 +47,10 @@ describe('Range Parser', () => {
         () => parseRange('bytes=0-0', 0),
         { statusCode: 416, message: 'Range not satisfiable: end beyond content size' },
       );
+      assert.throws(
+        () => parseRange('bytes=0-20', 20),
+        { statusCode: 416 },
+      );
     });
 
     test('内容大小为 1 的文件 "bytes=0-0"', () => {
@@ -70,6 +74,13 @@ describe('Range Parser', () => {
       const contentSize = Number.MAX_SAFE_INTEGER;
       const result = parseRange('bytes=1000000-2000000', contentSize);
       assert.deepStrictEqual(result, [1000000, 2000000]);
+    });
+
+    test('最后21个字节，但是文件大小只有20字节', () => {
+      assert.throws(
+        () => parseRange('bytes=-21', 20),
+        { statusCode: 416 },
+      );
     });
   });
 
@@ -232,6 +243,8 @@ describe('Range Parser', () => {
     assert.deepStrictEqual(parseRange('bytes=3-', 20), [3, 19]);
     assert.deepStrictEqual(parseRange('bytes=-8', 20), [12, 19]);
     assert.deepStrictEqual(parseRange('bytes=-1', 20), [19, 19]);
+    assert.deepStrictEqual(parseRange('bytes=-19', 20), [1, 19]);
+    assert.deepStrictEqual(parseRange('bytes=-20', 20), [0, 19]);
   });
 
   describe('结束为空 "bytes=0-"', () => {
