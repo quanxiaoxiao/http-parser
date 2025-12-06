@@ -184,7 +184,7 @@ function validateHeaderValue(
   key: string,
   value: string,
   index: number,
-  lowerKey: string,
+  headerName: string,
 ): ValidationError | null {
   if (typeof value !== 'string') {
     return createError(key, 'Header value must be a string', value, index);
@@ -196,15 +196,15 @@ function validateHeaderValue(
 
   const trimmedValue = value.trim();
 
-  if (HEADER_CONFIGS.numeric.has(lowerKey)) {
+  if (HEADER_CONFIGS.numeric.has(headerName)) {
     return validateNumericHeader(key, value, index, trimmedValue);
   }
 
-  if (HEADER_CONFIGS.date.has(lowerKey)) {
+  if (HEADER_CONFIGS.date.has(headerName)) {
     return validateDateHeader(key, value, index);
   }
 
-  const validator = FORMAT_VALIDATORS[lowerKey];
+  const validator = FORMAT_VALIDATORS[headerName];
   if (validator && !validator(trimmedValue)) {
     return createError(key, `${key} has incorrect format`, value, index);
   }
@@ -219,26 +219,24 @@ export default function validateHeaders(headers: Header): ValidationError[] {
     return errors;
   }
 
-  const headerNames: string[] = [];
+  const headerNames = Object.keys(headers);
 
-  for (const [key, value] of Object.entries(headers)) {
-    if (!PATTERNS.headerName.test(key)) {
-      errors.push(createError(key, 'Header name contains illegal characters', value));
+  for (const headerName of headerNames) {
+    const headerValue = headers[headerName];
+    if (!PATTERNS.headerName.test(headerName)) {
+      errors.push(createError(headerName, 'Header name contains illegal characters', headerValue));
       continue;
     }
 
-    const lowerKey = key.toLowerCase();
-    headerNames.push(lowerKey);
+    const values = Array.isArray(headerValue) ? headerValue : [headerValue];
 
-    const values = Array.isArray(value) ? value : [value];
-
-    if (HEADER_CONFIGS.singleValue.has(lowerKey) && values.length > 1) {
-      errors.push(createError(key, 'Header cannot have multiple values', value));
+    if (HEADER_CONFIGS.singleValue.has(headerName) && values.length > 1) {
+      errors.push(createError(headerName, 'Header cannot have multiple values', headerValue));
       continue;
     }
 
     for (let i = 0; i < values.length; i++) {
-      const error = validateHeaderValue(key, values[i], i, lowerKey);
+      const error = validateHeaderValue(headerName, values[i], i, headerName);
       if (error) {
         errors.push(error);
       }
