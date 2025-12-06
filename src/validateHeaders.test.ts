@@ -33,7 +33,7 @@ describe('HTTP Header Validator', () => {
       };
       const errors = validateHeaders(headers);
       assert.equal(errors.length, 1);
-      assert.equal(errors[0].error, 'The header name contains illegal characters');
+      assert.equal(errors[0].error, 'Header name contains illegal characters');
     });
 
     it('应该接受有效的头部名称字符', () => {
@@ -50,11 +50,11 @@ describe('HTTP Header Validator', () => {
   describe('头部值类型验证', () => {
     it('应该拒绝非字符串类型的值', () => {
       const headers: Header = {
-        'content-length': 123 as any,
+        'content-length': 123 as any,// eslint-disable-line
       };
       const errors = validateHeaders(headers);
       assert.equal(errors.length, 1);
-      assert.equal(errors[0].error, 'The value must be a string');
+      assert.equal(errors[0].error, 'Header value must be a string');
     });
 
     it('应该拒绝包含控制字符的值', () => {
@@ -63,7 +63,7 @@ describe('HTTP Header Validator', () => {
       };
       const errors = validateHeaders(headers);
       assert.equal(errors.length, 1);
-      assert.equal(errors[0].error, 'The value contains illegal control characters');
+      assert.equal(errors[0].error, 'Header value contains illegal control characters');
     });
 
     it('应该拒绝包含换行符的值', () => {
@@ -72,7 +72,7 @@ describe('HTTP Header Validator', () => {
       };
       const errors = validateHeaders(headers);
       assert.equal(errors.length, 1);
-      assert.equal(errors[0].error, 'The value contains illegal control characters');
+      assert.equal(errors[0].error, 'Header value contains illegal control characters');
     });
   });
 
@@ -83,7 +83,7 @@ describe('HTTP Header Validator', () => {
       };
       const errors = validateHeaders(headers);
       assert.equal(errors.length, 1);
-      assert.equal(errors[0].error, 'The header cannot have multiple values');
+      assert.equal(errors[0].error, 'Header cannot have multiple values');
     });
 
     it('应该拒绝多值的 content-length', () => {
@@ -92,7 +92,7 @@ describe('HTTP Header Validator', () => {
       };
       const errors = validateHeaders(headers);
       assert.equal(errors.length, 1);
-      assert.equal(errors[0].error, 'The header cannot have multiple values');
+      assert.equal(errors[0].error, 'Header cannot have multiple values');
     });
 
     it('应该接受单值的 host', () => {
@@ -136,7 +136,7 @@ describe('HTTP Header Validator', () => {
       };
       const errors = validateHeaders(headers);
       assert.equal(errors.length, 1);
-      assert.match(errors[0].error, /Value exceeds safe range/);
+      assert.match(errors[0].error, /value exceeds safe range/);
     });
 
     it('应该接受有效的 max-forwards', () => {
@@ -221,7 +221,7 @@ describe('HTTP Header Validator', () => {
         };
         const errors = validateHeaders(headers);
         assert.equal(errors.length, 1);
-        assert.match(errors[0].error, /Incorrect format/);
+        assert.match(errors[0].error, /has incorrect format/);
       });
     });
 

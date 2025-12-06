@@ -98,8 +98,8 @@ const HEADER_CONFIGS = {
   ]),
 
   conflicts: [
-    ['content-length', 'transfer-encoding'],
-  ],
+    ['content-length', 'transfer-encoding'] as const,
+  ] as const,
 } as const;
 
 const PATTERNS = {
@@ -148,7 +148,21 @@ function validateNumericHeader(
 
   const num = Number(trimmedValue);
   if (num < 0 || !Number.isSafeInteger(num)) {
-    return createError(key, `${key} Value exceeds safe range`, value, index);
+    return createError(key, `${key} value exceeds safe range`, value, index);
+  }
+
+  return null;
+}
+
+function validateConflictHeaders(
+  headerNames: string[],
+): ValidationError | null {
+  const headerSet = new Set(headerNames);
+
+  for (const [name1, name2] of HEADER_CONFIGS.conflicts) {
+    if (headerSet.has(name1) && headerSet.has(name2)) {
+      return createError(name1, `Cannot be used with ${name2}`, undefined);
+    }
   }
 
   return null;
@@ -173,11 +187,11 @@ function validateHeaderValue(
   lowerKey: string,
 ): ValidationError | null {
   if (typeof value !== 'string') {
-    return createError(key, 'The value must be a string', value, index);
+    return createError(key, 'Header value must be a string', value, index);
   }
 
   if (PATTERNS.controlChars.test(value)) {
-    return createError(key, 'The value contains illegal control characters', value, index);
+    return createError(key, 'Header value contains illegal control characters', value, index);
   }
 
   const trimmedValue = value.trim();
@@ -192,7 +206,7 @@ function validateHeaderValue(
 
   const validator = FORMAT_VALIDATORS[lowerKey];
   if (validator && !validator(trimmedValue)) {
-    return createError(key, `${key} Incorrect format`, value, index);
+    return createError(key, `${key} has incorrect format`, value, index);
   }
 
   return null;
@@ -205,17 +219,21 @@ export default function validateHeaders(headers: Header): ValidationError[] {
     return errors;
   }
 
+  const headerNames: string[] = [];
+
   for (const [key, value] of Object.entries(headers)) {
     if (!PATTERNS.headerName.test(key)) {
-      errors.push(createError(key, 'The header name contains illegal characters', value));
+      errors.push(createError(key, 'Header name contains illegal characters', value));
       continue;
     }
 
     const lowerKey = key.toLowerCase();
+    headerNames.push(lowerKey);
+
     const values = Array.isArray(value) ? value : [value];
 
     if (HEADER_CONFIGS.singleValue.has(lowerKey) && values.length > 1) {
-      errors.push(createError(key, 'The header cannot have multiple values', value));
+      errors.push(createError(key, 'Header cannot have multiple values', value));
       continue;
     }
 
@@ -225,6 +243,11 @@ export default function validateHeaders(headers: Header): ValidationError[] {
         errors.push(error);
       }
     }
+  }
+
+  const conflictError = validateConflictHeaders(headerNames);
+  if (conflictError) {
+    errors.push(conflictError);
   }
 
   return errors;
