@@ -5,14 +5,14 @@ import parseResponseLine from './parseResponseLine.js';
 
 describe('parseResponseLine', () => {
   describe('Valid HTTP response lines', () => {
-    it.only('should parse HTTP/1.1 200 OK', () => {
+    it('should parse HTTP/1.1 200 OK', () => {
       const result = parseResponseLine('HTTP/1.1 200 OK');
       assert.strictEqual(result.version, 1.1);
       assert.strictEqual(result.statusCode, 200);
       assert.strictEqual(result.statusMessage, 'OK');
     });
 
-    it.only('should parse HTTP/1.0 404 Not Found', () => {
+    it('should parse HTTP/1.0 404 Not Found', () => {
       const result = parseResponseLine('HTTP/1.0 404 Not Found');
       assert.strictEqual(result.version, 1.0);
       assert.strictEqual(result.statusCode, 404);
@@ -100,8 +100,8 @@ describe('parseResponseLine', () => {
         () => parseResponseLine(''),
         {
           name: 'DecodeHttpError',
-          message: /Invalid input: response line must be a non-empty string/
-        }
+          message: /Invalid input: response line must be a non-empty string/,
+        },
       );
     });
 
@@ -110,8 +110,8 @@ describe('parseResponseLine', () => {
         () => parseResponseLine('   '),
         {
           name: 'DecodeHttpError',
-          message: /Invalid input: response line must be a non-empty string/
-        }
+          message: /Invalid input: response line must be a non-empty string/,
+        },
       );
     });
 
@@ -120,8 +120,8 @@ describe('parseResponseLine', () => {
         () => parseResponseLine(null),
         {
           name: 'DecodeHttpError',
-          message: /Invalid input: response line must be a non-empty string/
-        }
+          message: /Invalid input: response line must be a non-empty string/,
+        },
       );
     });
 
@@ -130,8 +130,8 @@ describe('parseResponseLine', () => {
         () => parseResponseLine(undefined),
         {
           name: 'DecodeHttpError',
-          message: /Invalid input: response line must be a non-empty string/
-        }
+          message: /Invalid input: response line must be a non-empty string/,
+        },
       );
     });
   });
@@ -142,8 +142,8 @@ describe('parseResponseLine', () => {
         () => parseResponseLine('Invalid Response Line'),
         {
           name: 'DecodeHttpError',
-          message: /Failed to parse HTTP response line/
-        }
+          message: /Failed to parse HTTP response line/,
+        },
       );
     });
 
@@ -152,8 +152,8 @@ describe('parseResponseLine', () => {
         () => parseResponseLine('HTTP/1.1'),
         {
           name: 'DecodeHttpError',
-          message: /Failed to parse HTTP response line/
-        }
+          message: /Failed to parse HTTP response line/,
+        },
       );
     });
 
@@ -162,8 +162,8 @@ describe('parseResponseLine', () => {
         () => parseResponseLine('HTTP/2.0 200 OK'),
         {
           name: 'DecodeHttpError',
-          message: /Failed to parse HTTP response line/
-        }
+          message: /Failed to parse HTTP response line/,
+        },
       );
     });
 
@@ -193,8 +193,8 @@ describe('parseResponseLine', () => {
         () => parseResponseLine('HTTP/1.1 600 Above Max'),
         {
           name: 'DecodeHttpError',
-          message: /Invalid HTTP status code.*must be 100-599/
-        }
+          message: /Invalid HTTP status code.*must be 100-599/,
+        },
       );
     });
 
@@ -207,12 +207,12 @@ describe('parseResponseLine', () => {
       );
     });
 
-    it.only('should throw error for floating point status code', () => {
+    it('should throw error for floating point status code', () => {
       assert.throws(
         () => parseResponseLine('HTTP/1.1 200.5 Invalid'),
         {
           name: 'DecodeHttpError',
-        }
+        },
       );
     });
   });
