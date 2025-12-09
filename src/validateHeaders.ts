@@ -236,7 +236,7 @@ export default function validateHeaders(headers: Header): ValidationError[] {
     }
 
     for (let i = 0; i < values.length; i++) {
-      const error = validateHeaderValue(headerName, values[i], i, headerName);
+      const error = validateHeaderValue(headerName, values[i] as string, i, headerName);
       if (error) {
         errors.push(error);
       }
