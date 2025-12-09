@@ -27,7 +27,11 @@ export default function parseRequestLine(str: string): ParsedRequest {
   }
 
   const [, method, path, versionStr] = matches;
-  const version = HTTP_VERSION_MAP[versionStr.toUpperCase()] ?? 1.1;
+  const version = HTTP_VERSION_MAP[versionStr.toUpperCase()];
+
+  if (!version) {
+    throw new DecodeHttpError('Failed to parse HTTP request line: http version invalid');
+  }
 
   return {
     method: method.toUpperCase(),
