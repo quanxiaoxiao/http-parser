@@ -10,7 +10,6 @@ describe('createChunkedState', () => {
     assert.strictEqual(state.phase, 'SIZE');
     assert.strictEqual(state.buffer.length, 0);
     assert.strictEqual(state.currentChunkSize, 0);
-    assert.strictEqual(state.currentChunkRemaining, 0);
     assert.deepStrictEqual(state.bodyChunks, []);
     assert.deepStrictEqual(state.trailers, {});
     assert.strictEqual(state.finished, false);
@@ -95,7 +94,6 @@ describe('parseChunked - incremental parsing', () => {
 
     state = parseChunked(state, Buffer.from('a\r\nhello'));
     assert.strictEqual(state.phase, 'DATA');
-    assert.strictEqual(state.currentChunkRemaining, 5);
 
     state = parseChunked(state, Buffer.from('world\r\n0\r\n\r\n'));
     assert.strictEqual(state.finished, true);

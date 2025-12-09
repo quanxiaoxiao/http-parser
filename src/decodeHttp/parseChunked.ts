@@ -7,7 +7,6 @@ export type ChunkedState = {
   phase: 'SIZE' | 'DATA' | 'CRLF' | 'TRAILER';
   buffer: Buffer;
   currentChunkSize: number;
-  currentChunkRemaining: number;
   bodyChunks: Buffer[];
   trailers: TrailerHeaders;
   finished: boolean;
@@ -23,7 +22,6 @@ export function createChunkedState(): ChunkedState {
     phase: 'SIZE',
     buffer: Buffer.alloc(0),
     currentChunkSize: 0,
-    currentChunkRemaining: 0,
     bodyChunks: [],
     trailers: {},
     finished: false,
@@ -105,23 +103,22 @@ function handleSizePhase(state: ChunkedState): ChunkedState {
     buffer: newBuffer,
     phase: 'DATA',
     currentChunkSize: size,
-    currentChunkRemaining: size,
   };
 }
 
 function handleDataPhase(state: ChunkedState): ChunkedState {
-  if (state.buffer.length < state.currentChunkRemaining) {
+  if (state.buffer.length < state.currentChunkSize) {
     return state;
   }
 
-  const data = state.buffer.slice(0, state.currentChunkRemaining);
-  const rest = state.buffer.slice(state.currentChunkRemaining);
+  const data = state.buffer.slice(0, state.currentChunkSize);
+  const rest = state.buffer.slice(state.currentChunkSize);
 
   return {
     ...state,
     buffer: rest,
     bodyChunks: [...state.bodyChunks, data],
-    currentChunkRemaining: 0,
+    currentChunkSize: 0,
     phase: 'CRLF',
   };
 }
