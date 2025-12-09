@@ -2,9 +2,12 @@ import { DecodeHttpError } from '../errors.js';
 
 const REQUEST_STARTLINE_REG = /^(\w+)\s+([^\s]+)\s+(HTTP\/1\.[01])$/i;
 
+const HTTP_VERSION_1_0 = 1.0;
+const HTTP_VERSION_1_1 = 1.1;
+
 const HTTP_VERSION_MAP: Record<string, number> = {
-  'HTTP/1.0': 1.0,
-  'HTTP/1.1': 1.1,
+  'HTTP/1.0': HTTP_VERSION_1_0,
+  'HTTP/1.1': HTTP_VERSION_1_1,
 };
 
 interface ParsedRequest {
@@ -30,7 +33,7 @@ export default function parseRequestLine(str: string): ParsedRequest {
   const version = HTTP_VERSION_MAP[versionStr.toUpperCase()];
 
   if (!version) {
-    throw new DecodeHttpError('Failed to parse HTTP request line: http version invalid');
+    throw new DecodeHttpError(`Unsupported HTTP version: ${versionStr}`);
   }
 
   return {
