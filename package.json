@@ -9,8 +9,8 @@
   "scripts": {
     "build": "tsc",
     "lint": "eslint src --ext .ts",
-    "test": "TSX_TSCONFIG=tsconfig.test.json node --import tsx --test **/*.test.ts",
-    "test:coverage": "TSX_TSCONFIG=tsconfig.test.json node --import tsx --test --experimental-test-coverage **/*.test.ts",
+    "test": "TSX_TSCONFIG=tsconfig.test.json node --import tsx --test 'src/**/*.test.ts'",
+    "test:coverage": "TSX_TSCONFIG=tsconfig.test.json node --import tsx --test --experimental-test-coverage 'src/**/*.test.ts'",
     "test:single": "TSX_TSCONFIG=tsconfig.test.json node --import tsx --test --test-only"
   },
   "devDependencies": {
