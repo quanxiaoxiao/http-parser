@@ -30,15 +30,15 @@ export default function parseRequestLine(str: string): ParsedRequest {
   }
 
   const [, method, path, versionStr] = matches;
-  const version = HTTP_VERSION_MAP[versionStr.toUpperCase()];
+  const version = HTTP_VERSION_MAP[versionStr?.toUpperCase() as string];
 
   if (!version) {
     throw new DecodeHttpError(`Unsupported HTTP version: ${versionStr}`);
   }
 
   return {
-    method: method.toUpperCase(),
-    path,
+    method: method?.toUpperCase() as string,
+    path: path as string,
     version,
   };
 };
