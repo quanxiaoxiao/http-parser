@@ -1,6 +1,6 @@
 import { DecodeHttpError } from '../errors.js';
 
-const REQUEST_STARTLINE_REG = /^(\w+)\s+(\/[^\s]*|\*)\s+(HTTP\/1\.[01])$/i;
+const REQUEST_STARTLINE_REG = /^(\w+)\s+([^\s]+)\s+(HTTP\/1\.[01])$/i;
 
 const HTTP_VERSION_MAP: Record<string, number> = {
   'HTTP/1.0': 1.0,

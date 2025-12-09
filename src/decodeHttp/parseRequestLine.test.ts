@@ -178,11 +178,13 @@ describe('parseRequestLine', () => {
       );
     });
 
-    it('应该在路径不以 / 开头且不是 * 时抛出错误', () => {
-      assert.throws(
-        () => parseRequestLine('GET api/users HTTP/1.1'),
-        DecodeHttpError,
-      );
+    it('路径不以 / 开头', () => {
+      const result = parseRequestLine('GET api/users HTTP/1.1');
+      assert.deepStrictEqual(result, {
+        method: 'GET',
+        path: 'api/users',
+        version: 1.1,
+      });
     });
 
     it('应该在路径包含空格时抛出错误', () => {
@@ -237,7 +239,7 @@ describe('parseRequestLine', () => {
     });
 
     it('应该截断过长的错误消息', () => {
-      const longInput = 'GET ' + 'a'.repeat(100) + ' HTTP/1.1';
+      const longInput = 'a'.repeat(1000) + ' HTTP/1.1';
       try {
         parseRequestLine(longInput);
         assert.fail('应该抛出错误');
