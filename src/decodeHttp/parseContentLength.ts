@@ -37,7 +37,7 @@ export function parseContentLength(
     throw new DecodeHttpError(`Received more data than Content-Length: ${totalBytes} > ${prev.contentLength}`);
   }
 
-  const finished = totalBytes === prev.contentLength;
+  const finished = totalBytes >= prev.contentLength;
 
   if (onChunk) {
     if (input.length > 0) {

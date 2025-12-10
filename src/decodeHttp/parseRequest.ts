@@ -6,7 +6,7 @@ import parseInteger from '../parseInteger.js';
 import { type Headers } from '../types.js';
 import { type ChunkedState, createChunkedState, parseChunked } from './parseChunked.js';
 import { type ContentLengthState, createContentLengthState, parseContentLength } from './parseContentLength.js';
-import { createHeadersState,type HeadersState, parseHeaders } from './parseHeaders.js';
+import { createHeadersState, type HeadersState, parseHeaders } from './parseHeaders.js';
 import parseRequestLine, { type RequestStartLine } from './parseRequestLine.js';
 
 type RequestPhase = 'STARTLINE' | 'HEADERS' | 'BODY_CHUNKED' | 'BODY_CONTENT_LENGTH';
@@ -23,7 +23,6 @@ function getHeaderValue(headers: Headers, name: string): string | undefined {
 
 export interface RequestState {
   phase: RequestPhase;
-
   buffer: Buffer;
   finished: boolean;
   startLine: RequestStartLine | null;
@@ -48,17 +47,21 @@ function handleStartLinePhase(state: RequestState): RequestState {
   if (!lineBuf) {
     return state;
   }
+
+  const endOfLine = lineBuf.length + CRLF_LENGTH;
+
   return {
     ...state,
-    buffer: buffer.subarray(lineBuf.length + CRLF_LENGTH),
+    buffer: buffer.subarray(endOfLine),
     startLine: parseRequestLine(lineBuf.toString()),
     phase: 'HEADERS',
     headersState: createHeadersState(),
   };
 }
 
-function handleHeadersPhase(state: RequestState):RequestState {
+function handleHeadersPhase(state: RequestState): RequestState {
   const headersState = parseHeaders(state.headersState!, state.buffer);
+
   if (!headersState.finished) {
     return {
       ...state,
@@ -66,46 +69,47 @@ function handleHeadersPhase(state: RequestState):RequestState {
       headersState,
     };
   }
-  const transferEncodingValue = getHeaderValue(headersState.headers!, 'transfer-encoding');
-  if (transferEncodingValue) {
-    return {
-      ...state,
-      headersState: {
-        ...headersState,
-        buffer: Buffer.alloc(0),
-      },
-      buffer: headersState.buffer,
-      phase: 'BODY_CHUNKED',
-      bodyState: createChunkedState(),
-    };
-  }
-  const contentLengthValue = getHeaderValue(headersState.headers!, 'content-length');
-  const length = parseInteger(contentLengthValue ?? '');
-  if (length == null || length === 0) {
-    return {
-      ...state,
-      headersState: {
-        ...headersState,
-        buffer: Buffer.alloc(0),
-      },
-      buffer: headersState.buffer,
-      finished: true,
-    };
-  }
-  return {
+
+  const headers = headersState.headers!;
+  const baseUpdate = {
     ...state,
     headersState: {
       ...headersState,
       buffer: Buffer.alloc(0),
     },
     buffer: headersState.buffer,
-    phase: 'BODY_CONTENT_LENGTH',
-    bodyState: createContentLengthState(length),
+  };
+
+  const transferEncodingValue = getHeaderValue(headers, 'transfer-encoding');
+  if (transferEncodingValue?.toLowerCase() === 'chunked') {
+    return {
+      ...baseUpdate,
+      phase: 'BODY_CHUNKED',
+      bodyState: createChunkedState(),
+    };
+  }
+
+  const contentLengthValue = getHeaderValue(headers, 'content-length');
+  const length = parseInteger(contentLengthValue ?? '');
+
+  if (length != null && length > 0) {
+    return {
+      ...baseUpdate,
+      phase: 'BODY_CONTENT_LENGTH',
+      bodyState: createContentLengthState(length),
+    };
+  }
+
+  return {
+    ...baseUpdate,
+    finished: true,
   };
 }
 
 function handleBodyChunkedPhase(state: RequestState): RequestState {
-  const bodyState = parseChunked(state.bodyState! as ChunkedState, state.buffer);
+  const currentBodyState = state.bodyState as ChunkedState;
+  const bodyState = parseChunked(currentBodyState, state.buffer);
+
   if (!bodyState.finished) {
     return {
       ...state,
@@ -113,6 +117,7 @@ function handleBodyChunkedPhase(state: RequestState): RequestState {
       bodyState,
     };
   }
+
   return {
     ...state,
     finished: true,
@@ -125,7 +130,8 @@ function handleBodyChunkedPhase(state: RequestState): RequestState {
 }
 
 function handleBodyContentLengthPhase(state: RequestState): RequestState {
-  const bodyState = parseContentLength(state.bodyState! as ContentLengthState, state.buffer);
+  const currentBodyState = state.bodyState as ContentLengthState;
+  const bodyState = parseContentLength(currentBodyState, state.buffer);
   if (!bodyState.finished) {
     return {
       ...state,
@@ -133,6 +139,7 @@ function handleBodyContentLengthPhase(state: RequestState): RequestState {
       bodyState,
     };
   }
+
   return {
     ...state,
     finished: true,
@@ -145,8 +152,8 @@ function handleBodyContentLengthPhase(state: RequestState): RequestState {
 }
 
 const phaseHandlers: Record<
-RequestPhase,
-(state: RequestState) => RequestState
+  RequestPhase,
+  (state: RequestState) => RequestState
 > = {
   STARTLINE: handleStartLinePhase,
   HEADERS: handleHeadersPhase,
@@ -164,7 +171,7 @@ export function parseRequest(
 
   let state: RequestState = {
     ...prev,
-    buffer: prev.buffer.length > 0 ? Buffer.concat([prev.buffer, input]) : input,
+    buffer: Buffer.concat([prev.buffer, input]),
   };
 
   while (!state.finished) {
@@ -172,6 +179,7 @@ export function parseRequest(
 
     const handler = phaseHandlers[state.phase];
     state = handler(state);
+
     if (state.phase === prevPhase) {
       break;
     }
