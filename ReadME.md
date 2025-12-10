@@ -1,5 +1,6 @@
-/**
---------- request ---------
+### Request
+
+```
 ┌──────────────────────────────────────────────┐
 │ Start-Line                                   │  ← 例如：GET /path HTTP/1.1
 │                                              │     Method + Request-Target + Version
@@ -15,10 +16,11 @@
 │ Trailer Headers（可选, chunked 特有）           │  ← 如：Content-MD5, Signature
 │                                              │     仅在 Transfer-Encoding: chunked 时出现
 └──────────────────────────────────────────────┘
-*/
+```
 
-/**
---------- response ---------
+
+### Response
+```
 ┌──────────────────────────────────────────────┐
 │ Start-Line                                   │  ← 例如：HTTP/1.1 200 OK
 │                                              │     Version + Status-Code + Reason-Phrase
@@ -34,15 +36,4 @@
 │ Trailer Headers（可选, chunked 特有）           │  ← 如：Content-MD5, Signature
 │                                              │     仅在 Transfer-Encoding: chunked 时出现
 └──────────────────────────────────────────────┘
-*/
-
-export type Headers = Record<string, string | string[]>;
-
-export type HttpMethod = 'GET' | 'PUT' | 'DELETE' | 'POST' | 'PATCH' | 'HEAD' | 'OPTIONS' | 'CONNECT';
-
-export type HttpMessagePhase =
-  | 'StartLine'
-  | 'Headers'
-  | 'HeadersFinished'
-  | 'Body'
-  | 'Finished';
+```
