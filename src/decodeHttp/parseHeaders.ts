@@ -2,15 +2,17 @@ import { DecodeHttpError } from '../errors.js';
 import { type Headers } from '../types.js';
 import parseHeaderLine from './parseHeaderLine.js';
 
-export type HeadersState = {
+export interface HeadersState {
   buffer: Buffer;
   headers: Headers | null;
   finished: boolean;
   rawHeaders: string[];
-};
+}
 
 const DOUBLE_CRLF = Buffer.from('\r\n\r\n');
-const MAX_HEADER_SIZE = 16 * 1024;
+const DOUBLE_CRLF_LENGTH = 4;
+const CRLF = '\r\n';
+const MAX_HEADER_SIZE = 16 * 1024; // 16KB
 
 export function createHeadersState(): HeadersState {
   return {
@@ -27,22 +29,25 @@ function findHeadersEnd(buffer: Buffer): number {
 
 function parseHeadersBlock(headersBuffer: Buffer): [Headers, string[]] {
   const headersText = headersBuffer.toString('utf-8');
-  const lines = headersText.split('\r\n');
+  const lines = headersText.split(CRLF);
   const headers: Headers = {};
-
-  const rawHeaders = [];
+  const rawHeaders: string[] = [];
 
   for (const line of lines) {
-    if (!line.trim()) continue;
-
-    const parsed = parseHeaderLine(line);
-    const [name, value] = parsed;
+    const trimmed = line.trim();
+    if (!trimmed) {
+      continue;
+    }
+    const [name, value] = parseHeaderLine(line);
     rawHeaders.push(name, value);
-    const lowerCaseName = name.toLowerCase();
-    if (headers[lowerCaseName]) {
-      headers[lowerCaseName] = [...(Array.isArray(headers[lowerCaseName]) ? headers[lowerCaseName] : [headers[lowerCaseName]]), value];
+    const lowerName = name.toLowerCase();
+    const existing = headers[lowerName];
+    if (existing !== undefined) {
+      headers[lowerName] = Array.isArray(existing)
+        ? [...existing, value]
+        : [existing, value];
     } else {
-      headers[lowerCaseName] = value;
+      headers[lowerName] = value;
     }
   }
 
@@ -66,7 +71,6 @@ export function parseHeaders(
   }
 
   const headersEnd = findHeadersEnd(newBuffer);
-
   if (headersEnd === -1) {
     return {
       buffer: newBuffer,
@@ -76,11 +80,11 @@ export function parseHeaders(
     };
   }
 
-  const headersBuffer = newBuffer.slice(0, headersEnd);
+  const headersBuffer = newBuffer.subarray(0, headersEnd);
   const [headers, rawHeaders] = parseHeadersBlock(headersBuffer);
 
   return {
-    buffer: newBuffer,
+    buffer: newBuffer.subarray(headersEnd + DOUBLE_CRLF_LENGTH),
     headers,
     rawHeaders,
     finished: true,
