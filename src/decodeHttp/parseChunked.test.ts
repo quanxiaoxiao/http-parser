@@ -197,7 +197,7 @@ describe('parseChunked - error handling', () => {
 
     assert.throws(
       () => parseChunked(state, input),
-      /Invalid chunk size/,
+      /Invalid hexadecimal chunk size/,
     );
   });
 
@@ -207,7 +207,7 @@ describe('parseChunked - error handling', () => {
 
     assert.throws(
       () => parseChunked(state, input),
-      /Invalid chunk size/,
+      /Negative chunk size not allowed/,
     );
   });
 

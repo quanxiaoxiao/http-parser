@@ -3,8 +3,10 @@ import { DecodeHttpError } from '../errors.js';
 
 export type TrailerHeaders = Record<string, string>;
 
+export type ChunkedPhase = 'SIZE' | 'DATA' | 'CRLF' | 'TRAILER';
+
 export type ChunkedState = {
-  phase: 'SIZE' | 'DATA' | 'CRLF' | 'TRAILER';
+  phase: ChunkedPhase;
   buffer: Buffer;
   currentChunkSize: number;
   bodyChunks: Buffer[];
@@ -14,13 +16,14 @@ export type ChunkedState = {
 
 const CR = 0x0d;
 const LF = 0x0a;
-const DOUBLE_CRLF_LENGTH = 4;
 const CRLF_LENGTH = 2;
+const DOUBLE_CRLF_LENGTH = 4;
+const EMPTY_BUFFER = Buffer.alloc(0);
 
 export function createChunkedState(): ChunkedState {
   return {
     phase: 'SIZE',
-    buffer: Buffer.alloc(0),
+    buffer: EMPTY_BUFFER,
     currentChunkSize: 0,
     bodyChunks: [],
     trailers: {},
@@ -29,9 +32,17 @@ export function createChunkedState(): ChunkedState {
 }
 
 function indexOfDoubleCRLF(buf: Buffer): number {
-  const maxIndex = buf.length - 3;
+  const len = buf.length;
+  if (len < DOUBLE_CRLF_LENGTH) return -1;
+
+  const maxIndex = len - 3;
   for (let i = 0; i < maxIndex; i++) {
-    if (buf[i] === CR && buf[i + 1] === LF && buf[i + 2] === CR && buf[i + 3] === LF) {
+    if (
+      buf[i] === CR &&
+      buf[i + 1] === LF &&
+      buf[i + 2] === CR &&
+      buf[i + 3] === LF
+    ) {
       return i;
     }
   }
@@ -40,13 +51,19 @@ function indexOfDoubleCRLF(buf: Buffer): number {
 
 function parseChunkSize(line: string): number {
   const sizeHex = line.split(';', 1)[0]?.trim();
+
   if (!sizeHex) {
-    throw new DecodeHttpError(`Invalid chunk size line: "${line}"`);
+    throw new DecodeHttpError('Empty chunk size line');
   }
 
   const size = parseInt(sizeHex, 16);
-  if (Number.isNaN(size) || size < 0) {
-    throw new DecodeHttpError(`Invalid chunk size: "${line}"`);
+
+  if (Number.isNaN(size)) {
+    throw new DecodeHttpError(`Invalid hexadecimal chunk size: "${sizeHex}"`);
+  }
+
+  if (size < 0) {
+    throw new DecodeHttpError(`Negative chunk size not allowed: ${size}`);
   }
 
   return size;
@@ -56,25 +73,35 @@ function parseTrailerHeaders(raw: string): TrailerHeaders {
   const trailers: TrailerHeaders = {};
   const trimmed = raw.trim();
 
-  if (trimmed.length === 0) {
+  if (!trimmed) {
     return trailers;
   }
 
   const lines = trimmed.split('\r\n');
+
   for (const line of lines) {
+    if (!line.trim()) {
+      continue;
+    }
+
     const colonIndex = line.indexOf(':');
+
     if (colonIndex <= 0) {
-      throw new DecodeHttpError(`Invalid trailer header: ${line}`);
+      throw new DecodeHttpError(`Invalid trailer header (missing colon): "${line}"`);
     }
 
     const key = line.slice(0, colonIndex).trim().toLowerCase();
     const value = line.slice(colonIndex + 1).trim();
 
     if (!key) {
-      throw new DecodeHttpError(`Invalid trailer header: ${line}`);
+      throw new DecodeHttpError(`Invalid trailer header (empty key): "${line}"`);
     }
 
-    trailers[key] = value;
+    if (trailers[key]) {
+      trailers[key] += `, ${value}`;
+    } else {
+      trailers[key] = value;
+    }
   }
 
   return trailers;
@@ -82,12 +109,14 @@ function parseTrailerHeaders(raw: string): TrailerHeaders {
 
 function handleSizePhase(state: ChunkedState): ChunkedState {
   const lineBuf = decodeHttpLine(state.buffer);
+
   if (!lineBuf) {
     return state;
   }
 
-  const line = lineBuf.toString();
-  const newBuffer = state.buffer.slice(lineBuf.length + CRLF_LENGTH);
+  const line = lineBuf.toString('ascii');
+  const consumed = lineBuf.length + CRLF_LENGTH;
+  const newBuffer = state.buffer.subarray(consumed);
   const size = parseChunkSize(line);
 
   if (size === 0) {
@@ -110,12 +139,15 @@ function handleDataPhase(
   state: ChunkedState,
   onChunk?: (chunk: Buffer) => void,
 ): ChunkedState {
-  if (state.buffer.length < state.currentChunkSize) {
+  const { buffer, currentChunkSize } = state;
+
+  if (buffer.length < currentChunkSize) {
     return state;
   }
 
-  const rest = state.buffer.slice(state.currentChunkSize);
-  const data = state.buffer.slice(0, state.currentChunkSize);
+  const data = buffer.subarray(0, currentChunkSize);
+  const rest = buffer.subarray(currentChunkSize);
+
   if (onChunk) {
     onChunk(data);
     return {
@@ -137,23 +169,29 @@ function handleDataPhase(
 }
 
 function handleCRLFPhase(state: ChunkedState): ChunkedState {
-  if (state.buffer.length < CRLF_LENGTH) {
+  const { buffer } = state;
+
+  if (buffer.length < CRLF_LENGTH) {
     return state;
   }
 
-  if (state.buffer[0] !== CR || state.buffer[1] !== LF) {
-    throw new DecodeHttpError('Missing CRLF after chunk data');
+  if (buffer[0] !== CR || buffer[1] !== LF) {
+    throw new DecodeHttpError(
+      `Missing CRLF after chunk data (got: 0x${buffer[0]?.toString(16)} 0x${buffer[1]?.toString(16)})`,
+    );
   }
 
   return {
     ...state,
-    buffer: state.buffer.slice(CRLF_LENGTH),
+    buffer: buffer.subarray(CRLF_LENGTH),
     phase: 'SIZE',
   };
 }
 
 function handleTrailerPhase(state: ChunkedState): ChunkedState {
-  const endBuf = decodeHttpLine(state.buffer);
+  const { buffer } = state;
+  const endBuf = decodeHttpLine(buffer);
+
   if (!endBuf) {
     return state;
   }
@@ -161,18 +199,19 @@ function handleTrailerPhase(state: ChunkedState): ChunkedState {
   if (endBuf.length === 0) {
     return {
       ...state,
-      buffer: state.buffer.slice(CRLF_LENGTH),
+      buffer: buffer.subarray(CRLF_LENGTH),
       finished: true,
     };
   }
 
-  const idx = indexOfDoubleCRLF(state.buffer);
+  const idx = indexOfDoubleCRLF(buffer);
+
   if (idx < 0) {
     return state;
   }
 
-  const raw = state.buffer.slice(0, idx).toString();
-  const rest = state.buffer.slice(idx + DOUBLE_CRLF_LENGTH);
+  const raw = buffer.subarray(0, idx).toString('utf8');
+  const rest = buffer.subarray(idx + DOUBLE_CRLF_LENGTH);
   const trailers = parseTrailerHeaders(raw);
 
   return {
@@ -182,6 +221,16 @@ function handleTrailerPhase(state: ChunkedState): ChunkedState {
     finished: true,
   };
 }
+
+const phaseHandlers: Record<
+  ChunkedPhase,
+  (state: ChunkedState, onChunk?: (chunk: Buffer) => void) => ChunkedState
+> = {
+  SIZE: handleSizePhase,
+  DATA: handleDataPhase,
+  CRLF: handleCRLFPhase,
+  TRAILER: handleTrailerPhase,
+};
 
 export function parseChunked(
   prev: ChunkedState,
@@ -194,30 +243,16 @@ export function parseChunked(
 
   let state: ChunkedState = {
     ...prev,
-    buffer: Buffer.concat([prev.buffer, input]),
+    buffer: prev.buffer.length > 0 ? Buffer.concat([prev.buffer, input]) : input,
   };
 
-  while (true) {
+  while (!state.finished) {
     const prevPhase = state.phase;
+    const handler = phaseHandlers[state.phase];
 
-    switch (state.phase) {
-    case 'SIZE':
-      state = handleSizePhase(state);
-      break;
-    case 'DATA':
-      state = handleDataPhase(state, onChunk);
-      break;
-    case 'CRLF':
-      state = handleCRLFPhase(state);
-      break;
-    case 'TRAILER':
-      state = handleTrailerPhase(state);
-      break;
-    default:
-      break;
-    }
+    state = handler(state, onChunk);
 
-    if (state.phase === prevPhase || state.finished) {
+    if (state.phase === prevPhase) {
       break;
     }
   }
