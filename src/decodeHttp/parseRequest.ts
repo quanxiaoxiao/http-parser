@@ -2,12 +2,24 @@ import { Buffer } from 'node:buffer';
 
 import decodeHttpLine from '../decodeHttpLine.js';
 import { DecodeHttpError } from '../errors.js';
+import parseInteger from '../parseInteger.js';
+import { type Headers } from '../types.js';
+import { type ChunkedState, createChunkedState, parseChunked } from './parseChunked.js';
+import { type ContentLengthState, createContentLengthState, parseContentLength } from './parseContentLength.js';
 import { createHeadersState,type HeadersState, parseHeaders } from './parseHeaders.js';
 import parseRequestLine, { type RequestStartLine } from './parseRequestLine.js';
 
-type RequestPhase = 'STARTLINE' | 'HEADERS' | 'BODY';
+type RequestPhase = 'STARTLINE' | 'HEADERS' | 'BODY_CHUNKED' | 'BODY_CONTENT_LENGTH';
 
 const CRLF_LENGTH = 2;
+
+function getHeaderValue(headers: Headers, name: string): string | undefined {
+  const value = headers[name];
+  if (!value) {
+    return undefined;
+  }
+  return Array.isArray(value) ? value[0] : value;
+}
 
 export interface RequestState {
   phase: RequestPhase;
@@ -16,6 +28,7 @@ export interface RequestState {
   finished: boolean;
   startLine: RequestStartLine | null;
   headersState: HeadersState | null;
+  bodyState: ChunkedState | ContentLengthState | null;
 }
 
 export function createRequestState(): RequestState {
@@ -25,6 +38,7 @@ export function createRequestState(): RequestState {
     finished: false,
     startLine: null,
     headersState: null,
+    bodyState: null,
   };
 }
 
@@ -45,7 +59,15 @@ function handleStartLinePhase(state: RequestState): RequestState {
 
 function handleHeadersPhase(state: RequestState):RequestState {
   const headersState = parseHeaders(state.headersState!, state.buffer);
-  if (headersState.finished) {
+  if (!headersState.finished) {
+    return {
+      ...state,
+      buffer: Buffer.alloc(0),
+      headersState,
+    };
+  }
+  const transferEncodingValue = getHeaderValue(headersState.headers!, 'transfer-encoding');
+  if (transferEncodingValue) {
     return {
       ...state,
       headersState: {
@@ -53,18 +75,73 @@ function handleHeadersPhase(state: RequestState):RequestState {
         buffer: Buffer.alloc(0),
       },
       buffer: headersState.buffer,
-      phase: 'BODY',
+      phase: 'BODY_CHUNKED',
+      bodyState: createChunkedState(),
+    };
+  }
+  const contentLengthValue = getHeaderValue(headersState.headers!, 'content-length');
+  const length = parseInteger(contentLengthValue ?? '');
+  if (length == null || length === 0) {
+    return {
+      ...state,
+      headersState: {
+        ...headersState,
+        buffer: Buffer.alloc(0),
+      },
+      buffer: headersState.buffer,
+      finished: true,
     };
   }
   return {
     ...state,
-    buffer: Buffer.alloc(0),
-    headersState,
+    headersState: {
+      ...headersState,
+      buffer: Buffer.alloc(0),
+    },
+    buffer: headersState.buffer,
+    phase: 'BODY_CONTENT_LENGTH',
+    bodyState: createContentLengthState(length),
   };
 }
 
-function handleBodyPhase(state: RequestState): RequestState {
-  return state;
+function handleBodyChunkedPhase(state: RequestState): RequestState {
+  const bodyState = parseChunked(state.bodyState! as ChunkedState, state.buffer);
+  if (!bodyState.finished) {
+    return {
+      ...state,
+      buffer: Buffer.alloc(0),
+      bodyState,
+    };
+  }
+  return {
+    ...state,
+    finished: true,
+    bodyState: {
+      ...bodyState,
+      buffer: Buffer.alloc(0),
+    },
+    buffer: bodyState.buffer,
+  };
+}
+
+function handleBodyContentLengthPhase(state: RequestState): RequestState {
+  const bodyState = parseContentLength(state.bodyState! as ContentLengthState, state.buffer);
+  if (!bodyState.finished) {
+    return {
+      ...state,
+      buffer: Buffer.alloc(0),
+      bodyState,
+    };
+  }
+  return {
+    ...state,
+    finished: true,
+    bodyState: {
+      ...bodyState,
+      buffer: Buffer.alloc(0),
+    },
+    buffer: bodyState.buffer,
+  };
 }
 
 const phaseHandlers: Record<
@@ -73,7 +150,8 @@ RequestPhase,
 > = {
   STARTLINE: handleStartLinePhase,
   HEADERS: handleHeadersPhase,
-  BODY: handleBodyPhase,
+  BODY_CHUNKED: handleBodyChunkedPhase,
+  BODY_CONTENT_LENGTH: handleBodyContentLengthPhase,
 };
 
 export function parseRequest(
