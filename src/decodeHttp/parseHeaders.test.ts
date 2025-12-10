@@ -1,24 +1,8 @@
 import * as assert from 'node:assert';
-import { describe, it, mock } from 'node:test';
+import { describe, it } from 'node:test';
 
+import { DecodeHttpError } from '../errors.js';
 import { createHeadersState, type HeadersState,parseHeaders } from './parseHeaders.js';
-
-const mockDecodeHttpError = class DecodeHttpError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'DecodeHttpError';
-  }
-};
-
-const mockParseHeaderLine = mock.fn((line: string): [string, string] => {
-  const colonIndex = line.indexOf(':');
-  if (colonIndex === -1) {
-    return [line.trim(), ''];
-  }
-  const name = line.slice(0, colonIndex).trim();
-  const value = line.slice(colonIndex + 1).trim();
-  return [name, value];
-});
 
 describe('parseHeaders', () => {
   describe('createHeadersState', () => {
@@ -286,4 +270,103 @@ describe('parseHeaders', () => {
       assert.strictEqual(state.headers!['content-length'], '100');
     });
   });
+});
+
+describe('parseHeaders handles leading body data in the remaining buffer', () => {
+  const headerBlock = 'Content-Type: application/xml\r\n\r\n<body>content</body>';
+  const input = Buffer.from(headerBlock, 'utf-8');
+  const prevState = createHeadersState();
+
+  const nextState = parseHeaders(prevState, input);
+
+  assert.strictEqual(nextState.finished, true, 'Should be finished');
+  assert.strictEqual(nextState.buffer.toString('utf-8'), '<body>content</body>', 'Remaining buffer should contain body data');
+});
+
+describe('parseHeaders throws DecodeHttpError when headers exceed MAX_HEADER_SIZE', () => {
+  const prevState = createHeadersState();
+  const largeHeaderLine = 'X-Large-Header: ' + 'a'.repeat(16 * 1024); // 超过 16KB 限制
+  const input = Buffer.from(largeHeaderLine, 'utf-8');
+
+  assert.throws(
+    () => parseHeaders(prevState, input),
+    DecodeHttpError,
+    'Should throw DecodeHttpError when headers exceed MAX_HEADER_SIZE',
+  );
+});
+
+describe('createHeadersState should return an initial empty state', () => {
+  const state = createHeadersState();
+  assert.deepStrictEqual(state, {
+    buffer: Buffer.alloc(0),
+    headers: null,
+    rawHeaders: [],
+    finished: false,
+  }, 'Initial state should be correct');
+});
+
+describe('parseHeaders handles simple single-chunk header', () => {
+  const headerBlock = 'HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 123\r\n\r\n';
+  const input = Buffer.from(headerBlock, 'utf-8');
+  const prevState = createHeadersState();
+  assert.throws(
+    () => parseHeaders(prevState, input),
+  );
+});
+
+describe('parseHeaders handles headers split into multiple chunks (incomplete first chunk)', () => {
+  const headerPart1 = 'Content-Type: text/plain\r\nCon';
+  const headerPart2 = 'tent-Length: 456\r\nConnection: close\r\n\r\nBody data';
+
+  let prevState = createHeadersState();
+  const input1 = Buffer.from(headerPart1, 'utf-8');
+  const input2 = Buffer.from(headerPart2, 'utf-8');
+
+  // 第一次调用：只提供一部分，应该未完成
+  let nextState = parseHeaders(prevState, input1);
+  assert.strictEqual(nextState.finished, false, 'First call: Should not be finished');
+  assert.strictEqual(nextState.headers, null, 'First call: Headers should be null');
+  assert.strictEqual(nextState.buffer.toString('utf-8'), headerPart1, 'First call: Buffer should contain the first part');
+
+  // 第二次调用：提供剩余部分，应该完成
+  prevState = nextState;
+  nextState = parseHeaders(prevState, input2);
+
+  assert.strictEqual(nextState.finished, true, 'Second call: Should be finished');
+  assert.strictEqual(nextState.buffer.toString('utf-8'), 'Body data', 'Remaining buffer should contain body data');
+  assert.deepStrictEqual(nextState.headers, {
+    'content-type': 'text/plain',
+    'content-length': '456',
+    connection: 'close',
+  }, 'Parsed headers should be correct');
+});
+
+describe('parseHeaders handles multi-value headers', () => {
+  const headerBlock = 'Set-Cookie: a=1\r\nSet-Cookie: b=2; Path=/\r\n\r\n';
+  const input = Buffer.from(headerBlock, 'utf-8');
+  const prevState = createHeadersState();
+
+  const nextState = parseHeaders(prevState, input);
+
+  assert.strictEqual(nextState.finished, true, 'Should be finished');
+  assert.deepStrictEqual(nextState.headers['set-cookie'], [
+    'a=1',
+    'b=2; Path=/',
+  ], 'Multi-value headers should be an array');
+});
+
+describe('parseHeaders throws DecodeHttpError when headers are already finished', () => {
+  const finishedState = {
+    buffer: Buffer.alloc(0),
+    headers: {},
+    rawHeaders: [],
+    finished: true, // 已完成
+  };
+  const input = Buffer.from('Any data');
+
+  assert.throws(
+    () => parseHeaders(finishedState, input),
+    DecodeHttpError,
+    'Should throw DecodeHttpError when already finished',
+  );
 });
