@@ -106,13 +106,26 @@ function handleSizePhase(state: ChunkedState): ChunkedState {
   };
 }
 
-function handleDataPhase(state: ChunkedState): ChunkedState {
+function handleDataPhase(
+  state: ChunkedState,
+  onChunk?: (chunk: Buffer) => void,
+): ChunkedState {
   if (state.buffer.length < state.currentChunkSize) {
     return state;
   }
 
-  const data = state.buffer.slice(0, state.currentChunkSize);
   const rest = state.buffer.slice(state.currentChunkSize);
+  const data = state.buffer.slice(0, state.currentChunkSize);
+  if (onChunk) {
+    onChunk(data);
+    return {
+      ...state,
+      buffer: rest,
+      bodyChunks: [],
+      currentChunkSize: 0,
+      phase: 'CRLF',
+    };
+  }
 
   return {
     ...state,
@@ -170,7 +183,11 @@ function handleTrailerPhase(state: ChunkedState): ChunkedState {
   };
 }
 
-export function parseChunked(prev: ChunkedState, input: Buffer): ChunkedState {
+export function parseChunked(
+  prev: ChunkedState,
+  input: Buffer,
+  onChunk?: (chunk: Buffer) => void,
+): ChunkedState {
   if (prev.finished) {
     throw new DecodeHttpError('Chunked decoding already finished');
   }
@@ -188,7 +205,7 @@ export function parseChunked(prev: ChunkedState, input: Buffer): ChunkedState {
       state = handleSizePhase(state);
       break;
     case 'DATA':
-      state = handleDataPhase(state);
+      state = handleDataPhase(state, onChunk);
       break;
     case 'CRLF':
       state = handleCRLFPhase(state);
