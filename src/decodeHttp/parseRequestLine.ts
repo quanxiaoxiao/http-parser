@@ -10,13 +10,13 @@ const HTTP_VERSION_MAP: Record<string, number> = {
   'HTTP/1.1': HTTP_VERSION_1_1,
 };
 
-interface ParsedRequest {
+export interface RequestStartLine {
   method: string;
   path: string;
   version: number;
 }
 
-export default function parseRequestLine(str: string): ParsedRequest {
+export default function parseRequestLine(str: string): RequestStartLine {
   if (!str || typeof str !== 'string') {
     throw new DecodeHttpError('Invalid input: request line must be a non-empty string');
   }
