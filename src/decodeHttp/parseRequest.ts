@@ -1,8 +1,8 @@
 import { Buffer } from 'node:buffer';
 
+import decodeHttpLine from '../decodeHttpLine.js';
 import { DecodeHttpError } from '../errors.js';
 import { type Headers } from '../types.js';
-import decodeHttpLine from '../decodeHttpLine.js';
 import parseRequestLine, { type RequestStartLine } from './parseRequestLine.js';
 
 type RequestPhase = 'STARTLINE' | 'HEADERS' | 'CRLF' | 'BODY';
