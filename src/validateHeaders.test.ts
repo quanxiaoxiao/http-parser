@@ -1,10 +1,10 @@
 import * as assert from 'node:assert';
 import { describe, it } from 'node:test';
 
-import { type Header } from './types.js';
+import { type Headers } from './types.js';
 import validateHeaders from './validateHeaders.js';
 
-describe('HTTP Header Validator', () => {
+describe('HTTP Headers Validator', () => {
   describe('基本功能测试', () => {
     it('应该接受空对象', () => {
       const errors = validateHeaders({});
@@ -17,7 +17,7 @@ describe('HTTP Header Validator', () => {
     });
 
     it('应该接受有效的简单头部', () => {
-      const headers: Header = {
+      const headers: Headers = {
         'content-type': 'application/json',
         'user-agent': 'Mozilla/5.0',
       };
@@ -28,16 +28,16 @@ describe('HTTP Header Validator', () => {
 
   describe('头部名称验证', () => {
     it('应该拒绝包含非法字符的头部名称', () => {
-      const headers: Header = {
+      const headers: Headers = {
         'invalid header': 'value',
       };
       const errors = validateHeaders(headers);
       assert.equal(errors.length, 1);
-      assert.equal(errors[0].error, 'Header name contains illegal characters');
+      assert.equal(errors[0].error, 'Headers name contains illegal characters');
     });
 
     it('应该接受有效的头部名称字符', () => {
-      const headers: Header = {
+      const headers: Headers = {
         'x-custom-header': 'value',
         'accept-language': 'en-US',
         'x-api-key_123': 'secret',
@@ -49,54 +49,54 @@ describe('HTTP Header Validator', () => {
 
   describe('头部值类型验证', () => {
     it('应该拒绝非字符串类型的值', () => {
-      const headers: Header = {
+      const headers: Headers = {
         'content-length': 123 as any,// eslint-disable-line
       };
       const errors = validateHeaders(headers);
       assert.equal(errors.length, 1);
-      assert.equal(errors[0].error, 'Header value must be a string');
+      assert.equal(errors[0].error, 'Headers value must be a string');
     });
 
     it('应该拒绝包含控制字符的值', () => {
-      const headers: Header = {
+      const headers: Headers = {
         'user-agent': 'Mozilla/5.0\x00',
       };
       const errors = validateHeaders(headers);
       assert.equal(errors.length, 1);
-      assert.equal(errors[0].error, 'Header value contains illegal control characters');
+      assert.equal(errors[0].error, 'Headers value contains illegal control characters');
     });
 
     it('应该拒绝包含换行符的值', () => {
-      const headers: Header = {
+      const headers: Headers = {
         'user-agent': 'Mozilla/5.0\nInjected',
       };
       const errors = validateHeaders(headers);
       assert.equal(errors.length, 1);
-      assert.equal(errors[0].error, 'Header value contains illegal control characters');
+      assert.equal(errors[0].error, 'Headers value contains illegal control characters');
     });
   });
 
   describe('单值头部验证', () => {
     it('应该拒绝多值的 content-type', () => {
-      const headers: Header = {
+      const headers: Headers = {
         'content-type': ['application/json', 'text/html'],
       };
       const errors = validateHeaders(headers);
       assert.equal(errors.length, 1);
-      assert.equal(errors[0].error, 'Header cannot have multiple values');
+      assert.equal(errors[0].error, 'Headers cannot have multiple values');
     });
 
     it('应该拒绝多值的 content-length', () => {
-      const headers: Header = {
+      const headers: Headers = {
         'content-length': ['100', '200'],
       };
       const errors = validateHeaders(headers);
       assert.equal(errors.length, 1);
-      assert.equal(errors[0].error, 'Header cannot have multiple values');
+      assert.equal(errors[0].error, 'Headers cannot have multiple values');
     });
 
     it('应该接受单值的 host', () => {
-      const headers: Header = {
+      const headers: Headers = {
         host: 'example.com',
       };
       const errors = validateHeaders(headers);
@@ -106,7 +106,7 @@ describe('HTTP Header Validator', () => {
 
   describe('数字类型头部验证', () => {
     it('应该接受有效的 content-length', () => {
-      const headers: Header = {
+      const headers: Headers = {
         'content-length': '1024',
       };
       const errors = validateHeaders(headers);
@@ -114,7 +114,7 @@ describe('HTTP Header Validator', () => {
     });
 
     it('应该拒绝非数字的 content-length', () => {
-      const headers: Header = {
+      const headers: Headers = {
         'content-length': 'abc',
       };
       const errors = validateHeaders(headers);
@@ -123,7 +123,7 @@ describe('HTTP Header Validator', () => {
     });
 
     it('应该拒绝负数的 content-length', () => {
-      const headers: Header = {
+      const headers: Headers = {
         'content-length': '-100',
       };
       const errors = validateHeaders(headers);
@@ -131,7 +131,7 @@ describe('HTTP Header Validator', () => {
     });
 
     it('应该拒绝超出安全范围的数字', () => {
-      const headers: Header = {
+      const headers: Headers = {
         'content-length': '9007199254740992', // Number.MAX_SAFE_INTEGER + 1
       };
       const errors = validateHeaders(headers);
@@ -140,7 +140,7 @@ describe('HTTP Header Validator', () => {
     });
 
     it('应该接受有效的 max-forwards', () => {
-      const headers: Header = {
+      const headers: Headers = {
         'max-forwards': '10',
       };
       const errors = validateHeaders(headers);
@@ -148,7 +148,7 @@ describe('HTTP Header Validator', () => {
     });
 
     it('应该接受有效的 age', () => {
-      const headers: Header = {
+      const headers: Headers = {
         age: '3600',
       };
       const errors = validateHeaders(headers);
@@ -158,7 +158,7 @@ describe('HTTP Header Validator', () => {
 
   describe('日期类型头部验证', () => {
     it('应该接受有效的 Date 头部', () => {
-      const headers: Header = {
+      const headers: Headers = {
         date: 'Wed, 21 Oct 2015 07:28:00 GMT',
       };
       const errors = validateHeaders(headers);
@@ -166,7 +166,7 @@ describe('HTTP Header Validator', () => {
     });
 
     it('应该接受有效的 expires', () => {
-      const headers: Header = {
+      const headers: Headers = {
         expires: 'Thu, 01 Jan 2026 00:00:00 GMT',
       };
       const errors = validateHeaders(headers);
@@ -174,7 +174,7 @@ describe('HTTP Header Validator', () => {
     });
 
     it('应该拒绝无效的日期格式', () => {
-      const headers: Header = {
+      const headers: Headers = {
         date: 'invalid-date',
       };
       const errors = validateHeaders(headers);
@@ -183,7 +183,7 @@ describe('HTTP Header Validator', () => {
     });
 
     it('应该接受有效的 last-modified', () => {
-      const headers: Header = {
+      const headers: Headers = {
         'last-modified': 'Mon, 01 Jan 2024 12:00:00 GMT',
       };
       const errors = validateHeaders(headers);
@@ -191,7 +191,7 @@ describe('HTTP Header Validator', () => {
     });
 
     it('应该接受有效的 if-modified-since', () => {
-      const headers: Header = {
+      const headers: Headers = {
         'if-modified-since': 'Sat, 29 Feb 2020 00:00:00 GMT',
       };
       const errors = validateHeaders(headers);
@@ -216,7 +216,7 @@ describe('HTTP Header Validator', () => {
       });
 
       it('应该拒绝无效的 content-type', () => {
-        const headers: Header = {
+        const headers: Headers = {
           'content-type': 'invalid',
         };
         const errors = validateHeaders(headers);
@@ -242,7 +242,7 @@ describe('HTTP Header Validator', () => {
       });
 
       it('应该拒绝无效的 host', () => {
-        const headers: Header = {
+        const headers: Headers = {
           host: 'invalid host with spaces',
         };
         const errors = validateHeaders(headers);
@@ -265,7 +265,7 @@ describe('HTTP Header Validator', () => {
       });
 
       it('应该拒绝无效的 authorization', () => {
-        const headers: Header = {
+        const headers: Headers = {
           authorization: 'InvalidFormat',
         };
         const errors = validateHeaders(headers);
@@ -290,7 +290,7 @@ describe('HTTP Header Validator', () => {
       });
 
       it('应该拒绝无效的 range', () => {
-        const headers: Header = {
+        const headers: Headers = {
           range: 'invalid-range',
         };
         const errors = validateHeaders(headers);
@@ -315,7 +315,7 @@ describe('HTTP Header Validator', () => {
       });
 
       it('应该拒绝无效的 cache-control', () => {
-        const headers: Header = {
+        const headers: Headers = {
           'cache-control': 'invalid-directive',
         };
         const errors = validateHeaders(headers);
@@ -326,7 +326,7 @@ describe('HTTP Header Validator', () => {
 
   describe('数组值头部验证', () => {
     it('应该验证数组中的每个值', () => {
-      const headers: Header = {
+      const headers: Headers = {
         'accept-language': ['en-US', 'zh-CN', 'ja'],
       };
       const errors = validateHeaders(headers);
@@ -334,7 +334,7 @@ describe('HTTP Header Validator', () => {
     });
 
     it('应该报告数组中每个无效值的错误', () => {
-      const headers: Header = {
+      const headers: Headers = {
         'x-custom': ['valid', 'also\x00invalid', 'valid-again'],
       };
       const errors = validateHeaders(headers);
@@ -345,7 +345,7 @@ describe('HTTP Header Validator', () => {
 
   describe('复杂场景测试', () => {
     it('应该处理混合有效和无效的头部', () => {
-      const headers: Header = {
+      const headers: Headers = {
         'content-type': 'application/json',
         'content-length': 'invalid',
         host: 'example.com',
@@ -356,7 +356,7 @@ describe('HTTP Header Validator', () => {
     });
 
     it('应该处理大量头部', () => {
-      const headers: Header = {};
+      const headers: Headers = {};
       for (let i = 0; i < 100; i++) {
         headers[`x-custom-${i}`] = `value-${i}`;
       }
@@ -365,7 +365,7 @@ describe('HTTP Header Validator', () => {
     });
 
     it('应该正确报告多个错误', () => {
-      const headers: Header = {
+      const headers: Headers = {
         'content-length': ['100', '200'], // 多值错误
         date: 'invalid-date', // 日期格式错误
         'invalid header': 'value', // 名称错误
@@ -377,7 +377,7 @@ describe('HTTP Header Validator', () => {
 
   describe('边界情况测试', () => {
     it('应该处理空字符串值', () => {
-      const headers: Header = {
+      const headers: Headers = {
         'x-custom': '',
       };
       const errors = validateHeaders(headers);
@@ -385,7 +385,7 @@ describe('HTTP Header Validator', () => {
     });
 
     it('应该处理带有空格的值', () => {
-      const headers: Header = {
+      const headers: Headers = {
         'user-agent': '  Mozilla/5.0  ',
       };
       const errors = validateHeaders(headers);
@@ -393,7 +393,7 @@ describe('HTTP Header Validator', () => {
     });
 
     it('应该接受零值的 content-length', () => {
-      const headers: Header = {
+      const headers: Headers = {
         'content-length': '0',
       };
       const errors = validateHeaders(headers);
@@ -401,7 +401,7 @@ describe('HTTP Header Validator', () => {
     });
 
     it('应该接受最大安全整数', () => {
-      const headers: Header = {
+      const headers: Headers = {
         'content-length': '9007199254740991', // Number.MAX_SAFE_INTEGER
       };
       const errors = validateHeaders(headers);
@@ -410,7 +410,7 @@ describe('HTTP Header Validator', () => {
   });
 });
 
-describe('HTTP Header Validator', () => {
+describe('HTTP Headers Validator', () => {
 
   describe('基础验证', () => {
     it('应该对空对象返回空错误数组', () => {
@@ -440,7 +440,7 @@ describe('HTTP Header Validator', () => {
       };
       const errors = validateHeaders(headers);
       assert.strictEqual(errors.length, 1);
-      assert.strictEqual(errors[0].error, 'Header name contains illegal characters');
+      assert.strictEqual(errors[0].error, 'Headers name contains illegal characters');
     });
 
     it('应该接受有效的头部名称字符', () => {
@@ -461,7 +461,7 @@ describe('HTTP Header Validator', () => {
       };
       const errors = validateHeaders(headers);
       assert.strictEqual(errors.length, 1);
-      assert.strictEqual(errors[0].error, 'Header value must be a string');
+      assert.strictEqual(errors[0].error, 'Headers value must be a string');
     });
 
     it('应该拒绝包含控制字符的值', () => {
@@ -470,7 +470,7 @@ describe('HTTP Header Validator', () => {
       };
       const errors = validateHeaders(headers);
       assert.strictEqual(errors.length, 1);
-      assert.strictEqual(errors[0].error, 'Header value contains illegal control characters');
+      assert.strictEqual(errors[0].error, 'Headers value contains illegal control characters');
     });
   });
 
@@ -481,7 +481,7 @@ describe('HTTP Header Validator', () => {
       };
       const errors = validateHeaders(headers);
       assert.strictEqual(errors.length, 1);
-      assert.strictEqual(errors[0].error, 'Header cannot have multiple values');
+      assert.strictEqual(errors[0].error, 'Headers cannot have multiple values');
     });
 
     it('应该允许单值头部的单个值', () => {

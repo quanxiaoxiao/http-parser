@@ -1,7 +1,7 @@
-import { type Header } from './types.js';
+import { type Headers } from './types.js';
 
-export default (obj: Header) => {
-  const headers: Header = {};
+export default (obj: Headers) => {
+  const headers: Headers = {};
   for (const key in obj) {
     const headerValue = obj[key];
     if (headerValue != null) {

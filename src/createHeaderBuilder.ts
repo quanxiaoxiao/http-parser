@@ -1,6 +1,6 @@
-import { type Header } from './types.js';
+import { type Headers } from './types.js';
 
-type HeaderEntry = [data: Header, raw: string[]];
+type HeaderEntry = [data: Headers, raw: string[]];
 
 const normalizeHeaderKey = (key: string): string => key.toLowerCase();
 
@@ -14,9 +14,9 @@ const mergeHeaderValue = (
   return [...existingArray, ...newArray];
 };
 
-export default (initialHeader: Header = {}) => {
+export default (initialHeader: Headers = {}) => {
   const raw: string[] = [];
-  const data: Header = {};
+  const data: Headers = {};
 
   for (const [key, value] of Object.entries(initialHeader)) {
     const normalizedKey = normalizeHeaderKey(key);

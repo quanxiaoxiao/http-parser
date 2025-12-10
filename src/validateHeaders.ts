@@ -1,4 +1,4 @@
-import { type Header } from './types.js';
+import { type Headers } from './types.js';
 
 interface ValidationError {
   header: string;
@@ -187,11 +187,11 @@ function validateHeaderValue(
   headerName: string,
 ): ValidationError | null {
   if (typeof value !== 'string') {
-    return createError(key, 'Header value must be a string', value, index);
+    return createError(key, 'Headers value must be a string', value, index);
   }
 
   if (PATTERNS.controlChars.test(value)) {
-    return createError(key, 'Header value contains illegal control characters', value, index);
+    return createError(key, 'Headers value contains illegal control characters', value, index);
   }
 
   const trimmedValue = value.trim();
@@ -212,7 +212,7 @@ function validateHeaderValue(
   return null;
 }
 
-export default function validateHeaders(headers: Header): ValidationError[] {
+export default function validateHeaders(headers: Headers): ValidationError[] {
   const errors: ValidationError[] = [];
 
   if (!headers || Object.keys(headers).length === 0) {
@@ -224,14 +224,14 @@ export default function validateHeaders(headers: Header): ValidationError[] {
   for (const headerName of headerNames) {
     const headerValue = headers[headerName];
     if (!PATTERNS.headerName.test(headerName)) {
-      errors.push(createError(headerName, 'Header name contains illegal characters', headerValue));
+      errors.push(createError(headerName, 'Headers name contains illegal characters', headerValue));
       continue;
     }
 
     const values = Array.isArray(headerValue) ? headerValue : [headerValue];
 
     if (HEADER_CONFIGS.singleValue.has(headerName) && values.length > 1) {
-      errors.push(createError(headerName, 'Header cannot have multiple values', headerValue));
+      errors.push(createError(headerName, 'Headers cannot have multiple values', headerValue));
       continue;
     }
 

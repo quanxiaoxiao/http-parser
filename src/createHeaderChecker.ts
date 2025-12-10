@@ -1,6 +1,6 @@
-import { type Header } from './types.js';
+import { type Headers } from './types.js';
 
-export default (obj: Header) => {
+export default (obj: Headers) => {
   const lowerCaseKeys = new Set(Object.keys(obj).map(key => key.toLowerCase()));
 
   return (headerName: string | string[]): boolean => {

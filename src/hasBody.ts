@@ -1,7 +1,7 @@
 import createHeaderGetter from './createHeaderGetter.js';
-import { type Header } from './types.js';
+import { type Headers } from './types.js';
 
-export default (header: Header): boolean => {
+export default (header: Headers): boolean => {
 
   const getter = createHeaderGetter(header);
 
