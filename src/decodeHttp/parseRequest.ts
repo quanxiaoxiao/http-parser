@@ -2,13 +2,11 @@ import { Buffer } from 'node:buffer';
 
 import decodeHttpLine from '../decodeHttpLine.js';
 import { DecodeHttpError } from '../errors.js';
-import { type Headers } from '../types.js';
+import { createHeadersState,type HeadersState, parseHeaders } from './parseHeaders.js';
 import parseRequestLine, { type RequestStartLine } from './parseRequestLine.js';
 
-type RequestPhase = 'STARTLINE' | 'HEADERS' | 'CRLF' | 'BODY';
+type RequestPhase = 'STARTLINE' | 'HEADERS' | 'BODY';
 
-const CR = 0x0d;
-const LF = 0x0a;
 const CRLF_LENGTH = 2;
 
 export interface RequestState {
@@ -17,8 +15,7 @@ export interface RequestState {
   buffer: Buffer;
   finished: boolean;
   startLine: RequestStartLine | null;
-  headers: Headers | null;
-  rawHeaders: string[];
+  headersState: HeadersState | null;
 }
 
 export function createRequestState(): RequestState {
@@ -27,28 +24,7 @@ export function createRequestState(): RequestState {
     buffer: Buffer.alloc(0),
     finished: false,
     startLine: null,
-    headers: null,
-    rawHeaders: [],
-  };
-}
-
-function handleCRLFPhase(state: RequestState): RequestState {
-  const { buffer } = state;
-
-  if (buffer.length < CRLF_LENGTH) {
-    return state;
-  }
-
-  if (buffer[0] !== CR || buffer[1] !== LF) {
-    throw new DecodeHttpError(
-      `Missing CRLF after headers data (got: 0x${buffer[0]?.toString(16)} 0x${buffer[1]?.toString(16)})`,
-    );
-  }
-
-  return {
-    ...state,
-    buffer: buffer.subarray(CRLF_LENGTH),
-    phase: 'BODY',
+    headersState: null,
   };
 }
 
@@ -63,11 +39,28 @@ function handleStartLinePhase(state: RequestState): RequestState {
     buffer: buffer.subarray(lineBuf.length + CRLF_LENGTH),
     startLine: parseRequestLine(lineBuf.toString()),
     phase: 'HEADERS',
+    headersState: createHeadersState(),
   };
 }
 
 function handleHeadersPhase(state: RequestState):RequestState {
-  return state;
+  const headersState = parseHeaders(state.headersState!, state.buffer);
+  if (headersState.finished) {
+    return {
+      ...state,
+      headersState: {
+        ...headersState,
+        buffer: Buffer.alloc(0),
+      },
+      buffer: headersState.buffer,
+      phase: 'BODY',
+    };
+  }
+  return {
+    ...state,
+    buffer: Buffer.alloc(0),
+    headersState,
+  };
 }
 
 function handleBodyPhase(state: RequestState): RequestState {
@@ -80,7 +73,6 @@ RequestPhase,
 > = {
   STARTLINE: handleStartLinePhase,
   HEADERS: handleHeadersPhase,
-  CRLF: handleCRLFPhase,
   BODY: handleBodyPhase,
 };
 
