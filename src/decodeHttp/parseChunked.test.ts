@@ -1,6 +1,7 @@
 import * as assert from 'node:assert';
-import { describe, test } from 'node:test';
+import { describe, it, test } from 'node:test';
 
+import { DecodeHttpError } from '../errors.js';
 import { createChunkedState, parseChunked } from './parseChunked.js';
 
 describe('createChunkedState', () => {
@@ -331,5 +332,318 @@ describe('parseChunked - real-world scenarios', () => {
     const json = JSON.parse(fullBody);
     assert.strictEqual(json.users.length, 2);
     assert.strictEqual(json.users[0].name, 'Alice');
+  });
+});
+
+describe('createChunkedState', () => {
+  it('应该创建初始状态', () => {
+    const state = createChunkedState();
+    assert.strictEqual(state.phase, 'SIZE');
+    assert.strictEqual(state.buffer.length, 0);
+    assert.strictEqual(state.currentChunkSize, 0);
+    assert.strictEqual(state.bodyChunks.length, 0);
+    assert.deepStrictEqual(state.trailers, {});
+    assert.strictEqual(state.finished, false);
+  });
+});
+
+describe('parseChunked', () => {
+  describe('基本功能', () => {
+    it('应该解析单个chunk', () => {
+      const state = createChunkedState();
+      const input = Buffer.from('5\r\nhello\r\n0\r\n\r\n');
+      const result = parseChunked(state, input);
+
+      assert.strictEqual(result.finished, true);
+      assert.strictEqual(result.bodyChunks.length, 1);
+      assert.strictEqual(result.bodyChunks[0]?.toString(), 'hello');
+    });
+
+    it('应该解析多个chunks', () => {
+      const state = createChunkedState();
+      const input = Buffer.from('5\r\nhello\r\n6\r\n world\r\n0\r\n\r\n');
+      const result = parseChunked(state, input);
+
+      assert.strictEqual(result.finished, true);
+      assert.strictEqual(result.bodyChunks.length, 2);
+      assert.strictEqual(result.bodyChunks[0]?.toString(), 'hello');
+      assert.strictEqual(result.bodyChunks[1]?.toString(), ' world');
+    });
+
+    it('应该处理分块接收的数据', () => {
+      let state = createChunkedState();
+
+      // 第一块：chunk size
+      state = parseChunked(state, Buffer.from('5\r\n'));
+      assert.strictEqual(state.phase, 'DATA');
+      assert.strictEqual(state.currentChunkSize, 5);
+
+      // 第二块：chunk data
+      state = parseChunked(state, Buffer.from('hello\r\n'));
+      assert.strictEqual(state.phase, 'SIZE');
+      assert.strictEqual(state.bodyChunks[0]?.toString(), 'hello');
+
+      // 第三块：结束
+      state = parseChunked(state, Buffer.from('0\r\n\r\n'));
+      assert.strictEqual(state.finished, true);
+    });
+  });
+
+  describe('chunk size 解析', () => {
+    it('应该解析十六进制chunk size', () => {
+      const state = createChunkedState();
+      const input = Buffer.from('a\r\n0123456789\r\n0\r\n\r\n');
+      const result = parseChunked(state, input);
+
+      assert.strictEqual(result.bodyChunks[0]?.length, 10);
+    });
+
+    it('应该解析带扩展的chunk size', () => {
+      const state = createChunkedState();
+      const input = Buffer.from('5;name=value\r\nhello\r\n0\r\n\r\n');
+      const result = parseChunked(state, input);
+
+      assert.strictEqual(result.bodyChunks[0]?.toString(), 'hello');
+    });
+
+    it('应该处理大写十六进制', () => {
+      const state = createChunkedState();
+      const input = Buffer.from('A\r\n0123456789\r\n0\r\n\r\n');
+      const result = parseChunked(state, input);
+
+      assert.strictEqual(result.bodyChunks[0]?.length, 10);
+    });
+
+    it('应该在chunk size为空时抛出错误', () => {
+      const state = createChunkedState();
+      const input = Buffer.from('\r\nhello\r\n0\r\n\r\n');
+
+      assert.throws(
+        () => parseChunked(state, input),
+        (err: Error) => {
+          return err instanceof DecodeHttpError &&
+                 err.message.includes('Empty chunk size line');
+        },
+      );
+    });
+
+    it('应该在chunk size无效时抛出错误', () => {
+      const state = createChunkedState();
+      const input = Buffer.from('xyz\r\nhello\r\n0\r\n\r\n');
+
+      assert.throws(
+        () => parseChunked(state, input),
+        (err: Error) => {
+          return err instanceof DecodeHttpError &&
+                 err.message.includes('Invalid hexadecimal chunk size');
+        },
+      );
+    });
+
+    it('应该在chunk size为负数时抛出错误', () => {
+      const state = createChunkedState();
+      const input = Buffer.from('-5\r\nhello\r\n0\r\n\r\n');
+
+      assert.throws(
+        () => parseChunked(state, input),
+        (err: Error) => {
+          return err instanceof DecodeHttpError &&
+                 err.message.includes('Negative chunk size');
+        },
+      );
+    });
+  });
+
+  describe('CRLF 验证', () => {
+    it('应该在chunk data后缺少CRLF时抛出错误', () => {
+      const state = createChunkedState();
+      const input = Buffer.from('5\r\nhelloXX0\r\n\r\n');
+
+      assert.throws(
+        () => parseChunked(state, input),
+        (err: Error) => {
+          return err instanceof DecodeHttpError &&
+                 err.message.includes('Missing CRLF after chunk data');
+        },
+      );
+    });
+  });
+
+  describe('Trailer 处理', () => {
+    it('应该解析trailer headers', () => {
+      const state = createChunkedState();
+      const input = Buffer.from(
+        '5\r\nhello\r\n0\r\nX-Trailer: value\r\n\r\n',
+      );
+      const result = parseChunked(state, input);
+
+      assert.strictEqual(result.finished, true);
+      assert.strictEqual(result.trailers['x-trailer'], 'value');
+    });
+
+    it('应该解析多个trailer headers', () => {
+      const state = createChunkedState();
+      const input = Buffer.from(
+        '5\r\nhello\r\n0\r\n' +
+        'X-Trailer-1: value1\r\n' +
+        'X-Trailer-2: value2\r\n' +
+        '\r\n',
+      );
+      const result = parseChunked(state, input);
+
+      assert.strictEqual(result.trailers['x-trailer-1'], 'value1');
+      assert.strictEqual(result.trailers['x-trailer-2'], 'value2');
+    });
+
+    it('应该合并相同key的trailer headers', () => {
+      const state = createChunkedState();
+      const input = Buffer.from(
+        '5\r\nhello\r\n0\r\n' +
+        'X-Trailer: value1\r\n' +
+        'X-Trailer: value2\r\n' +
+        '\r\n',
+      );
+      const result = parseChunked(state, input);
+
+      assert.strictEqual(result.trailers['x-trailer'], 'value1, value2');
+    });
+
+    it('应该处理没有trailer的情况', () => {
+      const state = createChunkedState();
+      const input = Buffer.from('5\r\nhello\r\n0\r\n\r\n');
+      const result = parseChunked(state, input);
+
+      assert.strictEqual(result.finished, true);
+      assert.deepStrictEqual(result.trailers, {});
+    });
+
+    it('应该在trailer header缺少冒号时抛出错误', () => {
+      const state = createChunkedState();
+      const input = Buffer.from('5\r\nhello\r\n0\r\nInvalidHeader\r\n\r\n');
+
+      assert.throws(
+        () => parseChunked(state, input),
+        (err: Error) => {
+          return err instanceof DecodeHttpError &&
+                 err.message.includes('missing colon');
+        },
+      );
+    });
+
+    it('应该在trailer header key为空时抛出错误', () => {
+      const state = createChunkedState();
+      const input = Buffer.from('5\r\nhello\r\n0\r\n: value\r\n\r\n');
+
+      assert.throws(
+        () => parseChunked(state, input),
+        (err: Error) => {
+          return err instanceof DecodeHttpError &&
+                 err.message.includes('Invalid trailer header');
+        },
+      );
+    });
+  });
+
+  describe('onChunk 回调', () => {
+    it('应该在解析chunk时调用onChunk回调', () => {
+      const state = createChunkedState();
+      const input = Buffer.from('5\r\nhello\r\n0\r\n\r\n');
+      const chunks: Buffer[] = [];
+
+      const result = parseChunked(state, input, (chunk) => {
+        chunks.push(chunk);
+      });
+
+      assert.strictEqual(chunks.length, 1);
+      assert.strictEqual(chunks[0]?.toString(), 'hello');
+      assert.strictEqual(result.bodyChunks.length, 0);
+    });
+
+    it('应该对多个chunks调用onChunk回调', () => {
+      const state = createChunkedState();
+      const input = Buffer.from('5\r\nhello\r\n6\r\n world\r\n0\r\n\r\n');
+      const chunks: Buffer[] = [];
+
+      parseChunked(state, input, (chunk) => {
+        chunks.push(chunk);
+      });
+
+      assert.strictEqual(chunks.length, 2);
+      assert.strictEqual(chunks[0]?.toString(), 'hello');
+      assert.strictEqual(chunks[1]?.toString(), ' world');
+    });
+  });
+
+  describe('边界情况', () => {
+    it('应该处理空chunk (size 0)', () => {
+      const state = createChunkedState();
+      const input = Buffer.from('0\r\n\r\n');
+      const result = parseChunked(state, input);
+
+      assert.strictEqual(result.finished, true);
+      assert.strictEqual(result.bodyChunks.length, 0);
+    });
+
+    it('应该在已完成的状态下抛出错误', () => {
+      let state = createChunkedState();
+      state = parseChunked(state, Buffer.from('0\r\n\r\n'));
+
+      assert.throws(
+        () => parseChunked(state, Buffer.from('5\r\nhello\r\n')),
+        (err: Error) => {
+          return err instanceof DecodeHttpError &&
+                 err.message.includes('already finished');
+        },
+      );
+    });
+
+    it('应该处理部分接收的chunk size', () => {
+      const state = createChunkedState();
+      const result = parseChunked(state, Buffer.from('5'));
+
+      assert.strictEqual(result.phase, 'SIZE');
+      assert.strictEqual(result.finished, false);
+    });
+
+    it('应该处理部分接收的chunk data', () => {
+      let state = createChunkedState();
+      state = parseChunked(state, Buffer.from('5\r\nhel'));
+
+      assert.strictEqual(state.phase, 'DATA');
+      assert.strictEqual(state.currentChunkSize, 5);
+      assert.strictEqual(state.buffer.toString(), 'hel');
+    });
+
+    it('应该保留未处理的buffer数据', () => {
+      const state = createChunkedState();
+      const input = Buffer.from('5\r\nhello\r\n0\r\n\r\nextra data');
+      const result = parseChunked(state, input);
+
+      assert.strictEqual(result.finished, true);
+      assert.strictEqual(result.buffer.toString(), 'extra data');
+    });
+  });
+
+  describe('状态机转换', () => {
+    it('应该正确转换状态: SIZE -> DATA -> CRLF -> SIZE -> TRAILER', () => {
+      let state = createChunkedState();
+      assert.strictEqual(state.phase, 'SIZE');
+
+      state = parseChunked(state, Buffer.from('5\r\n'));
+      assert.strictEqual(state.phase, 'DATA');
+
+      state = parseChunked(state, Buffer.from('hello'));
+      assert.strictEqual(state.phase, 'CRLF');
+
+      state = parseChunked(state, Buffer.from('\r\n'));
+      assert.strictEqual(state.phase, 'SIZE');
+
+      state = parseChunked(state, Buffer.from('0\r\n'));
+      assert.strictEqual(state.finished, false);
+      assert.strictEqual(state.phase, 'TRAILER');
+
+      state = parseChunked(state, Buffer.from('\r\n'));
+      assert.strictEqual(state.finished, true);
+    });
   });
 });
