@@ -2,13 +2,13 @@ import * as assert from 'node:assert';
 import { describe, it } from 'node:test';
 
 import isWebSocketRequest from './isWebSocketRequest.js';
-import { type Header,type HttpMethod } from './types.js';
+import { type Headers,type HttpMethod } from './types.js';
 
 describe('isWebSocketRequest', () => {
   describe('HTTP 方法验证', () => {
     it('应该拒绝非 GET 方法', () => {
       const methods: HttpMethod[] = ['POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'];
-      const validHeaders: Header = {
+      const validHeaders: Headers = {
         connection: 'Upgrade',
         upgrade: 'websocket',
       };
@@ -23,7 +23,7 @@ describe('isWebSocketRequest', () => {
     });
 
     it('应该接受 GET 方法与有效的 WebSocket 头', () => {
-      const headers: Header = {
+      const headers: Headers = {
         connection: 'Upgrade',
         upgrade: 'websocket',
       };
@@ -37,7 +37,7 @@ describe('isWebSocketRequest', () => {
       const testCases = ['Upgrade', 'upgrade', 'UPGRADE', 'uPgRaDe'];
 
       testCases.forEach(value => {
-        const headers: Header = {
+        const headers: Headers = {
           connection: value,
           upgrade: 'websocket',
         };
@@ -58,7 +58,7 @@ describe('isWebSocketRequest', () => {
       ];
 
       testCases.forEach(value => {
-        const headers: Header = {
+        const headers: Headers = {
           connection: value,
           upgrade: 'websocket',
         };
@@ -70,7 +70,7 @@ describe('isWebSocketRequest', () => {
     });
 
     it('应该拒绝缺失的 Connection 头', () => {
-      const headers: Header = {
+      const headers: Headers = {
         upgrade: 'websocket',
       };
 
@@ -81,7 +81,7 @@ describe('isWebSocketRequest', () => {
       const testCases = ['keep-alive', 'close', 'something-else'];
 
       testCases.forEach(value => {
-        const headers: Header = {
+        const headers: Headers = {
           connection: value,
           upgrade: 'websocket',
         };
@@ -97,7 +97,7 @@ describe('isWebSocketRequest', () => {
       const testCases = [null, undefined, 123, true, {}, []];
 
       testCases.forEach(value => {
-        const headers: Header = {
+        const headers: Headers = {
           connection: value as any, // eslint-disable-line
           upgrade: 'websocket',
         };
@@ -115,7 +115,7 @@ describe('isWebSocketRequest', () => {
       const testCases = ['websocket', 'WebSocket', 'WEBSOCKET', 'wEbSoCkEt'];
 
       testCases.forEach(value => {
-        const headers: Header = {
+        const headers: Headers = {
           connection: 'Upgrade',
           upgrade: value,
         };
@@ -128,7 +128,7 @@ describe('isWebSocketRequest', () => {
     });
 
     it('应该拒绝缺失的 Upgrade 头', () => {
-      const headers: Header = {
+      const headers: Headers = {
         connection: 'Upgrade',
       };
 
@@ -139,7 +139,7 @@ describe('isWebSocketRequest', () => {
       const testCases = ['h2c', 'http/2.0', 'websocket2', 'web socket', ''];
 
       testCases.forEach(value => {
-        const headers: Header = {
+        const headers: Headers = {
           connection: 'Upgrade',
           upgrade: value,
         };
@@ -155,7 +155,7 @@ describe('isWebSocketRequest', () => {
       const testCases = [null, undefined, 123, true, {}, []];
 
       testCases.forEach(value => {
-        const headers: Header = {
+        const headers: Headers = {
           connection: 'Upgrade',
           upgrade: value as any, // eslint-disable-line
         };
@@ -170,7 +170,7 @@ describe('isWebSocketRequest', () => {
 
   describe('综合场景', () => {
     it('应该正确处理标准的 WebSocket 握手请求', () => {
-      const headers: Header = {
+      const headers: Headers = {
         connection: 'Upgrade',
         upgrade: 'websocket',
         'sec-websocket-version': '13',
@@ -181,7 +181,7 @@ describe('isWebSocketRequest', () => {
     });
 
     it('应该拒绝所有条件都不满足的请求', () => {
-      const headers: Header = {
+      const headers: Headers = {
         connection: 'keep-alive',
         upgrade: 'h2c',
       };

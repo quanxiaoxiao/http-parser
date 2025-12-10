@@ -8,6 +8,7 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
+    "pretest": "npm run build",
     "lint": "eslint src --ext .ts",
     "test": "TSX_TSCONFIG=tsconfig.test.json node --import tsx --test 'src/**/*.test.ts'",
     "test:coverage": "TSX_TSCONFIG=tsconfig.test.json node --import tsx --test --experimental-test-coverage 'src/**/*.test.ts'",

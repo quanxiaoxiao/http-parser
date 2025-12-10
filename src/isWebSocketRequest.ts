@@ -1,11 +1,11 @@
 import createHeaderGetter from './createHeaderGetter.js';
-import { type Header, type HttpMethod } from './types.js';
+import { type Headers, type HttpMethod } from './types.js';
 
-export default (method: HttpMethod, header: Header): boolean => {
+export default (method: HttpMethod, headers: Headers): boolean => {
   if (method !== 'GET') {
     return false;
   }
-  const getter = createHeaderGetter(header);
+  const getter = createHeaderGetter(headers);
   const connectionValue = getter('connection');
   if (!connectionValue || typeof connectionValue !== 'string') {
     return false;
