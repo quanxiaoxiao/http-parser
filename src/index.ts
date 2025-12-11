@@ -44,7 +44,7 @@ async function processFile(filePath: string, options: ProcessOptions): Promise<P
   }
   try {
     const httpBuf = await fs.readFile(filePath);
-    processHttpRequest(httpBuf.subarray(0, 1024 * 16 + 1));
+    processHttpRequest(httpBuf);
 
     return {
       success: true,
@@ -117,6 +117,7 @@ async function processHttpFiles(
   return Array.isArray(result) ? result : [result];
 }
 
-const ret = await processHttpFiles(path.resolve('/Users/huzhedong/mylib/http-utils/_data'));
+// const ret = await processHttpFiles(path.resolve('/Users/huzhedong/mylib/http-utils/_data'));
+const ret = await processHttpFiles(path.resolve('/Users/huzhedong/mylib/http-utils/_data/01/66442ac107c67a1322721b'));
 
 console.log(ret);

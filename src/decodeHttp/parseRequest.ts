@@ -12,6 +12,8 @@ import parseRequestLine, { type RequestStartLine } from './parseRequestLine.js';
 type RequestPhase = 'STARTLINE' | 'HEADERS' | 'BODY_CHUNKED' | 'BODY_CONTENT_LENGTH';
 
 const CRLF_LENGTH = 2;
+const MAX_HEADER_SIZE = 16 * 1024; // 16KB
+const EMPTY_BUFFER = Buffer.alloc(0);
 
 function getHeaderValue(headers: Headers, name: string): string | undefined {
   const value = headers[name];
@@ -62,12 +64,53 @@ function handleStartLinePhase(state: RequestState): RequestState {
   });
 }
 
+function isChunkedEncoding(headers: Headers): boolean {
+  const transferEncoding = getHeaderValue(headers, 'transfer-encoding');
+  return transferEncoding?.toLowerCase().includes('chunked') ?? false;
+}
+
+function getContentLength(headers: Headers): number | null {
+  const contentLengthValue = getHeaderValue(headers, 'content-length');
+  if (!contentLengthValue) return null;
+  const length = parseInteger(contentLengthValue);
+  return (length != null && length > 0) ? length : null;
+}
+
+function determineBodyPhase(headers: Headers): Partial<RequestState> {
+  if (isChunkedEncoding(headers)) {
+    return {
+      phase: 'BODY_CHUNKED',
+      bodyState: createChunkedState(),
+    };
+  }
+
+  const contentLength = getContentLength(headers);
+  if (contentLength) {
+    return {
+      phase: 'BODY_CONTENT_LENGTH',
+      bodyState: createContentLengthState(contentLength),
+    };
+  }
+
+  return { finished: true };
+}
+
 function handleHeadersPhase(state: RequestState): RequestState {
-  const headersState = parseHeaders(state.headersState!, state.buffer);
+  const parseBuffer = state.buffer.length > MAX_HEADER_SIZE
+    ? state.buffer.subarray(0, MAX_HEADER_SIZE)
+    : state.buffer;
+
+  const remainingBuffer = state.buffer.length > MAX_HEADER_SIZE
+    ? state.buffer.subarray(MAX_HEADER_SIZE)
+    : EMPTY_BUFFER;
+  const headersState = parseHeaders(state.headersState!, parseBuffer);
 
   if (!headersState.finished) {
+    if (remainingBuffer.length > 0) {
+      throw new DecodeHttpError(`Headers too large: ${state.buffer.length} bytes exceeds limit of ${MAX_HEADER_SIZE}`);
+    }
     return updateState(state, {
-      buffer: Buffer.alloc(0),
+      buffer: remainingBuffer,
       headersState,
     });
   }
@@ -77,31 +120,13 @@ function handleHeadersPhase(state: RequestState): RequestState {
     throw new DecodeHttpError('Headers parsing completed but headers are null');
   }
 
-  const baseState = updateState(state, {
-    headersState: { ...headersState, buffer: Buffer.alloc(0) },
+  const nextPhase = determineBodyPhase(headers);
+
+  return updateState(state, {
     buffer: headersState.buffer,
+    headersState: { ...headersState, buffer: remainingBuffer },
+    ...nextPhase,
   });
-
-  const transferEncoding = getHeaderValue(headers, 'transfer-encoding');
-  if (transferEncoding?.toLowerCase().includes('chunked')) {
-    return updateState(baseState, {
-      phase: 'BODY_CHUNKED',
-      bodyState: createChunkedState(),
-    });
-  }
-
-  const contentLengthValue = getHeaderValue(headers, 'content-length');
-  if (contentLengthValue) {
-    const length = parseInteger(contentLengthValue);
-    if (length != null && length > 0) {
-      return updateState(baseState, {
-        phase: 'BODY_CONTENT_LENGTH',
-        bodyState: createContentLengthState(length),
-      });
-    }
-  }
-
-  return updateState(baseState, { finished: true });
 }
 
 function handleBodyPhase<T extends ChunkedState | ContentLengthState>(
@@ -152,7 +177,7 @@ export function parseRequest(
   }
 
   let state: RequestState = input.length > 0
-    ? { ...prev, buffer: Buffer.concat([prev.buffer, input]) }
+    ? updateState(prev, { buffer: Buffer.concat([prev.buffer, input]) })
     : prev;
 
   while (!state.finished) {
