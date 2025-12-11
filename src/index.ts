@@ -1,40 +1,122 @@
-import { type ContentLengthState } from './decodeHttp/parseContentLength.js';
+/* eslint no-use-before-define: 0 */
+import { Buffer } from 'node:buffer';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+
 import { createRequestState, parseRequest,type RequestState } from './decodeHttp/parseRequest.js';
 
-function demoContentLength() {
-  console.log('--- Demo A: 解析 Content-Length 请求 ---');
-
-  let state: RequestState = createRequestState();
-
-  const rawRequest =
-    'POST /api/data HTTP/1.1\r\n' +
-    'Host: example.com\r\n' +
-    'Content-Length: 5\r\n' +
-    '\r\n' +
-    '{"a":"xxxx"}';
-
-  const requestBuffer = Buffer.from(rawRequest, 'utf-8');
-
-  const chunk1 = requestBuffer.subarray(0, requestBuffer.length - 20);
-  console.log(`\n[Chunk 1: ${chunk1.length} bytes]`);
-
-  state = parseRequest(state, chunk1);
-
-  console.log(`Phase after Chunk 1: ${state.phase}`); // HEADERS -> BODY_CONTENT_LENGTH
-  console.log(`Finished after Chunk 1: ${state.finished}`); // false
-
-  const chunk2 = requestBuffer.subarray(requestBuffer.length - 20);
-  console.log(`\n[Chunk 2: ${chunk2.length} bytes]`);
-
-  state = parseRequest(state, chunk2);
-
-  console.log(`Phase after Chunk 2: ${state.phase}`); // BODY_CONTENT_LENGTH (但 finished 为 true)
-  console.log(`Finished after Chunk 2: ${state.finished}`); // true
-
-  console.log('\n--- 解析结果 ---');
-  console.log('Start Line:', state.startLine);
-  console.log('Method:', state.startLine?.method); // POST
-  console.log('Content-Length Body Data:', (state.bodyState as ContentLengthState)); // {"a":1}
+interface ProcessFileResult {
+  success: boolean;
+  filePath: string;
+  errorMessage?: string;
 }
 
-demoContentLength();
+interface ProcessOptions {
+  concurrency?: number;
+  fileExtensions?: string[];
+}
+
+interface ProcessOptions {
+  concurrency?: number;
+  fileExtensions?: string[];
+}
+
+function shouldProcessFile(filePath: string, extensions?: string[]): boolean {
+  if (!extensions || extensions.length === 0) {
+    return true;
+  }
+  const ext = path.extname(filePath).toLowerCase();
+  return extensions.includes(ext);
+}
+
+function processHttpRequest(chunk: Buffer): RequestState {
+  const state: RequestState = createRequestState();
+  return parseRequest(state, chunk);
+}
+
+async function processFile(filePath: string, options: ProcessOptions): Promise<ProcessFileResult>{
+  if (!shouldProcessFile(filePath, options.fileExtensions)) {
+    return {
+      success: true,
+      filePath,
+      errorMessage: 'Skipped: file extension not matched',
+    };
+  }
+  try {
+    const httpBuf = await fs.readFile(filePath);
+    processHttpRequest(httpBuf.subarray(0, 1024 * 16 + 1));
+
+    return {
+      success: true,
+      filePath,
+    };
+  } catch (error) {
+    const errorMessage = error instanceof Error
+      ? error.message
+      : String(error);
+    console.log(errorMessage, filePath);
+    return {
+      success: false,
+      filePath,
+      errorMessage,
+    };
+  }
+}
+
+async function processConcurrently<T, R>(
+  items: T[],
+  processor: (item: T) => Promise<R>,
+  concurrency: number = 10,
+): Promise<R[]> {
+  const results: R[] = [];
+  for (let i = 0; i < items.length; i += concurrency) {
+    const batch = items.slice(i, i + concurrency);
+    const batchResults = await Promise.all(batch.map(processor));
+    results.push(...batchResults);
+  }
+  return results;
+}
+
+async function processDirectory(
+  dirPath: string,
+  options: ProcessOptions,
+): Promise<ProcessFileResult[]> {
+  const { concurrency = 10 } = options;
+  const entries = await fs.readdir(dirPath);
+  const fullPaths = entries.map((entry) => path.resolve(dirPath, entry));
+
+  const results = await processConcurrently(
+    fullPaths,
+    (pathname: string) => processPath(pathname, options),
+    concurrency,
+  );
+  return results.flat();
+}
+
+async function processPath (pathname: string, options: ProcessOptions): Promise<ProcessFileResult | ProcessFileResult[]> {
+  const stats = await fs.stat(pathname);
+
+  if (stats.isDirectory()) {
+    return processDirectory(pathname, options);
+  }
+  if (!shouldProcessFile(pathname, options.fileExtensions)) {
+    return {
+      success: true,
+      filePath: pathname,
+      errorMessage: 'Skipped: file extension not matched',
+    };
+  }
+  return processFile(pathname, options);
+}
+
+async function processHttpFiles(
+  pathname: string,
+  options: ProcessOptions = {},
+): Promise<ProcessFileResult[]> {
+  const result = await processPath(pathname, options);
+  return Array.isArray(result) ? result : [result];
+}
+
+const ret = await processHttpFiles(path.resolve('/Users/huzhedong/mylib/http-utils/_data'));
+
+console.log(ret);

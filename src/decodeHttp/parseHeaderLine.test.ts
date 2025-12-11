@@ -42,6 +42,36 @@ describe('parseHeaderLine', () => {
       assert.strictEqual(name, 'Set-Cookie');
       assert.strictEqual(value, 'session=abc123; Path=/; HttpOnly');
     });
+
+    it('当 name 为空时', () => {
+      const [name, value] = parseHeaderLine(': value');
+      assert.strictEqual(name, '');
+      assert.strictEqual(value, 'value');
+    });
+
+    it('当 name 只有空格时', () => {
+      const [name, value] = parseHeaderLine(': value');
+      assert.strictEqual(name, '');
+      assert.strictEqual(value, 'value');
+    });
+
+    it('当 value 为空时', () => {
+      const [name, value] = parseHeaderLine('Content-Type:');
+      assert.strictEqual(name, 'Content-Type');
+      assert.strictEqual(value, '');
+    });
+
+    it('当 value 只有空格时', () => {
+      const [name, value] = parseHeaderLine('Content-Type:   ');
+      assert.strictEqual(name, 'Content-Type');
+      assert.strictEqual(value, '');
+    });
+
+    it('只有冒号时', () => {
+      const [name, value] = parseHeaderLine(':');
+      assert.strictEqual(name, '');
+      assert.strictEqual(value, '');
+    });
   });
 
   describe('错误情况', () => {
@@ -56,46 +86,6 @@ describe('parseHeaderLine', () => {
       );
     });
 
-    it('应该在 name 为空时抛出错误', () => {
-      assert.throws(
-        () => parseHeaderLine(': value'),
-        (error: Error) => {
-          return error instanceof DecodeHttpError &&
-                 error.message.includes('empty name');
-        },
-      );
-    });
-
-    it('应该在 name 只有空格时抛出错误', () => {
-      assert.throws(
-        () => parseHeaderLine('   : value'),
-        (error: Error) => {
-          return error instanceof DecodeHttpError &&
-                 error.message.includes('empty name');
-        },
-      );
-    });
-
-    it('应该在 value 为空时抛出错误', () => {
-      assert.throws(
-        () => parseHeaderLine('Content-Type:'),
-        (error: Error) => {
-          return error instanceof DecodeHttpError &&
-                 error.message.includes('empty value');
-        },
-      );
-    });
-
-    it('应该在 value 只有空格时抛出错误', () => {
-      assert.throws(
-        () => parseHeaderLine('Content-Type:   '),
-        (error: Error) => {
-          return error instanceof DecodeHttpError &&
-                 error.message.includes('empty value');
-        },
-      );
-    });
-
     it('应该在空字符串时抛出错误', () => {
       assert.throws(
         () => parseHeaderLine(''),
@@ -105,15 +95,6 @@ describe('parseHeaderLine', () => {
       );
     });
 
-    it('应该在只有冒号时抛出错误', () => {
-      assert.throws(
-        () => parseHeaderLine(':'),
-        (error: Error) => {
-          return error instanceof DecodeHttpError &&
-                 error.message.includes('empty');
-        },
-      );
-    });
   });
 
   describe('边界情况', () => {

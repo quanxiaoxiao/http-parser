@@ -7,11 +7,6 @@ export default function parseHeaderLine(headerString: string): [string, string] 
   }
   const name = headerString.slice(0, separatorIndex).trim();
   const value = headerString.slice(separatorIndex + 1).trim();
-  if (!name) {
-    throw new DecodeHttpError(`HTTP Header has empty name in "${headerString}"`);
-  }
-  if (!value) {
-    throw new DecodeHttpError(`HTTP Header has empty value in "${headerString}"`);
-  }
+
   return [name, value];
 }
