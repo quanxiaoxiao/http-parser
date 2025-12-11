@@ -13,6 +13,7 @@ type RequestPhase = 'STARTLINE' | 'HEADERS' | 'BODY_CHUNKED' | 'BODY_CONTENT_LEN
 
 const CRLF_LENGTH = 2;
 const MAX_HEADER_SIZE = 16 * 1024; // 16KB
+const MAX_START_LINE_SIZE = 16 * 1024; // 16KB
 const EMPTY_BUFFER = Buffer.alloc(0);
 
 function getHeaderValue(headers: Headers, name: string): string | undefined {
@@ -51,8 +52,14 @@ function updateState(
 }
 
 function handleStartLinePhase(state: RequestState): RequestState {
-  const lineBuf = decodeHttpLine(state.buffer);
-  if (!lineBuf) return state;
+  const lineBuf = decodeHttpLine(
+    state.buffer,
+    0,
+    MAX_START_LINE_SIZE,
+  );
+  if (!lineBuf) {
+    return state;
+  }
 
   const endOfLine = lineBuf.length + CRLF_LENGTH;
 

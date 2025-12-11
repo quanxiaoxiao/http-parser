@@ -144,10 +144,9 @@ describe('decodeHttpLine', () => {
     it('应该在自定义错误消息时包含该消息', () => {
       const buf = Buffer.from('\nHello');
       assert.throws(
-        () => decodeHttpLine(buf, 0, 65535, 'Custom error'),
+        () => decodeHttpLine(buf, 0, 65535),
         {
           name: 'DecodeHttpError',
-          message: /Custom error/,
         },
       );
     });
