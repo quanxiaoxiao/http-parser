@@ -89,18 +89,29 @@ describe('parseContentLength', () => {
     assert.strictEqual(state.finished, true);
   });
 
-  test('should throw error when receiving more data than content length', () => {
-    const state = createContentLengthState(5);
+  test('should more data than content length', () => {
+    let state = createContentLengthState(5);
     const input = Buffer.from('1234567890');
 
-    assert.throws(
-      () => parseContentLength(state, input),
-      (err: Error) => {
-        assert.ok(err instanceof DecodeHttpError);
-        assert.ok(err.message.includes('Received more data than Content-Length'));
-        return true;
-      },
-    );
+    state = parseContentLength(state, input);
+
+    assert.strictEqual(state.bytesReceived, input.length);
+    assert.strictEqual(state.finished, true);
+    assert.strictEqual(state.bodyChunks[0].length, 5);
+    assert.strictEqual(state.buffer.length, Buffer.from(input).length);
+  });
+
+  test('should call onChunk callback  more data than content length', () => {
+    let state = createContentLengthState(5);
+    const input = Buffer.from('1234567890');
+
+    state = parseContentLength(state, input, () => {});
+
+    assert.strictEqual(state.finished, true);
+    assert.strictEqual(state.bodyChunks.length, 0);
+    assert.strictEqual(state.bytesReceived, input.length);
+    assert.strictEqual(state.contentLength, 5);
+    assert.strictEqual(state.buffer.toString(), input.subarray(5 - input.length).toString());
   });
 
   test('should throw error when parsing already finished state', () => {

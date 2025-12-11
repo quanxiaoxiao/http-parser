@@ -33,18 +33,16 @@ export function parseContentLength(
 
   const totalBytes = prev.bytesReceived + input.length;
 
-  if (totalBytes > prev.contentLength) {
-    throw new DecodeHttpError(`Received more data than Content-Length: ${totalBytes} > ${prev.contentLength}`);
-  }
+  const remainSize = prev.contentLength - totalBytes;
 
-  const finished = totalBytes >= prev.contentLength;
+  const finished = remainSize <= 0;
 
   if (onChunk) {
     if (input.length > 0) {
       onChunk(input);
     }
     return {
-      buffer: Buffer.alloc(0),
+      buffer: remainSize < 0 ? input.subarray(remainSize) : Buffer.alloc(0),
       contentLength: prev.contentLength,
       bytesReceived: totalBytes,
       bodyChunks: [],
@@ -56,7 +54,7 @@ export function parseContentLength(
     buffer: prev.bodyChunks.length === 0 && input.length > 0 ? input : Buffer.concat([prev.buffer, input]),
     contentLength: prev.contentLength,
     bytesReceived: totalBytes,
-    bodyChunks: input.length > 0 ? [...prev.bodyChunks, input] : prev.bodyChunks,
+    bodyChunks: input.length > 0 ? [...prev.bodyChunks, remainSize < 0 ? input.subarray(remainSize) : input] : prev.bodyChunks,
     finished,
   };
 }

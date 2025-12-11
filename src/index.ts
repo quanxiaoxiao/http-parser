@@ -11,11 +11,11 @@ function demoContentLength() {
     'Host: example.com\r\n' +
     'Content-Length: 5\r\n' +
     '\r\n' +
-    '{"a":';
+    '{"a":"xxxx"}';
 
   const requestBuffer = Buffer.from(rawRequest, 'utf-8');
 
-  const chunk1 = requestBuffer.subarray(0, requestBuffer.length - 5);
+  const chunk1 = requestBuffer.subarray(0, requestBuffer.length - 20);
   console.log(`\n[Chunk 1: ${chunk1.length} bytes]`);
 
   state = parseRequest(state, chunk1);
@@ -23,7 +23,7 @@ function demoContentLength() {
   console.log(`Phase after Chunk 1: ${state.phase}`); // HEADERS -> BODY_CONTENT_LENGTH
   console.log(`Finished after Chunk 1: ${state.finished}`); // false
 
-  const chunk2 = requestBuffer.subarray(requestBuffer.length - 5);
+  const chunk2 = requestBuffer.subarray(requestBuffer.length - 20);
   console.log(`\n[Chunk 2: ${chunk2.length} bytes]`);
 
   state = parseRequest(state, chunk2);
