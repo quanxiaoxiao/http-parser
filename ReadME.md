@@ -37,3 +37,33 @@
 │                                              │     仅在 Transfer-Encoding: chunked 时出现
 └──────────────────────────────────────────────┘
 ```
+
+## Headers
+
+`Authorization` 的标准格式：
+
+```
+Authorization: <auth-scheme> <credentials>
+```
+
+- `<auth-scheme>`：认证方案，如 `Basic` / `Bearer` / `Digest` / `HOBA` / `Mutual` 等
+- `<credentials>`：凭证（可能是 Base64、Token、签名字符串）
+
+⚠️ **auth-scheme** 必须首字母大写（区分度不强但这是行业规范）
+
+### 常见认证类型及其规范
+
+#### Basic Auth（RFC 7617）
+
+```
+Authorization: Basic <base64(username:password)>
+Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
+```
+
+
+#### Bearer Token（RFC 6750）
+
+```
+Authorization: Bearer <token>
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```

@@ -4,6 +4,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 
 import { createRequestState, parseRequest,type RequestState } from './decodeHttp/parseRequest.js';
+import validateHeaders from './utils/validateHeaders.js';
 
 interface ProcessFileResult {
   success: boolean;
@@ -44,7 +45,12 @@ async function processFile(filePath: string, options: ProcessOptions): Promise<P
   }
   try {
     const httpBuf = await fs.readFile(filePath);
-    processHttpRequest(httpBuf);
+    const state: RequestState = processHttpRequest(httpBuf);
+
+    const errors = validateHeaders(state.headersState?.headers ?? {});
+    if (errors.length > 0) {
+      console.log(errors);
+    }
 
     return {
       success: true,
@@ -117,7 +123,7 @@ async function processHttpFiles(
   return Array.isArray(result) ? result : [result];
 }
 
-// const ret = await processHttpFiles(path.resolve('/Users/huzhedong/mylib/http-utils/_data'));
-const ret = await processHttpFiles(path.resolve('/Users/huzhedong/mylib/http-utils/_data/01/66442ac107c67a1322721b'));
+const ret = await processHttpFiles(path.resolve('/Users/huzhedong/mylib/http-utils/_data'));
+// const ret = await processHttpFiles(path.resolve('/Users/huzhedong/mylib/http-utils/_data/01/66442ac107c67a1322721b'));
 
 console.log(ret);
