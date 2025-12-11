@@ -2,7 +2,7 @@ import { Buffer } from 'node:buffer';
 
 import { DecodeHttpError } from './errors.js';
 
-const MAX_LINE_SIZE = 65535;
+const MAX_LINE_SIZE = 4 * 1024; // 4KB
 const CR = 0x0d;
 const LF = 0x0a;
 

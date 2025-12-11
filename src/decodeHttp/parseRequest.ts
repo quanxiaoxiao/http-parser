@@ -15,7 +15,9 @@ const CRLF_LENGTH = 2;
 
 function getHeaderValue(headers: Headers, name: string): string | undefined {
   const value = headers[name];
-  if (!value) return undefined;
+  if (!value) {
+    return undefined;
+  }
   return Array.isArray(value) ? value[0] : value;
 }
 
