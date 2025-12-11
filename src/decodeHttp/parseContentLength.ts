@@ -55,7 +55,7 @@ export function parseContentLength(
   }
 
   return {
-    buffer: Buffer.concat([prev.buffer, input]),
+    buffer: remainingBuffer,
     contentLength: prev.contentLength,
     bytesReceived: totalBytes,
     bodyChunks: [...prev.bodyChunks, validInput],

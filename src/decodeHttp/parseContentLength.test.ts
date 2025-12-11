@@ -59,7 +59,7 @@ describe('parseContentLength', () => {
 
     assert.strictEqual(result.bytesReceived, 10);
     assert.strictEqual(result.finished, true);
-    assert.strictEqual(result.buffer.toString(), '1234567890');
+    assert.strictEqual(result.buffer.toString(), '');
     assert.strictEqual(result.bodyChunks.length, 1);
   });
 
@@ -73,7 +73,7 @@ describe('parseContentLength', () => {
     state = parseContentLength(state, Buffer.from('67890'));
     assert.strictEqual(state.bytesReceived, 10);
     assert.strictEqual(state.finished, true);
-    assert.strictEqual(state.buffer.toString(), '1234567890');
+    assert.strictEqual(state.buffer.toString(), '');
   });
 
   test('should handle empty chunks', () => {
@@ -98,7 +98,7 @@ describe('parseContentLength', () => {
     assert.strictEqual(state.bytesReceived, input.length);
     assert.strictEqual(state.finished, true);
     assert.strictEqual(state.bodyChunks[0].length, 5);
-    assert.strictEqual(state.buffer.length, Buffer.from(input).length);
+    assert.strictEqual(state.buffer.toString(), input.subarray(5).toString());
   });
 
   test('should call onChunk callback  more data than content length', () => {
@@ -165,10 +165,11 @@ describe('parseContentLength', () => {
     state = parseContentLength(state, Buffer.from('hello'));
     state = parseContentLength(state, Buffer.from(' '));
     state = parseContentLength(state, Buffer.from('world'));
-    state = parseContentLength(state, Buffer.from('!!!!'));
+    state = parseContentLength(state, Buffer.from('!!!!other'));
 
-    assert.strictEqual(state.buffer.toString(), 'hello world!!!!');
+    assert.strictEqual(state.buffer.toString(), 'other');
     assert.strictEqual(state.bodyChunks.length, 4);
+    assert.strictEqual(Buffer.concat(state.bodyChunks).toString(), 'hello world!!!!');
   });
 
   test('should optimize buffer handling for first chunk', () => {
@@ -177,7 +178,7 @@ describe('parseContentLength', () => {
 
     const result = parseContentLength(state, input);
 
-    assert.strictEqual(result.buffer.toString(), input.toString());
+    assert.strictEqual(result.buffer.toString(), '');
   });
 });
 
@@ -274,11 +275,11 @@ describe('integration tests', () => {
     assert.strictEqual(getProgress(state), 0.7);
     assert.strictEqual(getRemainingBytes(state), 6);
 
-    state = parseContentLength(state, Buffer.from('Done!!'));
+    state = parseContentLength(state, Buffer.from('Done!!aa'));
     assert.strictEqual(getProgress(state), 1);
     assert.strictEqual(getRemainingBytes(state), 0);
     assert.strictEqual(state.finished, true);
-    assert.strictEqual(state.buffer.toString(), 'Hello, World! Done!!');
+    assert.strictEqual(state.buffer.toString(), 'aa');
   });
 
   test('should handle complete workflow with onChunk', () => {
