@@ -622,6 +622,16 @@ describe('parseChunked', () => {
       assert.strictEqual(result.finished, true);
       assert.strictEqual(result.buffer.toString(), 'extra data');
     });
+
+    it('应该保留未处理的buffer数据, 有trailer的情况', () => {
+      const state = createChunkedState();
+      const input = Buffer.from('5\r\nhello\r\n0\r\nname:xxx\r\n\r\nextra data');
+      const result = parseChunked(state, input);
+
+      assert.strictEqual(result.finished, true);
+      assert.strictEqual(result.buffer.toString(), 'extra data');
+      assert.strictEqual(result.trailers.name, 'xxx');
+    });
   });
 
   describe('状态机转换', () => {
