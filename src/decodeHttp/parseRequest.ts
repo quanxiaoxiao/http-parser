@@ -52,11 +52,19 @@ function updateState(
 }
 
 function handleStartLinePhase(state: RequestState): RequestState {
-  const lineBuf = decodeHttpLine(
-    state.buffer,
-    0,
-    MAX_START_LINE_SIZE,
-  );
+  let lineBuf;
+  try {
+    lineBuf = decodeHttpLine(
+      state.buffer,
+      0,
+      MAX_START_LINE_SIZE,
+    );
+  } catch (error) {
+    const errorMessage = error instanceof Error
+      ? error.message
+      : String(error);
+    throw new DecodeHttpError(`HTTP request parse failed at phase "startline". Reason: ${errorMessage}`);
+  }
   if (!lineBuf) {
     return state;
   }
