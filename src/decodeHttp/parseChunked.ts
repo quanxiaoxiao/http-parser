@@ -224,15 +224,15 @@ function handleTrailerPhase(state: ChunkedState): ChunkedState {
   };
 }
 
-const phaseHandlers: Record<
-  ChunkedPhase,
-  (state: ChunkedState, onChunk?: (chunk: Buffer) => void) => ChunkedState
-> = {
-  SIZE: handleSizePhase,
-  DATA: handleDataPhase,
-  CRLF: handleCRLFPhase,
-  TRAILER: handleTrailerPhase,
-};
+const phaseHandlers = new Map<
+ChunkedPhase,
+(state: ChunkedState, onChunk?: (chunk: Buffer) => void) => ChunkedState
+  >([
+    ['SIZE', handleSizePhase],
+    ['DATA', handleDataPhase],
+    ['CRLF', handleCRLFPhase],
+    ['TRAILER', handleTrailerPhase],
+  ]);
 
 export function parseChunked(
   prev: ChunkedState,
@@ -250,7 +250,10 @@ export function parseChunked(
 
   while (!state.finished) {
     const prevPhase = state.phase;
-    const handler = phaseHandlers[state.phase];
+    const handler = phaseHandlers.get(state.phase);
+    if (!handler) {
+      throw new DecodeHttpError(`Unknown phase: ${state.phase}`);
+    }
 
     state = handler(state, onChunk);
 
