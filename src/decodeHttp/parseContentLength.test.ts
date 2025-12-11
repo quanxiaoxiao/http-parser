@@ -177,7 +177,7 @@ describe('parseContentLength', () => {
 
     const result = parseContentLength(state, input);
 
-    assert.strictEqual(result.buffer, input);
+    assert.strictEqual(result.buffer.toString(), input.toString());
   });
 });
 

@@ -31,18 +31,22 @@ export function parseContentLength(
     throw new DecodeHttpError('Content-Length parsing already finished');
   }
 
+  if (input.length === 0) {
+    return prev;
+  }
+
   const totalBytes = prev.bytesReceived + input.length;
-
-  const remainSize = prev.contentLength - totalBytes;
-
-  const finished = remainSize <= 0;
+  const finished = totalBytes >= prev.contentLength;
+  const overflowBytes = totalBytes - prev.contentLength;
+  const validInput = overflowBytes > 0 ? input.subarray(0, -overflowBytes) : input;
+  const remainingBuffer = overflowBytes > 0 ? input.subarray(-overflowBytes) : Buffer.alloc(0);
 
   if (onChunk) {
     if (input.length > 0) {
       onChunk(input);
     }
     return {
-      buffer: remainSize < 0 ? input.subarray(remainSize) : Buffer.alloc(0),
+      buffer: remainingBuffer,
       contentLength: prev.contentLength,
       bytesReceived: totalBytes,
       bodyChunks: [],
@@ -51,10 +55,10 @@ export function parseContentLength(
   }
 
   return {
-    buffer: prev.bodyChunks.length === 0 && input.length > 0 ? input : Buffer.concat([prev.buffer, input]),
+    buffer: Buffer.concat([prev.buffer, input]),
     contentLength: prev.contentLength,
     bytesReceived: totalBytes,
-    bodyChunks: input.length > 0 ? [...prev.bodyChunks, remainSize < 0 ? input.subarray(remainSize) : input] : prev.bodyChunks,
+    bodyChunks: [...prev.bodyChunks, validInput],
     finished,
   };
 }
@@ -63,9 +67,9 @@ export function getProgress(state: ContentLengthState): number {
   if (state.contentLength === 0) {
     return 1;
   }
-  return state.bytesReceived / state.contentLength;
+  return Math.min(state.bytesReceived / state.contentLength, 1);
 }
 
 export function getRemainingBytes(state: ContentLengthState): number {
-  return state.contentLength - state.bytesReceived;
+  return Math.max(state.contentLength - state.bytesReceived, 0);
 }
