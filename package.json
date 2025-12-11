@@ -13,6 +13,12 @@
     "test:coverage": "TSX_TSCONFIG=tsconfig.test.json node --import tsx --test --experimental-test-coverage 'src/**/*.test.ts'",
     "test:single": "TSX_TSCONFIG=tsconfig.test.json node --import tsx --test --test-only"
   },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org"
+  },
+  "engines": {
+    "node": ">= 22.0.0"
+  },
   "devDependencies": {
     "@types/node": "^24.10.1",
     "eslint": "^9.39.1",
