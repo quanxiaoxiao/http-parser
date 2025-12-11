@@ -11,7 +11,7 @@ function demoContentLength() {
     'Host: example.com\r\n' +
     'Content-Length: 5\r\n' +
     '\r\n' +
-    '{"a":1}';
+    '{"a":';
 
   const requestBuffer = Buffer.from(rawRequest, 'utf-8');
 
@@ -34,7 +34,7 @@ function demoContentLength() {
   console.log('\n--- 解析结果 ---');
   console.log('Start Line:', state.startLine);
   console.log('Method:', state.startLine?.method); // POST
-  console.log('Content-Length Body Data:', (state.bodyState as ContentLengthState)?.buffer.toString()); // {"a":1}
+  console.log('Content-Length Body Data:', (state.bodyState as ContentLengthState)); // {"a":1}
 }
 
 demoContentLength();
