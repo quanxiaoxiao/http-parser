@@ -1,4 +1,4 @@
-import parseInteger from './parseInteger.js';
+import parseInteger from '../parseInteger.js';
 
 export default (port: string | number): boolean => {
   const value = parseInteger(port);

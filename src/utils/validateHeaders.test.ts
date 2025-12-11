@@ -1,7 +1,7 @@
 import * as assert from 'node:assert';
 import { describe, it } from 'node:test';
 
-import { type Headers } from './types.js';
+import { type Headers } from '../types.js';
 import validateHeaders from './validateHeaders.js';
 
 describe('HTTP Headers Validator', () => {

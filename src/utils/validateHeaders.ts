@@ -1,4 +1,4 @@
-import { type Headers } from './types.js';
+import { type Headers } from '../types.js';
 
 interface ValidationError {
   header: string;
