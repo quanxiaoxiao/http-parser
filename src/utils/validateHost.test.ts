@@ -228,7 +228,7 @@ describe('validateHost', () => {
       }
     });
 
-    it('xxxx', () => {
+    it('应该接受 _ 下划线', () => {
       const result = validateHost('fe_perf_env.test1.com');
       assert.strictEqual(result.valid, true);
     });
