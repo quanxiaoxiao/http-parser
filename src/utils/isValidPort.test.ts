@@ -19,9 +19,9 @@ describe('isValidPort', () => {
       assert.strictEqual(isValidPort(443), true);
     });
 
-    it('应该接受边界值 0 和 65535', () => {
-      assert.strictEqual(isValidPort(0), true);
-      assert.strictEqual(isValidPort('0'), true);
+    it('应该接受边界值 1 和 65535', () => {
+      assert.strictEqual(isValidPort(1), true);
+      assert.strictEqual(isValidPort('1'), true);
       assert.strictEqual(isValidPort(65535), true);
       assert.strictEqual(isValidPort('65535'), true);
     });
@@ -59,6 +59,11 @@ describe('isValidPort', () => {
       assert.strictEqual(isValidPort(' 8080'), false);
       assert.strictEqual(isValidPort('8080 '), false);
       assert.strictEqual(isValidPort(' 8080 '), false);
+    });
+
+    it('应该拒绝端口为 0', () => {
+      assert.strictEqual(isValidPort('0'), false);
+      assert.strictEqual(isValidPort(0), false);
     });
   });
 

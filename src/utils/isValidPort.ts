@@ -5,7 +5,7 @@ export default (port: string | number): boolean => {
 
   return (
     value !== null &&
-    value >= 0 &&
+    value >= 1 &&
     value <= 65535
   );
 };

@@ -74,7 +74,7 @@ Host header validation rules:
 
 - Must exist for HTTP/1.1+
 - Must appear exactly once
-- Format: <domain> | <IPv4> | '[' IPv6 ']'
+- Format: \<domain\> | \<IPv4\> | '[' IPv6 ']'
 - Optional port: ":" <1-65535>
 - Max host length: 255 chars
 - No whitespace, CR, LF
