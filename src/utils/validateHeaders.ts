@@ -1,4 +1,5 @@
 import { type Headers } from '../types.js';
+import validateHost from './validateHost.js';
 
 interface ValidationError {
   header: string;
@@ -107,7 +108,6 @@ const PATTERNS = {
   controlChars: /[\u0000-\u0008\u000A-\u001F\u007F]/, // eslint-disable-line no-control-regex
   numeric: /^\d+$/,
   contentType: /^[a-zA-Z0-9][a-zA-Z0-9!#$&^_.-]*\/[a-zA-Z0-9][a-zA-Z0-9!#$&^_.-]*(?:\s*;\s*.+)?$/,
-  host: /^[a-zA-Z0-9.-]+(?::\d+)?$/,
   authorization: /^[a-zA-Z0-9_-]+\s+.+$/,
   range: /^bytes=\d*-\d*(?:,\s*\d*-\d*)*$/,
   contentRange: /^bytes\s+(?:\d+-\d+|\*)\/(?:\d+|\*)$/,
@@ -117,7 +117,7 @@ const PATTERNS = {
 
 const FORMAT_VALIDATORS: Record<string, FormatValidator> = {
   'content-type': (value) => PATTERNS.contentType.test(value),
-  host: (value) => PATTERNS.host.test(value),
+  host: (value) => validateHost(value).valid,
   authorization: (value) => PATTERNS.authorization.test(value),
   range: (value) => PATTERNS.range.test(value),
   'content-range': (value) => PATTERNS.contentRange.test(value),

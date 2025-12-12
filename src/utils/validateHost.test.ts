@@ -228,6 +228,11 @@ describe('validateHost', () => {
       }
     });
 
+    it('xxxx', () => {
+      const result = validateHost('fe_perf_env.test1.com');
+      assert.strictEqual(result.valid, true);
+    });
+
     it('应该拒绝包含 NUL 字符的输入', () => {
       const result = validateHost('example.com\u0000');
       assert.strictEqual(result.valid, false);

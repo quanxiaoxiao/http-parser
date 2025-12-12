@@ -106,7 +106,7 @@ function validateRegName(regname: string, port?: number): ValidationResult {
     if (/^-|-$/.test(label)) {
       return createError('label starts/ends with hyphen');
     }
-    if (!/^(?!-)[A-Za-z0-9-]{1,63}(?<!-)$/.test(label)) {
+    if (!/^(?!-)[A-Za-z0-9-_]{1,63}(?<!-)$/.test(label)) {
       return createError('invalid domain label: only letters, digits, and hyphens are allowed');
     }
   }
