@@ -24,7 +24,7 @@ const INVALID_CHARS_REGEX = /[\r\n\u0000]/; // eslint-disable-line
 interface ContentTypeInfo {
   type: string;
   subtype: string;
-  parameters: Map<string, string>;
+  parameters: Record<string, string>;
   charset?: string;
   boundary?: string;
 }
@@ -77,12 +77,12 @@ function validateTypeSubtype(type: string, subtype: string): string | null {
 }
 
 interface ParseParametersResult {
-  parameters: Map<string, string>;
+  parameters: Record<string, string>;
   error?: string;
 }
 
 function parseParameters(value: string): ParseParametersResult {
-  const parameters = new Map<string, string>();
+  const parameters: Record<string, string> = {};
 
   if (!value || value.trim().length === 0) {
     return { parameters };
@@ -108,11 +108,11 @@ function parseParameters(value: string): ParseParametersResult {
       return { parameters, error: 'parameter value too long (>1024)' };
     }
 
-    if (parameters.has(name)) {
+    if (parameters[name]) {
       return { parameters, error: `duplicate parameter: ${name}` };
     }
 
-    parameters.set(name, paramValue);
+    parameters[name] = paramValue;
   }
 
   return { parameters };
@@ -152,12 +152,12 @@ export default function validateContentType(value: string): ValidationResult {
     parameters,
   };
 
-  const charset = parameters.get('charset');
+  const charset = parameters.charset;
   if (charset !== undefined) {
     contentTypeInfo.charset = charset;
   }
 
-  const boundary = parameters.get('boundary');
+  const boundary = parameters.boundary;
   if (boundary !== undefined) {
     contentTypeInfo.boundary = boundary;
   }

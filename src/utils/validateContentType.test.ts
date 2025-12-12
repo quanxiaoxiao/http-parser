@@ -11,7 +11,7 @@ describe('validateContentType', () => {
       if (result.valid) {
         assert.strictEqual(result.contentType.type, 'text');
         assert.strictEqual(result.contentType.subtype, 'plain');
-        assert.strictEqual(result.contentType.parameters.size, 0);
+        assert.strictEqual(Object.keys(result.contentType.parameters).length, 0);
       }
     });
 
@@ -150,8 +150,8 @@ describe('validateContentType', () => {
       const result = validateContentType('text/plain; charset=utf-8');
       assert.strictEqual(result.valid, true);
       if (result.valid) {
-        assert.strictEqual(result.contentType.parameters.size, 1);
-        assert.strictEqual(result.contentType.parameters.get('charset'), 'utf-8');
+        assert.strictEqual(Object.keys(result.contentType.parameters).length, 1);
+        assert.strictEqual(result.contentType.parameters.charset, 'utf-8');
         assert.strictEqual(result.contentType.charset, 'utf-8');
       }
     });
@@ -160,9 +160,9 @@ describe('validateContentType', () => {
       const result = validateContentType('multipart/form-data; boundary=----WebKitFormBoundary; charset=utf-8');
       assert.strictEqual(result.valid, true);
       if (result.valid) {
-        assert.strictEqual(result.contentType.parameters.size, 2);
-        assert.strictEqual(result.contentType.parameters.get('boundary'), '----WebKitFormBoundary');
-        assert.strictEqual(result.contentType.parameters.get('charset'), 'utf-8');
+        assert.strictEqual(Object.keys(result.contentType.parameters).length, 2);
+        assert.strictEqual(result.contentType.parameters.boundary, '----WebKitFormBoundary');
+        assert.strictEqual(result.contentType.parameters.charset, 'utf-8');
         assert.strictEqual(result.contentType.boundary, '----WebKitFormBoundary');
         assert.strictEqual(result.contentType.charset, 'utf-8');
       }
@@ -172,7 +172,7 @@ describe('validateContentType', () => {
       const result = validateContentType('text/plain; CHARSET=utf-8');
       assert.strictEqual(result.valid, true);
       if (result.valid) {
-        assert.strictEqual(result.contentType.parameters.get('charset'), 'utf-8');
+        assert.strictEqual(result.contentType.parameters.charset, 'utf-8');
       }
     });
 
@@ -180,7 +180,7 @@ describe('validateContentType', () => {
       const result = validateContentType('text/plain; charset="utf-8"');
       assert.strictEqual(result.valid, true);
       if (result.valid) {
-        assert.strictEqual(result.contentType.parameters.get('charset'), 'utf-8');
+        assert.strictEqual(result.contentType.parameters.charset, 'utf-8');
       }
     });
 
@@ -188,7 +188,7 @@ describe('validateContentType', () => {
       const result = validateContentType('text/plain; name="file\\"name.txt"');
       assert.strictEqual(result.valid, true);
       if (result.valid) {
-        assert.strictEqual(result.contentType.parameters.get('name'), 'file"name.txt');
+        assert.strictEqual(result.contentType.parameters.name, 'file"name.txt');
       }
     });
 
@@ -196,9 +196,9 @@ describe('validateContentType', () => {
       const result = validateContentType('text/plain;  charset=utf-8  ;  boundary=test');
       assert.strictEqual(result.valid, true);
       if (result.valid) {
-        assert.strictEqual(result.contentType.parameters.size, 2);
-        assert.strictEqual(result.contentType.parameters.get('charset'), 'utf-8');
-        assert.strictEqual(result.contentType.parameters.get('boundary'), 'test');
+        assert.strictEqual(Object.keys(result.contentType.parameters).length, 2);
+        assert.strictEqual(result.contentType.parameters.charset, 'utf-8');
+        assert.strictEqual(result.contentType.parameters.boundary, 'test');
       }
     });
 
@@ -301,7 +301,7 @@ describe('validateContentType', () => {
       const result = validateContentType('text/plain;');
       assert.strictEqual(result.valid, true);
       if (result.valid) {
-        assert.strictEqual(result.contentType.parameters.size, 0);
+        assert.strictEqual(Object.keys(result.contentType.parameters).length, 0);
       }
     });
 
@@ -322,7 +322,7 @@ describe('validateContentType', () => {
       const result = validateContentType(`text/plain; ${params}`);
       assert.strictEqual(result.valid, true);
       if (result.valid) {
-        assert.strictEqual(result.contentType.parameters.size, 10);
+        assert.strictEqual(Object.keys(result.contentType.parameters).length, 10);
       }
     });
 
@@ -331,7 +331,7 @@ describe('validateContentType', () => {
       const result = validateContentType(`text/plain; name=${value}`);
       assert.strictEqual(result.valid, true);
       if (result.valid) {
-        assert.strictEqual(result.contentType.parameters.get('name'), value);
+        assert.strictEqual(result.contentType.parameters.name, value);
       }
     });
   });
