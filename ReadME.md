@@ -90,3 +90,17 @@ Host header validation rules:
 
 - 严格按照 RFC 1035/1123，域名 label 不能有下划线 `_`，只允许 `[A-Za-z0-9-]`
 - 实际情况：很多系统（例如内部 DNS、一些云服务）允许下划线，尤其在 SRV 记录里常见，但严格意义上它是非法的域名 label。
+
+
+### Content-Type
+
+Content-Type header rules:
+
+- Format: type/subtype[; parameter=value]*
+- type/subtype: token, recommended lowercase
+- Parameters: token=value or token="quoted string"
+- Multiple parameters separated by ;
+- Must not contain CR/LF
+- charset parameter recommended for text/*
+- boundary required for multipart/form-data
+- Validate against allowed types/subtypes if needed
