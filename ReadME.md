@@ -67,3 +67,20 @@ Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
 Authorization: Bearer <token>
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
+
+### Host
+
+Host header validation rules:
+
+- Must exist for HTTP/1.1+
+- Must appear exactly once
+- Format: <domain> | <IPv4> | '[' IPv6 ']'
+- Optional port: ":" <1-65535>
+- Max host length: 255 chars
+- No whitespace, CR, LF
+- No comma
+- Domain labels: A-Z a-z 0-9 - (not leading or trailing)
+- IPv6 must be in brackets
+- Reject multiple Host headers
+- Reject malformed ports
+- Reject embedded credentials (e.g. user:pass@host)

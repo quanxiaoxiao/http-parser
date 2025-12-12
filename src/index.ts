@@ -48,9 +48,11 @@ async function processFile(filePath: string, options: ProcessOptions): Promise<P
     const state: RequestState = processHttpRequest(httpBuf);
 
     const errors = validateHeaders(state.headersState?.headers ?? {});
-    if (errors.length > 0) {
-      console.log(errors);
-    }
+    errors.forEach((errorItem) => {
+      if (errorItem.header !== 'authorization') {
+        console.log(errorItem);
+      }
+    });
 
     return {
       success: true,
