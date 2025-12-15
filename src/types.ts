@@ -9,11 +9,23 @@ export type HttpMessagePhase =
   | 'Body'
   | 'Finished';
 
+export interface RequestStartLine {
+  method: string | null;
+  path: string | null;
+  version: number | null;
+}
+
+export interface ResponseStartLine {
+  version: number;
+  statusCode: number;
+  statusMessage: string;
+}
+
 export interface HttpParserHooks {
   onMessageBegin?(): void;
 
-  onRequestStartLine?(method: string, path: string, version: number): void;
-  onResponseStartLine?(version: string, status: number, reason: string): void;
+  onRequestStartLine?(startLine: RequestStartLine): void;
+  onResponseStartLine?(startLine: ResponseStartLine): void;
 
   onHeadersBegin?(): void;
   onHeader?(field: string, value: string, headers: Headers): void;
@@ -25,6 +37,5 @@ export interface HttpParserHooks {
 
   onMessageComplete?(): void;
 
-  // errors
   onError?(err: Error): void;
 }

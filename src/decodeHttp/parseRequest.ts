@@ -3,11 +3,11 @@ import { Buffer } from 'node:buffer';
 import decodeHttpLine from '../decodeHttpLine.js';
 import { DecodeHttpError } from '../errors.js';
 import parseInteger from '../parseInteger.js';
-import { type Headers, type HttpParserHooks } from '../types.js';
+import { type Headers, type HttpParserHooks, type RequestStartLine } from '../types.js';
 import { type ChunkedState, createChunkedState, parseChunked } from './parseChunked.js';
 import { type ContentLengthState, createContentLengthState, parseContentLength } from './parseContentLength.js';
 import { createHeadersState, type HeadersState, parseHeaders } from './parseHeaders.js';
-import parseRequestLine, { type RequestStartLine } from './parseRequestLine.js';
+import parseRequestLine from './parseRequestLine.js';
 
 type RequestPhase = 'STARTLINE' | 'HEADERS' | 'BODY_CHUNKED' | 'BODY_CONTENT_LENGTH';
 
@@ -24,10 +24,15 @@ function getHeaderValue(headers: Headers, name: string): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
 
+function formatError(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 export interface RequestState {
   phase: RequestPhase;
   buffer: Buffer;
   finished: boolean;
+  error?: Error,
   startLine: RequestStartLine | null;
   headersState: HeadersState | null;
   bodyState: ChunkedState | ContentLengthState | null;
@@ -36,7 +41,7 @@ export interface RequestState {
 export function createRequestState(): RequestState {
   return {
     phase: 'STARTLINE',
-    buffer: Buffer.alloc(0),
+    buffer: EMPTY_BUFFER,
     finished: false,
     startLine: null,
     headersState: null,
@@ -58,11 +63,9 @@ function handleStartLinePhase(state: RequestState, hooks?: HttpParserHooks): Req
       path: null,
       version: null,
     };
-    if (hooks && hooks.onMessageBegin) {
-      hooks.onMessageBegin();
-    }
+    hooks?.onMessageBegin?.();
   }
-  let lineBuf;
+  let lineBuf: Buffer | null;
   try {
     lineBuf = decodeHttpLine(
       state.buffer,
@@ -70,10 +73,7 @@ function handleStartLinePhase(state: RequestState, hooks?: HttpParserHooks): Req
       MAX_START_LINE_SIZE,
     );
   } catch (error) {
-    const errorMessage = error instanceof Error
-      ? error.message
-      : String(error);
-    throw new DecodeHttpError(`HTTP request parse failed at phase "startline". Reason: ${errorMessage}`);
+    throw new DecodeHttpError(`HTTP request parse failed at phase "startline". Reason: ${formatError(error)}`);
   }
   if (!lineBuf) {
     return state;
@@ -83,11 +83,10 @@ function handleStartLinePhase(state: RequestState, hooks?: HttpParserHooks): Req
   try {
     startLine = parseRequestLine(lineBuf.toString());
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    throw new DecodeHttpError(errorMessage);
+    throw new DecodeHttpError(formatError(error));
   }
 
-  hooks?.onRequestStartLine?.(startLine.method!, startLine.path!, startLine.version!);
+  hooks?.onRequestStartLine?.(startLine);
 
   const endOfLine = lineBuf.length + CRLF_LENGTH;
 
@@ -112,16 +111,12 @@ function getContentLength(headers: Headers): number | null {
 
 function determineBodyPhase(headers: Headers): Partial<RequestState> {
   if (isChunkedEncoding(headers)) {
-    return {
-      phase: 'BODY_CHUNKED',
-    };
+    return { phase: 'BODY_CHUNKED' };
   }
 
   const contentLength = getContentLength(headers);
   if (contentLength) {
-    return {
-      phase: 'BODY_CONTENT_LENGTH',
-    };
+    return { phase: 'BODY_CONTENT_LENGTH' };
   }
 
   return { finished: true };
@@ -130,9 +125,7 @@ function determineBodyPhase(headers: Headers): Partial<RequestState> {
 function handleHeadersPhase(state: RequestState, hooks?: HttpParserHooks): RequestState {
   if (!state.headersState) {
     state.headersState = createHeadersState();
-    if (hooks && hooks.onHeadersBegin) {
-      hooks.onHeadersBegin();
-    }
+    hooks?.onHeadersBegin?.();
   }
   const headersState = parseHeaders(state.headersState!, state.buffer, hooks?.onHeader);
 
@@ -147,9 +140,7 @@ function handleHeadersPhase(state: RequestState, hooks?: HttpParserHooks): Reque
     });
   }
 
-  if (hooks && hooks.onHeadersComplete) {
-    hooks.onHeadersComplete(headersState.headers);
-  }
+  hooks?.onHeadersComplete?.(headersState.headers);
 
   const nextPhase = determineBodyPhase(headersState.headers);
 
@@ -189,9 +180,7 @@ function handleBodyPhase<T extends ChunkedState | ContentLengthState>(
 function handleBodyChunkedPhase(state: RequestState, hooks?: HttpParserHooks): RequestState {
   if (!state.bodyState) {
     state.bodyState = createChunkedState();
-    if (hooks && hooks.onBodyBegin) {
-      hooks.onBodyBegin();
-    }
+    hooks?.onBodyBegin?.();
   }
   return handleBodyPhase(state, parseChunked, hooks);
 }
@@ -199,10 +188,11 @@ function handleBodyChunkedPhase(state: RequestState, hooks?: HttpParserHooks): R
 function handleBodyContentLengthPhase(state: RequestState, hooks?: HttpParserHooks): RequestState {
   if (!state.bodyState) {
     const contentLength = getContentLength(state.headersState!.headers);
-    state.bodyState = createContentLengthState(contentLength!);
-    if (hooks && hooks.onBodyBegin) {
-      hooks.onBodyBegin();
+    if (contentLength === null) {
+      throw new DecodeHttpError('Content-Length not found or invalid');
     }
+    state.bodyState = createContentLengthState(contentLength!);
+    hooks?.onBodyBegin?.();
   }
   return handleBodyPhase(state, parseContentLength, hooks);
 }
@@ -226,6 +216,10 @@ export function parseRequest(
     throw new DecodeHttpError('Request decoding already finished');
   }
 
+  if (prev.error) {
+    throw new Error(`Request decoded occur error "${prev.error.message}"`);
+  }
+
   let state: RequestState = input.length > 0
     ? updateState(prev, { buffer: Buffer.concat([prev.buffer, input]) })
     : prev;
@@ -239,11 +233,9 @@ export function parseRequest(
     try {
       state = handler(state, hooks);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      if (hooks && hooks.onError) {
-        hooks.onError(error as Error);
-      }
-      throw new DecodeHttpError(errorMessage);
+      state.error = error as Error;
+      hooks?.onError?.(error as Error);
+      throw new DecodeHttpError(formatError(error));
     }
 
     if (state.phase === prevPhase) {

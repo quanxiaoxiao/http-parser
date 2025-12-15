@@ -2,6 +2,7 @@ import * as http from 'node:http';
 
 import { DecodeHttpError } from '../errors.js';
 import parseInteger from '../parseInteger.js';
+import { type ResponseStartLine } from '../types.js';
 
 const HTTP_VERSION_1_0 = 1.0;
 const HTTP_VERSION_1_1 = 1.1;
@@ -11,18 +12,12 @@ const ERROR_PREVIEW_LENGTH = 50;
 
 const RESPONSE_STARTLINE_REG = /^(HTTP\/1\.[01])\s+(\d{3})(?:\s+(.*))?$/i;
 
-interface ParsedResponse {
-  version: number;
-  statusCode: number;
-  statusMessage: string;
-}
-
 const HTTP_VERSION_MAP: Record<string, number> = {
   'HTTP/1.0': HTTP_VERSION_1_0,
   'HTTP/1.1': HTTP_VERSION_1_1,
 };
 
-export default function parseResponseLine(str: string): ParsedResponse {
+export default function parseResponseLine(str: string): ResponseStartLine {
   if (!str?.trim()) {
     throw new DecodeHttpError('Invalid input: response line must be a non-empty string');
   }

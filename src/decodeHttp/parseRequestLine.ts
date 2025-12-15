@@ -1,4 +1,5 @@
 import { DecodeHttpError } from '../errors.js';
+import { type RequestStartLine } from '../types.js';
 
 const REQUEST_STARTLINE_REG = /^(\w+)\s+([^\s]+)\s+(HTTP\/1\.[01])$/i;
 
@@ -9,12 +10,6 @@ const HTTP_VERSION_MAP: Record<string, number> = {
   'HTTP/1.0': HTTP_VERSION_1_0,
   'HTTP/1.1': HTTP_VERSION_1_1,
 };
-
-export interface RequestStartLine {
-  method: string | null;
-  path: string | null;
-  version: number | null;
-}
 
 export default function parseRequestLine(str: string): RequestStartLine {
   if (!str || typeof str !== 'string') {
