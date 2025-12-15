@@ -104,7 +104,6 @@ function determineBodyPhase(headers: Headers): Partial<RequestState> {
   if (isChunkedEncoding(headers)) {
     return {
       phase: 'BODY_CHUNKED',
-      bodyState: createChunkedState(),
     };
   }
 
@@ -112,7 +111,6 @@ function determineBodyPhase(headers: Headers): Partial<RequestState> {
   if (contentLength) {
     return {
       phase: 'BODY_CONTENT_LENGTH',
-      bodyState: createContentLengthState(contentLength),
     };
   }
 
@@ -174,10 +172,17 @@ function handleBodyPhase<T extends ChunkedState | ContentLengthState>(
 }
 
 function handleBodyChunkedPhase(state: RequestState): RequestState {
+  if (!state.bodyState) {
+    state.bodyState = createChunkedState();
+  }
   return handleBodyPhase(state, parseChunked);
 }
 
 function handleBodyContentLengthPhase(state: RequestState): RequestState {
+  if (!state.bodyState) {
+    const contentLength = getContentLength(state.headersState!.headers);
+    state.bodyState = createContentLengthState(contentLength!);
+  }
   return handleBodyPhase(state, parseContentLength);
 }
 
