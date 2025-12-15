@@ -3,7 +3,7 @@ import { Buffer } from 'node:buffer';
 import decodeHttpLine from '../decodeHttpLine.js';
 import { DecodeHttpError } from '../errors.js';
 import parseInteger from '../parseInteger.js';
-import { type Headers } from '../types.js';
+import { type Headers, type HttpParserHooks } from '../types.js';
 import { type ChunkedState, createChunkedState, parseChunked } from './parseChunked.js';
 import { type ContentLengthState, createContentLengthState, parseContentLength } from './parseContentLength.js';
 import { createHeadersState, type HeadersState, parseHeaders } from './parseHeaders.js';
@@ -51,7 +51,7 @@ function updateState(
   return { ...state, ...updates };
 }
 
-function handleStartLinePhase(state: RequestState): RequestState {
+function handleStartLinePhase(state: RequestState, hooks?: HttpParserHooks): RequestState {
   let lineBuf;
   try {
     lineBuf = decodeHttpLine(
@@ -69,11 +69,21 @@ function handleStartLinePhase(state: RequestState): RequestState {
     return state;
   }
 
+  let startLine: RequestStartLine;
+  try {
+    startLine = parseRequestLine(lineBuf.toString());
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    throw new DecodeHttpError(errorMessage);
+  }
+
+  hooks?.onRequestStartLine?.(startLine.method, startLine.path, startLine.version);
+
   const endOfLine = lineBuf.length + CRLF_LENGTH;
 
   return updateState(state, {
     buffer: state.buffer.subarray(endOfLine),
-    startLine: parseRequestLine(lineBuf.toString()),
+    startLine,
     phase: 'HEADERS',
     headersState: createHeadersState(),
   });
@@ -175,7 +185,7 @@ function handleBodyContentLengthPhase(state: RequestState): RequestState {
 
 const phaseHandlers = new Map<
   RequestPhase,
-  (state: RequestState) => RequestState
+  (state: RequestState, hooks?: HttpParserHooks) => RequestState
     >([
       ['STARTLINE', handleStartLinePhase],
       ['HEADERS', handleHeadersPhase],
@@ -186,6 +196,7 @@ const phaseHandlers = new Map<
 export function parseRequest(
   prev: RequestState,
   input: Buffer,
+  hooks?: HttpParserHooks,
 ): RequestState {
   if (prev.finished) {
     throw new DecodeHttpError('Request decoding already finished');
@@ -201,7 +212,7 @@ export function parseRequest(
     if (!handler) {
       throw new DecodeHttpError(`Unknown phase: ${state.phase}`);
     }
-    state = handler(state);
+    state = handler(state, hooks);
 
     if (state.phase === prevPhase) {
       break;

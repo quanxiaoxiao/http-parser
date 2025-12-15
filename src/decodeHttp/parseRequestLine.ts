@@ -37,8 +37,8 @@ export default function parseRequestLine(str: string): RequestStartLine {
   }
 
   return {
-    method: method?.toUpperCase() as string,
-    path: path as string,
+    method: method!.toUpperCase(),
+    path: path!,
     version,
   };
 };

@@ -88,7 +88,6 @@ export default [
       'no-plusplus': 0,
       'global-require': 0,
       // 'no-unused-vars': ['error', { caughtErrors: 'none' }],
-      'no-unused-vars': 'off',
       '@typescript-eslint/no-unused-vars': [
         'warn',
         {
