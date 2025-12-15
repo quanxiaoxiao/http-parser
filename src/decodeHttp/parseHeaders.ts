@@ -37,6 +37,7 @@ function addHeader(headers: Headers, name: string, value: string): void {
 export function parseHeaders(
   prev: HeadersState,
   input: Buffer,
+  onHeader?: (name: string, value: string, headers: Headers) => void,
 ): HeadersState {
   if (prev.finished) {
     throw new DecodeHttpError('Headers parsing already finished');
@@ -73,6 +74,9 @@ export function parseHeaders(
     rawHeaders.push(name, value);
     const lowerName = name.toLowerCase();
     addHeader(headers, lowerName, value);
+    if (onHeader) {
+      onHeader(lowerName, value, headers);
+    }
   }
 
   return {
