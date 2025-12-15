@@ -32,7 +32,16 @@ function shouldProcessFile(filePath: string, extensions?: string[]): boolean {
 
 function processHttpRequest(chunk: Buffer): RequestState {
   const state: RequestState = createRequestState();
-  return parseRequest(state, chunk);
+  return parseRequest(state, chunk, {
+    onHeadersComplete: (headers) => {
+      const errors = validateHeaders(headers);
+      errors.forEach((errorItem) => {
+        if (errorItem.header !== 'authorization') {
+          console.log(errorItem);
+        }
+      });
+    },
+  });
 }
 
 async function processFile(filePath: string, options: ProcessOptions): Promise<ProcessFileResult>{
@@ -43,32 +52,14 @@ async function processFile(filePath: string, options: ProcessOptions): Promise<P
       errorMessage: 'Skipped: file extension not matched',
     };
   }
-  try {
-    const httpBuf = await fs.readFile(filePath);
-    const state: RequestState = processHttpRequest(httpBuf);
+  const httpBuf = await fs.readFile(filePath);
+  const state: RequestState = processHttpRequest(httpBuf);
 
-    const errors = validateHeaders(state.headersState?.headers ?? {});
-    errors.forEach((errorItem) => {
-      if (errorItem.header !== 'authorization') {
-        console.log(errorItem);
-      }
-    });
-
-    return {
-      success: true,
-      filePath,
-    };
-  } catch (error) {
-    const errorMessage = error instanceof Error
-      ? error.message
-      : String(error);
-    console.log(errorMessage, filePath);
-    return {
-      success: false,
-      filePath,
-      errorMessage,
-    };
-  }
+  return {
+    success: !!state.error,
+    filePath,
+    errorMessage: state.error?.message ?? '',
+  };
 }
 
 async function processConcurrently<T, R>(
