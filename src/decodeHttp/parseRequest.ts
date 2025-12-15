@@ -79,12 +79,7 @@ function handleStartLinePhase(state: RequestState, hooks?: HttpParserHooks): Req
     return state;
   }
 
-  let startLine: RequestStartLine;
-  try {
-    startLine = parseRequestLine(lineBuf.toString());
-  } catch (error) {
-    throw new DecodeHttpError(formatError(error));
-  }
+  const startLine = parseRequestLine(lineBuf.toString());
 
   hooks?.onRequestStartLine?.(startLine);
 
@@ -235,12 +230,16 @@ export function parseRequest(
     } catch (error) {
       state.error = error as Error;
       hooks?.onError?.(error as Error);
-      throw error;
+      break;
     }
 
     if (state.phase === prevPhase) {
       break;
     }
+  }
+
+  if (state.error) {
+    return state;
   }
 
   if (state.finished) {
