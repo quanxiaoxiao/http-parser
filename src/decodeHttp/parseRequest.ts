@@ -217,7 +217,7 @@ export function parseRequest(
   }
 
   if (prev.error) {
-    throw new Error(`Request decoded occur error "${prev.error.message}"`);
+    throw new Error(`Request decoding encountered error: "${prev.error.message}"`);
   }
 
   let state: RequestState = input.length > 0
@@ -235,7 +235,7 @@ export function parseRequest(
     } catch (error) {
       state.error = error as Error;
       hooks?.onError?.(error as Error);
-      throw new DecodeHttpError(formatError(error));
+      throw error;
     }
 
     if (state.phase === prevPhase) {
@@ -243,8 +243,8 @@ export function parseRequest(
     }
   }
 
-  if (state.finished && hooks && hooks.onMessageComplete) {
-    hooks.onMessageComplete();
+  if (state.finished) {
+    hooks?.onMessageComplete?.();
   }
 
   return state;
