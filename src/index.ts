@@ -100,7 +100,7 @@ async function processPath (pathname: string, options: ProcessOptions): Promise<
   }
   if (!shouldProcessFile(pathname, options.fileExtensions)) {
     return {
-      success: true,
+      success: false,
       filePath: pathname,
       errorMessage: 'Skipped: file extension not matched',
     };
