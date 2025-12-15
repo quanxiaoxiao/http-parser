@@ -17,10 +17,8 @@ export interface HttpParserHooks {
   onResponseStartLine?(version: string, status: number, reason: string): void;
 
   onHeadersBegin?(): void;
-  onHeaderField?(field: string): void;
-  onHeaderValue?(value: string): void;
-  onHeader?(field: string, value: string): void;
-  onHeadersComplete?(headers: Record<string, string | string[]>): void;
+  onHeader?(field: string, value: string, headers: Headers): void;
+  onHeadersComplete?(headers: Headers): void;
 
   onBodyBegin?(): void;
   onBody?(chunk: Uint8Array): void;

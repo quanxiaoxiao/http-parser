@@ -119,11 +119,14 @@ function determineBodyPhase(headers: Headers): Partial<RequestState> {
   return { finished: true };
 }
 
-function handleHeadersPhase(state: RequestState): RequestState {
+function handleHeadersPhase(state: RequestState, hooks?: HttpParserHooks): RequestState {
   if (!state.headersState) {
     state.headersState = createHeadersState();
+    if (hooks && hooks.onHeadersBegin) {
+      hooks.onHeadersBegin();
+    }
   }
-  const headersState = parseHeaders(state.headersState!, state.buffer);
+  const headersState = parseHeaders(state.headersState!, state.buffer, hooks?.onHeader);
 
   if (headersState.bytesReceived > MAX_HEADER_SIZE) {
     throw new DecodeHttpError(`Headers too large: ${state.buffer.length} bytes exceeds limit of ${MAX_HEADER_SIZE}`);
@@ -134,6 +137,10 @@ function handleHeadersPhase(state: RequestState): RequestState {
       buffer: EMPTY_BUFFER,
       headersState,
     });
+  }
+
+  if (hooks && hooks.onHeadersComplete) {
+    hooks.onHeadersComplete(headersState.headers);
   }
 
   const nextPhase = determineBodyPhase(headersState.headers);
