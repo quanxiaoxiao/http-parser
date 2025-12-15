@@ -1,57 +1,37 @@
+import decodeHttpLine from '../decodeHttpLine.js';
 import { DecodeHttpError } from '../errors.js';
 import { type Headers } from '../types.js';
 import parseHeaderLine from './parseHeaderLine.js';
 
 export interface HeadersState {
   buffer: Buffer;
-  headers: Headers | null;
+  headers: Headers;
   finished: boolean;
+  bytesReceived: number;
   rawHeaders: string[];
 }
 
-const DOUBLE_CRLF = Buffer.from('\r\n\r\n');
-const DOUBLE_CRLF_LENGTH = 4;
-const CRLF = '\r\n';
-const MAX_HEADER_SIZE = 16 * 1024; // 16KB
+const CRLF_LENGTH = 2;
 
 export function createHeadersState(): HeadersState {
   return {
     buffer: Buffer.alloc(0),
-    headers: null,
+    headers: {},
     rawHeaders: [],
+    bytesReceived: 0,
     finished: false,
   };
 }
 
-function findHeadersEnd(buffer: Buffer): number {
-  return buffer.indexOf(DOUBLE_CRLF);
-}
-
-function parseHeadersBlock(headersBuffer: Buffer): [Headers, string[]] {
-  const headersText = headersBuffer.toString('utf-8');
-  const lines = headersText.split(CRLF);
-  const headers: Headers = {};
-  const rawHeaders: string[] = [];
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed) {
-      continue;
-    }
-    const [name, value] = parseHeaderLine(line);
-    rawHeaders.push(name, value);
-    const lowerName = name.toLowerCase();
-    const existing = headers[lowerName];
-    if (existing !== undefined) {
-      headers[lowerName] = Array.isArray(existing)
-        ? [...existing, value]
-        : [existing, value];
-    } else {
-      headers[lowerName] = value;
-    }
+function addHeader(headers: Headers, name: string, value: string): void {
+  const existing = headers[name];
+  if (existing === undefined) {
+    headers[name] = value;
+  } else if (Array.isArray(existing)) {
+    existing.push(value);
+  } else {
+    headers[name] = [existing, value];
   }
-
-  return [headers, rawHeaders];
 }
 
 export function parseHeaders(
@@ -62,31 +42,44 @@ export function parseHeaders(
     throw new DecodeHttpError('Headers parsing already finished');
   }
 
-  const newBuffer = prev.buffer.length > 0
-    ? Buffer.concat([prev.buffer, input])
-    : input;
+  const buffer = prev.buffer.length === 0
+    ? input
+    : Buffer.concat([prev.buffer, input]);
 
-  if (newBuffer.length > MAX_HEADER_SIZE) {
-    throw new DecodeHttpError(`Headers too large: ${newBuffer.length} bytes exceeds limit of ${MAX_HEADER_SIZE}`);
+  const headers = { ...prev.headers };
+  const rawHeaders = [...prev.rawHeaders];
+  let bytesReceived = prev.bytesReceived;
+  let offset = 0;
+  let finished = false;
+
+  while (offset < buffer.length) {
+    const line = decodeHttpLine(buffer.subarray(offset));
+    if (!line) {
+      break;
+    }
+
+    const lineLength = line.length + CRLF_LENGTH;
+    offset += lineLength;
+
+    if (line.length === 0) {
+      bytesReceived += line.length;
+      finished = true;
+      break;
+    }
+
+    bytesReceived += lineLength;
+
+    const [name, value] = parseHeaderLine(line.toString());
+    rawHeaders.push(name, value);
+    const lowerName = name.toLowerCase();
+    addHeader(headers, lowerName, value);
   }
-
-  const headersEnd = findHeadersEnd(newBuffer);
-  if (headersEnd === -1) {
-    return {
-      buffer: newBuffer,
-      headers: null,
-      rawHeaders: [],
-      finished: false,
-    };
-  }
-
-  const headersBuffer = newBuffer.subarray(0, headersEnd);
-  const [headers, rawHeaders] = parseHeadersBlock(headersBuffer);
 
   return {
-    buffer: newBuffer.subarray(headersEnd + DOUBLE_CRLF_LENGTH),
+    buffer: buffer.subarray(offset),
     headers,
     rawHeaders,
-    finished: true,
+    bytesReceived,
+    finished,
   };
 }

@@ -85,7 +85,6 @@ function handleStartLinePhase(state: RequestState, hooks?: HttpParserHooks): Req
     buffer: state.buffer.subarray(endOfLine),
     startLine,
     phase: 'HEADERS',
-    headersState: createHeadersState(),
   });
 }
 
@@ -121,35 +120,27 @@ function determineBodyPhase(headers: Headers): Partial<RequestState> {
 }
 
 function handleHeadersPhase(state: RequestState): RequestState {
-  const parseBuffer = state.buffer.length > MAX_HEADER_SIZE
-    ? state.buffer.subarray(0, MAX_HEADER_SIZE)
-    : state.buffer;
+  if (!state.headersState) {
+    state.headersState = createHeadersState();
+  }
+  const headersState = parseHeaders(state.headersState!, state.buffer);
 
-  const remainingBuffer = state.buffer.length > MAX_HEADER_SIZE
-    ? state.buffer.subarray(MAX_HEADER_SIZE)
-    : EMPTY_BUFFER;
-  const headersState = parseHeaders(state.headersState!, parseBuffer);
+  if (headersState.bytesReceived > MAX_HEADER_SIZE) {
+    throw new DecodeHttpError(`Headers too large: ${state.buffer.length} bytes exceeds limit of ${MAX_HEADER_SIZE}`);
+  }
 
   if (!headersState.finished) {
-    if (remainingBuffer.length > 0) {
-      throw new DecodeHttpError(`Headers too large: ${state.buffer.length} bytes exceeds limit of ${MAX_HEADER_SIZE}`);
-    }
     return updateState(state, {
-      buffer: remainingBuffer,
+      buffer: EMPTY_BUFFER,
       headersState,
     });
   }
 
-  const { headers } = headersState;
-  if (!headers) {
-    throw new DecodeHttpError('Headers parsing completed but headers are null');
-  }
-
-  const nextPhase = determineBodyPhase(headers);
+  const nextPhase = determineBodyPhase(headersState.headers);
 
   return updateState(state, {
     buffer: headersState.buffer,
-    headersState: { ...headersState, buffer: remainingBuffer },
+    headersState: { ...headersState, buffer: EMPTY_BUFFER },
     ...nextPhase,
   });
 }
