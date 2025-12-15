@@ -11,9 +11,9 @@ const HTTP_VERSION_MAP: Record<string, number> = {
 };
 
 export interface RequestStartLine {
-  method: string;
-  path: string;
-  version: number;
+  method: string | null;
+  path: string | null;
+  version: number | null;
 }
 
 export default function parseRequestLine(str: string): RequestStartLine {

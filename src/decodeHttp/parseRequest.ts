@@ -52,6 +52,16 @@ function updateState(
 }
 
 function handleStartLinePhase(state: RequestState, hooks?: HttpParserHooks): RequestState {
+  if (!state.startLine) {
+    state.startLine = {
+      method: null,
+      path: null,
+      version: null,
+    };
+    if (hooks && hooks.onMessageBegin) {
+      hooks.onMessageBegin();
+    }
+  }
   let lineBuf;
   try {
     lineBuf = decodeHttpLine(
@@ -77,7 +87,7 @@ function handleStartLinePhase(state: RequestState, hooks?: HttpParserHooks): Req
     throw new DecodeHttpError(errorMessage);
   }
 
-  hooks?.onRequestStartLine?.(startLine.method, startLine.path, startLine.version);
+  hooks?.onRequestStartLine?.(startLine.method!, startLine.path!, startLine.version!);
 
   const endOfLine = lineBuf.length + CRLF_LENGTH;
 

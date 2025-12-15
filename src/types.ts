@@ -12,7 +12,6 @@ export type HttpMessagePhase =
 export interface HttpParserHooks {
   onMessageBegin?(): void;
 
-  onStartLine?(line: string): void;
   onRequestStartLine?(method: string, path: string, version: number): void;
   onResponseStartLine?(version: string, status: number, reason: string): void;
 
