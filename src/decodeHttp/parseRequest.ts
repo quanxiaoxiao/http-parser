@@ -152,16 +152,21 @@ function handleHeadersPhase(state: RequestState, hooks?: HttpParserHooks): Reque
 
 function handleBodyPhase<T extends ChunkedState | ContentLengthState>(
   state: RequestState,
-  parser: (bodyState: T, buffer: Buffer) => T,
+  parser: (bodyState: T, buffer: Buffer, onBody?: (buffer: Buffer) => void) => T,
+  hooks?: HttpParserHooks,
 ): RequestState {
   const currentBodyState = state.bodyState as T;
-  const bodyState = parser(currentBodyState, state.buffer);
+  const bodyState = parser(currentBodyState, state.buffer, hooks?.onBody);
 
   if (!bodyState.finished) {
     return updateState(state, {
       buffer: Buffer.alloc(0),
       bodyState,
     });
+  }
+
+  if (hooks && hooks.onBodyComplete) {
+    hooks.onBodyComplete();
   }
 
   return updateState(state, {
@@ -171,19 +176,25 @@ function handleBodyPhase<T extends ChunkedState | ContentLengthState>(
   });
 }
 
-function handleBodyChunkedPhase(state: RequestState): RequestState {
+function handleBodyChunkedPhase(state: RequestState, hooks?: HttpParserHooks): RequestState {
   if (!state.bodyState) {
     state.bodyState = createChunkedState();
+    if (hooks && hooks.onBodyBegin) {
+      hooks.onBodyBegin();
+    }
   }
-  return handleBodyPhase(state, parseChunked);
+  return handleBodyPhase(state, parseChunked, hooks);
 }
 
-function handleBodyContentLengthPhase(state: RequestState): RequestState {
+function handleBodyContentLengthPhase(state: RequestState, hooks?: HttpParserHooks): RequestState {
   if (!state.bodyState) {
     const contentLength = getContentLength(state.headersState!.headers);
     state.bodyState = createContentLengthState(contentLength!);
+    if (hooks && hooks.onBodyBegin) {
+      hooks.onBodyBegin();
+    }
   }
-  return handleBodyPhase(state, parseContentLength);
+  return handleBodyPhase(state, parseContentLength, hooks);
 }
 
 const phaseHandlers = new Map<
@@ -215,11 +226,23 @@ export function parseRequest(
     if (!handler) {
       throw new DecodeHttpError(`Unknown phase: ${state.phase}`);
     }
-    state = handler(state, hooks);
+    try {
+      state = handler(state, hooks);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (hooks && hooks.onError) {
+        hooks.onError(error as Error);
+      }
+      throw new DecodeHttpError(errorMessage);
+    }
 
     if (state.phase === prevPhase) {
       break;
     }
+  }
+
+  if (state.finished && hooks && hooks.onMessageComplete) {
+    hooks.onMessageComplete();
   }
 
   return state;

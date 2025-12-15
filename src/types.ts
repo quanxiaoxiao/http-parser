@@ -22,18 +22,7 @@ export interface HttpParserHooks {
 
   onBodyBegin?(): void;
   onBody?(chunk: Uint8Array): void;
-  onBodyEnd?(): void;
-
-  // chunked only
-  onChunkBegin?(size: number): void;
-  onChunkSize?(size: number): void;
-  onChunkData?(chunk: Uint8Array): void;
-  onChunkEnd?(): void;
-  onChunksComplete?(): void;
-
-  // trailer
-  onTrailerHeader?(field: string, value: string): void;
-  onTrailersComplete?(): void;
+  onBodyComplete?(): void;
 
   onMessageComplete?(): void;
 
