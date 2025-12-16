@@ -39,6 +39,14 @@ export interface HttpState {
   bodyState: ChunkedState | ContentLengthState | null;
 }
 
+export interface HttpRequestState extends HttpState {
+  startLine: RequestStartLine;
+}
+
+export interface HttpResponseState extends HttpState {
+  startLine: ResponseStartLine;
+}
+
 function createHttpState(): HttpState {
   return {
     phase: 'STARTLINE',
@@ -50,11 +58,11 @@ function createHttpState(): HttpState {
   };
 };
 
-export function createRequestState(): HttpState {
+export function createRequestState(): HttpRequestState {
   return createHttpState();
 }
 
-export function createResponseState(): HttpState {
+export function createResponseState(): HttpResponseState {
   return createHttpState();
 }
 
@@ -65,7 +73,7 @@ function updateState(
   return { ...state, ...updates };
 }
 
-function handleRequestStartLinePhase(state: HttpState, hooks?: HttpParserHooks): HttpState {
+function handleRequestStartLinePhase(state: HttpRequestState, hooks?: HttpParserHooks): HttpRequestState {
   if (!state.startLine) {
     state.startLine = {
       method: null,
@@ -101,7 +109,7 @@ function handleRequestStartLinePhase(state: HttpState, hooks?: HttpParserHooks):
   });
 }
 
-function handleResponseStartLinePhase(state: HttpState, hooks?: HttpParserHooks): HttpState {
+function handleResponseStartLinePhase(state: HttpResponseState, hooks?: HttpParserHooks): HttpResponseState {
   if (!state.startLine) {
     state.startLine = {
       statusMessage: null,
