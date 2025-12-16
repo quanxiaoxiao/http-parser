@@ -6,10 +6,10 @@ import path from 'node:path';
 import {
   createRequestState,
   createResponseState,
-  parseRequest,
-  parseResponse,
   type HttpRequestState,
   type HttpResponseState,
+  parseRequest,
+  parseResponse,
 } from './decodeHttp/parseHttp.js';
 import validateHeaders from './utils/validateHeaders.js';
 

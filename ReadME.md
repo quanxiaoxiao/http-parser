@@ -104,3 +104,25 @@ Content-Type header rules:
 - charset parameter recommended for text/*
 - boundary required for multipart/form-data
 - Validate against allowed types/subtypes if needed
+
+
+### Cache-Control
+
+
+```
+Cache-Control: directive[=value][, directive[=value]]*
+```
+
+- 多个 `directive` 用逗号 `,` 分隔
+- `value` 可能是：
+  - `token`
+  - `quoted-string`
+  - `delta-seconds`（整数秒）
+
+
+```
+Cache-Control: no-cache
+Cache-Control: max-age=3600
+Cache-Control: no-cache, no-store, must-revalidate
+Cache-Control: public, max-age=86400
+```
