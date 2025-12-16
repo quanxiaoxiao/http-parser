@@ -1,4 +1,5 @@
 import { type Headers } from '../types.js';
+import validateCacheControl from './validateCacheControl.js';
 import validateContentRange from './validateContentRange.js';
 import validateContentType from './validateContentType.js';
 import validateHost from './validateHost.js';
@@ -111,7 +112,6 @@ const PATTERNS = {
   authorization: /^[a-zA-Z0-9_-]+\s+.+$/,
   range: /^bytes=\d*-\d*(?:,\s*\d*-\d*)*$/,
   accept: /^[a-zA-Z0-9*][a-zA-Z0-9!#$&^_.*-]*\/[a-zA-Z0-9*][a-zA-Z0-9!#$&^_.*-]*(?:\s*;\s*q=[0-1](?:\.\d+)?)?(?:\s*,\s*.+)?$/,
-  cacheControl: /^(?:no-cache|no-store|no-transform|only-if-cached|public|private|must-revalidate|proxy-revalidate|max-age=\d+|s-maxage=\d+|max-stale(?:=\d+)?|min-fresh=\d+)(?:\s*,\s*(?:no-cache|no-store|no-transform|only-if-cached|public|private|must-revalidate|proxy-revalidate|max-age=\d+|s-maxage=\d+|max-stale(?:=\d+)?|min-fresh=\d+))*$/,
 } as const;
 
 const FORMAT_VALIDATORS: Record<string, FormatValidator> = {
@@ -121,7 +121,7 @@ const FORMAT_VALIDATORS: Record<string, FormatValidator> = {
   range: (value) => PATTERNS.range.test(value),
   'content-range': (value) => validateContentRange(value).valid,
   accept: (value) => PATTERNS.accept.test(value),
-  'cache-control': (value) => PATTERNS.cacheControl.test(value),
+  'cache-control': (value) => validateCacheControl(value).valid,
 };
 
 function createError(
