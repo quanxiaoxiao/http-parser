@@ -16,9 +16,9 @@ export interface RequestStartLine {
 }
 
 export interface ResponseStartLine {
-  version: number;
-  statusCode: number;
-  statusMessage: string;
+  version: number | null;
+  statusCode: number | null;
+  statusMessage: string | null;
 }
 
 export interface HttpParserHooks {

@@ -22,7 +22,7 @@ describe('parseRequest', () => {
 
       assert.throws(
         () => parseRequest(state, Buffer.from('test')),
-        { message: 'Request decoding already finished' },
+        { message: 'Decoding already finished' },
       );
     });
 
@@ -636,7 +636,7 @@ describe('HTTP Request Parser', () => {
       const input2 = Buffer.from('GET / HTTP/1.1\r\n\r\n');
       assert.throws(() => {
         parseRequest(result, input2);
-      }, /Request decoding already finished/);
+      }, /Decoding already finished/);
     });
 
     it('应该处理无效的请求行', () => {
@@ -655,7 +655,7 @@ describe('HTTP Request Parser', () => {
       assert.ok(state.error);
       assert.throws(() => {
         parseRequest(state, Buffer.from('GET / HTTP/1.1\r\n'));
-      }, /Request decoding encountered error/);
+      }, /Decoding encountered error:/);
     });
 
     it('应该触发 onError 钩子', () => {
