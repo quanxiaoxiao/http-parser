@@ -3,7 +3,14 @@ import { Buffer } from 'node:buffer';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
-import { createRequestState, parseRequest,type HttpState } from './decodeHttp/parseHttp.js';
+import {
+  createRequestState,
+  createResponseState,
+  parseRequest,
+  parseResponse,
+  type HttpRequestState,
+  type HttpResponseState,
+} from './decodeHttp/parseHttp.js';
 import validateHeaders from './utils/validateHeaders.js';
 
 interface ProcessFileResult {
@@ -30,9 +37,23 @@ function shouldProcessFile(filePath: string, extensions?: string[]): boolean {
   return extensions.includes(ext);
 }
 
-function processHttpRequest(chunk: Buffer): HttpState {
-  const state: HttpState = createRequestState();
+function processHttpRequest(chunk: Buffer): HttpRequestState {
+  const state: HttpRequestState = createRequestState();
   return parseRequest(state, chunk, {
+    onHeadersComplete: (headers) => {
+      const errors = validateHeaders(headers);
+      errors.forEach((errorItem) => {
+        if (errorItem.header !== 'authorization') {
+          console.log(errorItem);
+        }
+      });
+    },
+  });
+}
+
+function procssHttpResponse(chunk: Buffer): HttpResponseState {
+  const state: HttpResponseState = createResponseState();
+  return parseResponse(state, chunk, {
     onHeadersComplete: (headers) => {
       const errors = validateHeaders(headers);
       errors.forEach((errorItem) => {
@@ -53,12 +74,21 @@ async function processFile(filePath: string, options: ProcessOptions): Promise<P
     };
   }
   const httpBuf = await fs.readFile(filePath);
-  const state: HttpState = processHttpRequest(httpBuf);
+  const requestState: HttpRequestState = processHttpRequest(httpBuf);
+  if (!requestState.finished) {
+    return {
+      success: false,
+      filePath,
+      errorMessage: requestState.error?.message ?? 'parse response uncomplete',
+    };
+  }
+
+  const responseState: HttpResponseState = procssHttpResponse(requestState.buffer);
 
   return {
-    success: !!state.error,
+    success: !!responseState.error,
     filePath,
-    errorMessage: state.error?.message ?? '',
+    errorMessage: responseState.error?.message ?? '',
   };
 }
 
