@@ -360,7 +360,7 @@ describe('HTTP Request Parser', () => {
       const result = parseRequest(state, input);
 
       assert.strictEqual(result.phase, 'STARTLINE');
-      assert.strictEqual(result.startLine?.method, null);
+      assert.ok(!result.startLine?.method);
     });
 
     it('应该支持分块接收请求行', () => {

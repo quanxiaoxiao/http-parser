@@ -40,11 +40,11 @@ export interface HttpState {
 }
 
 export interface HttpRequestState extends HttpState {
-  startLine: RequestStartLine;
+  startLine: RequestStartLine | null;
 }
 
 export interface HttpResponseState extends HttpState {
-  startLine: ResponseStartLine;
+  startLine: ResponseStartLine | null;
 }
 
 function createHttpState(): HttpState {
@@ -73,32 +73,31 @@ function updateState(
   return { ...state, ...updates };
 }
 
-function handleRequestStartLinePhase(state: HttpRequestState, hooks?: HttpParserHooks): HttpRequestState {
+function handleStartLinePhase<T extends HttpState>(
+  state: T,
+  parseLineFn: (line: string) => RequestStartLine | ResponseStartLine,
+  hookFn: ((startLine: ResponseStartLine | ResponseStartLine) => void) | undefined,
+  hooks?: HttpParserHooks,
+): T {
   if (!state.startLine) {
-    state.startLine = {
-      method: null,
-      path: null,
-      version: null,
-    };
     hooks?.onMessageBegin?.();
   }
+
   let lineBuf: Buffer | null;
   try {
-    lineBuf = decodeHttpLine(
-      state.buffer,
-      0,
-      MAX_START_LINE_SIZE,
-    );
+    lineBuf = decodeHttpLine(state.buffer, 0, MAX_START_LINE_SIZE);
   } catch (error) {
-    throw new DecodeHttpError(`HTTP request parse failed at phase "startline". Reason: ${formatError(error)}`);
+    throw new DecodeHttpError(
+      `HTTP parse failed at phase "startline". Reason: ${formatError(error)}`,
+    );
   }
+
   if (!lineBuf) {
     return state;
   }
 
-  const startLine = parseRequestLine(lineBuf.toString());
-
-  hooks?.onRequestStartLine?.(startLine);
+  const startLine = parseLineFn(lineBuf.toString());
+  hookFn?.(startLine);
 
   const endOfLine = lineBuf.length + CRLF_LENGTH;
 
@@ -106,43 +105,31 @@ function handleRequestStartLinePhase(state: HttpRequestState, hooks?: HttpParser
     buffer: state.buffer.subarray(endOfLine),
     startLine,
     phase: 'HEADERS',
-  });
+  }) as T;
 }
 
-function handleResponseStartLinePhase(state: HttpResponseState, hooks?: HttpParserHooks): HttpResponseState {
-  if (!state.startLine) {
-    state.startLine = {
-      statusMessage: null,
-      statusCode: null,
-      version: null,
-    };
-    hooks?.onMessageBegin?.();
-  }
-  let lineBuf: Buffer | null;
-  try {
-    lineBuf = decodeHttpLine(
-      state.buffer,
-      0,
-      MAX_START_LINE_SIZE,
-    );
-  } catch (error) {
-    throw new DecodeHttpError(`HTTP request parse failed at phase "startline". Reason: ${formatError(error)}`);
-  }
-  if (!lineBuf) {
-    return state;
-  }
+function handleRequestStartLinePhase(
+  state: HttpRequestState,
+  hooks?: HttpParserHooks,
+): HttpRequestState {
+  return handleStartLinePhase(
+    state,
+    parseRequestLine,
+    hooks?.onRequestStartLine,
+    hooks,
+  );
+}
 
-  const startLine = parseResponseLine(lineBuf.toString());
-
-  hooks?.onResponseStartLine?.(startLine);
-
-  const endOfLine = lineBuf.length + CRLF_LENGTH;
-
-  return updateState(state, {
-    buffer: state.buffer.subarray(endOfLine),
-    startLine,
-    phase: 'HEADERS',
-  });
+function handleResponseStartLinePhase(
+  state: HttpResponseState,
+  hooks?: HttpParserHooks,
+): HttpResponseState {
+  return handleStartLinePhase(
+    state,
+    parseResponseLine,
+    hooks?.onResponseStartLine,
+    hooks,
+  );
 }
 
 function isChunkedEncoding(headers: Headers): boolean {
@@ -178,7 +165,7 @@ function handleHeadersPhase(state: HttpState, hooks?: HttpParserHooks): HttpStat
   const headersState = parseHeaders(state.headersState!, state.buffer, hooks?.onHeader);
 
   if (headersState.bytesReceived > MAX_HEADER_SIZE) {
-    throw new DecodeHttpError(`Headers too large: ${state.buffer.length} bytes exceeds limit of ${MAX_HEADER_SIZE}`);
+    throw new DecodeHttpError(`Headers too large: ${headersState.bytesReceived} bytes exceeds limit of ${MAX_HEADER_SIZE}`);
   }
 
   if (!headersState.finished) {
@@ -204,8 +191,11 @@ function handleBodyPhase<T extends ChunkedState | ContentLengthState>(
   parser: (bodyState: T, buffer: Buffer, onBody?: (buffer: Buffer) => void) => T,
   hooks?: HttpParserHooks,
 ): HttpState {
-  const currentBodyState = state.bodyState as T;
-  const bodyState = parser(currentBodyState, state.buffer, hooks?.onBody);
+  const bodyState = parser(
+    state.bodyState as T,
+    state.buffer,
+    hooks?.onBody,
+  );
 
   if (!bodyState.finished) {
     return updateState(state, {
@@ -214,9 +204,7 @@ function handleBodyPhase<T extends ChunkedState | ContentLengthState>(
     });
   }
 
-  if (hooks && hooks.onBodyComplete) {
-    hooks.onBodyComplete();
-  }
+  hooks?.onBodyComplete?.();
 
   return updateState(state, {
     finished: true,
@@ -249,7 +237,7 @@ const requestPhaseHandlers = new Map<
   HttpParsePhase,
   (state: HttpState, hooks?: HttpParserHooks) => HttpState
     >([
-      ['STARTLINE', handleRequestStartLinePhase], // 使用请求专用函数
+      ['STARTLINE', handleRequestStartLinePhase],
       ['HEADERS', handleHeadersPhase],
       ['BODY_CHUNKED', handleBodyChunkedPhase],
       ['BODY_CONTENT_LENGTH', handleBodyContentLengthPhase],
@@ -259,7 +247,7 @@ const responsePhaseHandlers = new Map<
   HttpParsePhase,
   (state: HttpState, hooks?: HttpParserHooks) => HttpState
     >([
-      ['STARTLINE', handleResponseStartLinePhase], // 使用响应专用函数
+      ['STARTLINE', handleResponseStartLinePhase],
       ['HEADERS', handleHeadersPhase],
       ['BODY_CHUNKED', handleBodyChunkedPhase],
       ['BODY_CONTENT_LENGTH', handleBodyContentLengthPhase],
@@ -317,7 +305,7 @@ export function parseRequest(
   prev: HttpState,
   input: Buffer,
   hooks?: HttpParserHooks,
-): HttpState {
+): HttpRequestState {
   return genericParse(
     prev,
     input,
@@ -330,7 +318,7 @@ export function parseResponse(
   prev: HttpState,
   input: Buffer,
   hooks?: HttpParserHooks,
-): HttpState {
+): HttpResponseState {
   return genericParse(
     prev,
     input,
