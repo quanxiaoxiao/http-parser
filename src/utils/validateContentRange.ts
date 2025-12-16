@@ -95,3 +95,5 @@ export function validateContentRange(value: string): ContentRangeResult {
 
   return validatePartialRange(match[1]!, match[2]!, match[3]!);
 }
+
+export default validateContentRange;

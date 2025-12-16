@@ -1,4 +1,5 @@
 import { type Headers } from '../types.js';
+import validateContentRange from './validateContentRange.js';
 import validateContentType from './validateContentType.js';
 import validateHost from './validateHost.js';
 
@@ -63,7 +64,6 @@ const HEADER_CONFIGS = {
     'max-forwards',
     'age',
     'retry-after',
-    'content-range',
   ]),
 
   date: new Set([
@@ -110,7 +110,6 @@ const PATTERNS = {
   numeric: /^\d+$/,
   authorization: /^[a-zA-Z0-9_-]+\s+.+$/,
   range: /^bytes=\d*-\d*(?:,\s*\d*-\d*)*$/,
-  contentRange: /^bytes\s+(?:\d+-\d+|\*)\/(?:\d+|\*)$/,
   accept: /^[a-zA-Z0-9*][a-zA-Z0-9!#$&^_.*-]*\/[a-zA-Z0-9*][a-zA-Z0-9!#$&^_.*-]*(?:\s*;\s*q=[0-1](?:\.\d+)?)?(?:\s*,\s*.+)?$/,
   cacheControl: /^(?:no-cache|no-store|no-transform|only-if-cached|public|private|must-revalidate|proxy-revalidate|max-age=\d+|s-maxage=\d+|max-stale(?:=\d+)?|min-fresh=\d+)(?:\s*,\s*(?:no-cache|no-store|no-transform|only-if-cached|public|private|must-revalidate|proxy-revalidate|max-age=\d+|s-maxage=\d+|max-stale(?:=\d+)?|min-fresh=\d+))*$/,
 } as const;
@@ -120,7 +119,7 @@ const FORMAT_VALIDATORS: Record<string, FormatValidator> = {
   host: (value) => validateHost(value).valid,
   authorization: (value) => PATTERNS.authorization.test(value),
   range: (value) => PATTERNS.range.test(value),
-  'content-range': (value) => PATTERNS.contentRange.test(value),
+  'content-range': (value) => validateContentRange(value).valid,
   accept: (value) => PATTERNS.accept.test(value),
   'cache-control': (value) => PATTERNS.cacheControl.test(value),
 };

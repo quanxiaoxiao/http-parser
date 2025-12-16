@@ -1,7 +1,7 @@
 import * as assert from 'node:assert';
 import { describe, test } from 'node:test';
 
-import { validateContentRange } from './validateContentRange.js'; // 根据实际路径调整
+import { validateContentRange } from './validateContentRange.js';
 
 describe('validateContentRange', () => {
   describe('输入验证', () => {
