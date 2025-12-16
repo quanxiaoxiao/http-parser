@@ -3,7 +3,7 @@ import { Buffer } from 'node:buffer';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
-import { createRequestState, parseRequest,type RequestState } from './decodeHttp/parseRequest.js';
+import { createRequestState, parseRequest,type HttpState } from './decodeHttp/parseHttp.js';
 import validateHeaders from './utils/validateHeaders.js';
 
 interface ProcessFileResult {
@@ -30,8 +30,8 @@ function shouldProcessFile(filePath: string, extensions?: string[]): boolean {
   return extensions.includes(ext);
 }
 
-function processHttpRequest(chunk: Buffer): RequestState {
-  const state: RequestState = createRequestState();
+function processHttpRequest(chunk: Buffer): HttpState {
+  const state: HttpState = createRequestState();
   return parseRequest(state, chunk, {
     onHeadersComplete: (headers) => {
       const errors = validateHeaders(headers);
@@ -53,7 +53,7 @@ async function processFile(filePath: string, options: ProcessOptions): Promise<P
     };
   }
   const httpBuf = await fs.readFile(filePath);
-  const state: RequestState = processHttpRequest(httpBuf);
+  const state: HttpState = processHttpRequest(httpBuf);
 
   return {
     success: !!state.error,

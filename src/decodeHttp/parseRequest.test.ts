@@ -3,7 +3,7 @@ import { Buffer } from 'node:buffer';
 import { describe, it } from 'node:test';
 
 import { type HttpParserHooks } from '../types.js';
-import { createRequestState, parseRequest } from './parseRequest.js';
+import { createRequestState, parseRequest } from './parseHttp.js';
 
 describe('parseRequest', () => {
   describe('基础功能', () => {
