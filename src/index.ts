@@ -12,6 +12,7 @@ import {
   parseResponse,
 } from './decodeHttp/parseHttp.js';
 import validateHeaders from './utils/validateHeaders.js';
+import { validateRequestCookie } from './utils/validateRequestCookie.js';
 
 interface ProcessFileResult {
   success: boolean;
@@ -42,7 +43,10 @@ function processHttpRequest(chunk: Buffer): HttpRequestState {
   return parseRequest(state, chunk, {
     onHeader: (name, value) => {
       if (name === 'cookie') {
-        console.log(value);
+        const ret = validateRequestCookie(value);
+        if (!ret.valid) {
+          console.log(ret);
+        }
       }
     },
     onHeadersComplete: (headers) => {
