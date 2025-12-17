@@ -32,7 +32,7 @@ export default function parseResponseLine(str: string): ResponseStartLine {
     throw new DecodeHttpError(`Failed to parse HTTP response line: "${preview}"`);
   }
 
-  const [, versionStr, statusCodeStr, statusMessage] = matches;
+  const [, versionStr, statusCodeStr, statusText] = matches;
 
   const version = HTTP_VERSION_MAP[versionStr?.toUpperCase() as string];
 
@@ -46,11 +46,11 @@ export default function parseResponseLine(str: string): ResponseStartLine {
     throw new DecodeHttpError(`Invalid HTTP status code: ${statusCode} (must be ${MIN_STATUS_CODE}-${MAX_STATUS_CODE})`);
   }
 
-  const finalStatusMessage = statusMessage?.trim() || http.STATUS_CODES[statusCode] || 'Unknown';
+  const finalStatusMessage = statusText?.trim() || http.STATUS_CODES[statusCode] || 'Unknown';
 
   return {
     version: version as HttpVersion,
     statusCode,
-    statusMessage: finalStatusMessage,
+    statusText: finalStatusMessage,
   };
 }

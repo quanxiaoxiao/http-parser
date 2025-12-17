@@ -9,35 +9,35 @@ describe('parseResponseLine', () => {
       const result = parseResponseLine('HTTP/1.1 200 OK');
       assert.strictEqual(result.version, 1.1);
       assert.strictEqual(result.statusCode, 200);
-      assert.strictEqual(result.statusMessage, 'OK');
+      assert.strictEqual(result.statusText, 'OK');
     });
 
     it('should parse HTTP/1.0 404 Not Found', () => {
       const result = parseResponseLine('HTTP/1.0 404 Not Found');
       assert.strictEqual(result.version, 1.0);
       assert.strictEqual(result.statusCode, 404);
-      assert.strictEqual(result.statusMessage, 'Not Found');
+      assert.strictEqual(result.statusText, 'Not Found');
     });
 
     it('should parse response line with extra whitespace', () => {
       const result = parseResponseLine('  HTTP/1.1 200 OK  ');
       assert.strictEqual(result.version, 1.1);
       assert.strictEqual(result.statusCode, 200);
-      assert.strictEqual(result.statusMessage, 'OK');
+      assert.strictEqual(result.statusText, 'OK');
     });
 
     it('should parse response line without status message', () => {
       const result = parseResponseLine('HTTP/1.1 200');
       assert.strictEqual(result.version, 1.1);
       assert.strictEqual(result.statusCode, 200);
-      assert.strictEqual(result.statusMessage, 'OK'); // Default from http.STATUS_CODES
+      assert.strictEqual(result.statusText, 'OK'); // Default from http.STATUS_CODES
     });
 
     it('should parse response line with custom status message', () => {
       const result = parseResponseLine('HTTP/1.1 200 Custom Message');
       assert.strictEqual(result.version, 1.1);
       assert.strictEqual(result.statusCode, 200);
-      assert.strictEqual(result.statusMessage, 'Custom Message');
+      assert.strictEqual(result.statusText, 'Custom Message');
     });
 
     it('should handle case-insensitive HTTP version', () => {
@@ -51,19 +51,19 @@ describe('parseResponseLine', () => {
     it('should parse 1xx informational status code', () => {
       const result = parseResponseLine('HTTP/1.1 100 Continue');
       assert.strictEqual(result.statusCode, 100);
-      assert.strictEqual(result.statusMessage, 'Continue');
+      assert.strictEqual(result.statusText, 'Continue');
     });
 
     it('should parse 3xx redirection status code', () => {
       const result = parseResponseLine('HTTP/1.1 301 Moved Permanently');
       assert.strictEqual(result.statusCode, 301);
-      assert.strictEqual(result.statusMessage, 'Moved Permanently');
+      assert.strictEqual(result.statusText, 'Moved Permanently');
     });
 
     it('should parse 5xx server error status code', () => {
       const result = parseResponseLine('HTTP/1.1 500 Internal Server Error');
       assert.strictEqual(result.statusCode, 500);
-      assert.strictEqual(result.statusMessage, 'Internal Server Error');
+      assert.strictEqual(result.statusText, 'Internal Server Error');
     });
 
     it('should parse maximum valid status code', () => {
@@ -80,17 +80,17 @@ describe('parseResponseLine', () => {
   describe('Status message handling', () => {
     it('should use default status message for unknown status code', () => {
       const result = parseResponseLine('HTTP/1.1 599');
-      assert.strictEqual(result.statusMessage, 'Unknown');
+      assert.strictEqual(result.statusText, 'Unknown');
     });
 
     it('should trim status message whitespace', () => {
       const result = parseResponseLine('HTTP/1.1 200   OK   ');
-      assert.strictEqual(result.statusMessage, 'OK');
+      assert.strictEqual(result.statusText, 'OK');
     });
 
     it('should handle multi-word status messages', () => {
       const result = parseResponseLine('HTTP/1.1 500 Internal Server Error');
-      assert.strictEqual(result.statusMessage, 'Internal Server Error');
+      assert.strictEqual(result.statusText, 'Internal Server Error');
     });
   });
 
@@ -225,7 +225,7 @@ describe('parseResponseLine', () => {
 
     it('should handle mixed case in status message', () => {
       const result = parseResponseLine('HTTP/1.1 200 Ok MiXeD CaSe');
-      assert.strictEqual(result.statusMessage, 'Ok MiXeD CaSe');
+      assert.strictEqual(result.statusText, 'Ok MiXeD CaSe');
     });
 
     it('should parse HTTP/1.0 correctly', () => {
