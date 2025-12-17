@@ -3,8 +3,8 @@ import { Buffer } from 'node:buffer';
 import { DecodeHttpError } from './errors.js';
 
 const MAX_LINE_SIZE = 16 * 1024;
-const CR = 0x0d; // \r
-const LF = 0x0a; // \n
+const CR = 0x0d;
+const LF = 0x0a;
 
 function throwDecodeHttpError(message: string): never {
   throw new DecodeHttpError(`Decode Http Error: ${message}`);
@@ -56,7 +56,7 @@ function findLineEnd(
   return null;
 }
 
-export default function decodeHttpLine(
+export function decodeHttpLine(
   buf: Buffer,
   start: number = 0,
   limit: number = MAX_LINE_SIZE,
@@ -75,3 +75,5 @@ export default function decodeHttpLine(
 
   return findLineEnd(buf, start, limit, len);
 }
+
+export default decodeHttpLine;
