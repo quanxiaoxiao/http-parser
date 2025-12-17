@@ -353,7 +353,7 @@ describe('validateCacheControl', () => {
       }
     });
 
-    it.only('应该拒绝相同directive', () => {
+    it('应该拒绝相同directive', () => {
       const result = validateCacheControl(
         'private, no-store, no-cache, no-cache=Set-Cookie, proxy-revalidate',
       );
