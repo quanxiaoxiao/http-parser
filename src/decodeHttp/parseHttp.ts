@@ -3,14 +3,12 @@ import { Buffer } from 'node:buffer';
 import decodeHttpLine from '../decodeHttpLine.js';
 import { DecodeHttpError } from '../errors.js';
 import parseInteger from '../parseInteger.js';
-import { type Headers, type HttpParserHooks, type RequestStartLine,type ResponseStartLine } from '../types.js';
+import { type Headers, type HttpParsePhase, type HttpParserHooks, type RequestStartLine,type ResponseStartLine } from '../types.js';
 import { type ChunkedState, createChunkedState, parseChunked } from './parseChunked.js';
 import { type ContentLengthState, createContentLengthState, parseContentLength } from './parseContentLength.js';
 import { createHeadersState, type HeadersState, parseHeaders } from './parseHeaders.js';
 import parseRequestLine from './parseRequestLine.js';
 import parseResponseLine from './parseResponseLine.js';
-
-type HttpParsePhase = 'STARTLINE' | 'HEADERS' | 'BODY_CHUNKED' | 'BODY_CONTENT_LENGTH';
 
 const CRLF_LENGTH = 2;
 const MAX_HEADER_SIZE = 16 * 1024;

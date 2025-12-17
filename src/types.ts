@@ -2,12 +2,7 @@ export type Headers = Record<string, string | string[]>;
 
 export type HttpMethod = 'GET' | 'PUT' | 'DELETE' | 'POST' | 'PATCH' | 'HEAD' | 'OPTIONS' | 'CONNECT';
 
-export type HttpMessagePhase =
-  | 'StartLine'
-  | 'Headers'
-  | 'HeadersFinished'
-  | 'Body'
-  | 'Finished';
+export type HttpParsePhase = 'STARTLINE' | 'HEADERS' | 'BODY_CHUNKED' | 'BODY_CONTENT_LENGTH';
 
 export interface RequestStartLine {
   method: string | null;
