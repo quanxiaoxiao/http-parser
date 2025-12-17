@@ -40,6 +40,11 @@ function shouldProcessFile(filePath: string, extensions?: string[]): boolean {
 function processHttpRequest(chunk: Buffer): HttpRequestState {
   const state: HttpRequestState = createRequestState();
   return parseRequest(state, chunk, {
+    onHeader: (name, value) => {
+      if (name === 'cookie') {
+        console.log(value);
+      }
+    },
     onHeadersComplete: (headers) => {
       const errors = validateHeaders(headers);
       errors.forEach((errorItem) => {
