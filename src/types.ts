@@ -1,19 +1,21 @@
 export type Headers = Record<string, string | string[]>;
 
-export type HttpMethod = 'GET' | 'PUT' | 'DELETE' | 'POST' | 'PATCH' | 'HEAD' | 'OPTIONS' | 'CONNECT';
-
 export type HttpParsePhase = 'STARTLINE' | 'HEADERS' | 'BODY_CHUNKED' | 'BODY_CONTENT_LENGTH';
 
+export type HttpMethod = 'GET' | 'PUT' | 'DELETE' | 'POST' | 'PATCH' | 'HEAD' | 'OPTIONS' | 'CONNECT';
+
+export type HttpVersion = 1.0 | 1.1;
+
 export interface RequestStartLine {
-  method: string | null;
-  path: string | null;
-  version: number | null;
+  method?: HttpMethod;
+  path?: string;
+  version?: HttpVersion;
 }
 
 export interface ResponseStartLine {
-  version: number | null;
-  statusCode: number | null;
-  statusMessage: string | null;
+  version?: HttpVersion;
+  statusCode?: number;
+  statusMessage?: string;
 }
 
 export interface HttpParserHooks {

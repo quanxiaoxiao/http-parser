@@ -2,7 +2,7 @@ import * as http from 'node:http';
 
 import { DecodeHttpError } from '../errors.js';
 import parseInteger from '../parseInteger.js';
-import { type ResponseStartLine } from '../types.js';
+import { type HttpVersion,type ResponseStartLine } from '../types.js';
 
 const HTTP_VERSION_1_0 = 1.0;
 const HTTP_VERSION_1_1 = 1.1;
@@ -49,7 +49,7 @@ export default function parseResponseLine(str: string): ResponseStartLine {
   const finalStatusMessage = statusMessage?.trim() || http.STATUS_CODES[statusCode] || 'Unknown';
 
   return {
-    version,
+    version: version as HttpVersion,
     statusCode,
     statusMessage: finalStatusMessage,
   };

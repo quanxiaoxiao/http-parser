@@ -1,5 +1,5 @@
 import { DecodeHttpError } from '../errors.js';
-import { type RequestStartLine } from '../types.js';
+import { type HttpMethod, type HttpVersion,type RequestStartLine } from '../types.js';
 
 const REQUEST_STARTLINE_REG = /^(\w+)\s+([^\s]+)\s+(HTTP\/1\.[01])$/i;
 
@@ -31,9 +31,11 @@ export default function parseRequestLine(str: string): RequestStartLine {
     throw new DecodeHttpError(`Unsupported HTTP version: ${versionStr}`);
   }
 
+  const upper = method!.toUpperCase();
+
   return {
-    method: method!.toUpperCase(),
+    method: upper as HttpMethod,
     path: path!,
-    version,
+    version: version as HttpVersion,
   };
 };
