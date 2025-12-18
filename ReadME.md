@@ -166,6 +166,31 @@ Cache-Control
 Content-Type
 ```
 
+
+### HTTP Header 值编码决策树
+
+```
+HTTP Header 值编码决策树
+├─ 是否是标准协议字段？ (Host, User-Agent, Accept, Accept-Encoding, Accept-Language, Connection, Content-Type, Content-Length, X-Requested-With)
+│   ├─ 是 → ❌ 不需要 encodeURIComponent
+│   └─ 否 → 继续判断
+├─ 是否是 URL 类型字段？ (Location, Referer, Content-Location)
+│   ├─ 是 → ✅ 需要 encodeURIComponent （URL 包含非 ASCII 或特殊字符时）
+│   └─ 否 → 继续判断
+├─ 是否是 Cookie 类型字段？ (Cookie, Set-Cookie)
+│   ├─ 是 → ✅ 需要 encodeURIComponent （值中含 ; , = 空格或非 ASCII 字符）
+│   └─ 否 → 继续判断
+├─ 是否是 Authorization？
+│   ├─ Bearer / Basic token → ⚠️ 一般不需要编码
+│   └─ 自定义 token 含特殊字符 → ✅ 需要 encodeURIComponent
+├─ 是否是自定义 Header？ (X-*)
+│   ├─ 值含空格、中文、# & = ? 等特殊字符 → ✅ 需要 encodeURIComponent
+│   └─ 其他 → ❌ 可不编码
+└─ 其他未知 Header → ⚠️ 根据值类型判断：
+      - 含 URL、中文或特殊字符 → ✅ 编码
+      - 纯 ASCII 字符 → ❌ 不编码
+```
+
 ---
 
 ## 3. Body
