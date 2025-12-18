@@ -20,8 +20,6 @@ describe('Chunked Encoding', () => {
       const data = Buffer.from('Hello, World!');
       const result = encodeChunkedBuffer(data);
 
-      // Expected: "d\r\nHello, World!\r\n0\r\n\r\n"
-      // d is 13 in hex (length of "Hello, World!")
       const expected = Buffer.from('d\r\nHello, World!\r\n0\r\n\r\n');
       assert.deepStrictEqual(result, expected);
     });
@@ -30,8 +28,6 @@ describe('Chunked Encoding', () => {
       const data = Buffer.from('0123456789'); // 10 bytes
       const result = encodeChunkedBuffer(data, { chunkSize: 4 });
 
-      // Should split into: "0123", "4567", "89"
-      // 4\r\n0123\r\n4\r\n4567\r\n2\r\n89\r\n0\r\n\r\n
       const expected = Buffer.concat([
         Buffer.from('4\r\n0123\r\n'),
         Buffer.from('4\r\n4567\r\n'),
@@ -45,7 +41,6 @@ describe('Chunked Encoding', () => {
       const data = Buffer.alloc(10000, 'a');
       const result = encodeChunkedBuffer(data);
 
-      // Should be split into chunks of 8192 bytes
       assert.ok(result.length > data.length);
       assert.ok(result.toString().includes('2000')); // 8192 in hex
       assert.ok(result.toString().endsWith('0\r\n\r\n'));
@@ -70,7 +65,6 @@ describe('Chunked Encoding', () => {
       const data = Buffer.alloc(8192, 'x');
       const result = encodeChunkedBuffer(data, { chunkSize: 8192 });
 
-      // Should be exactly one chunk + final chunk
       const expected = Buffer.concat([
         Buffer.from('2000\r\n'), // 8192 in hex
         data,

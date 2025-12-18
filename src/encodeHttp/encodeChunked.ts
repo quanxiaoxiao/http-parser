@@ -5,7 +5,7 @@ import { type TrailerHeaders } from '../types.js';
 const CRLF = Buffer.from('\r\n');
 const FINAL_CHUNK = Buffer.from('0\r\n');
 const EMPTY_BUFFER = Buffer.alloc(0);
-const DEFAULT_CHUNK_SIZE = 8192;
+const DEFAULT_CHUNK_SIZE = 8 * 1024;
 
 type ChunkedEncodeOptions = {
   trailers?: TrailerHeaders;
@@ -101,7 +101,7 @@ export async function* encodeChunkedStream(
   options?: ChunkedBufferOptions,
 ): AsyncIterable<Buffer> {
   const trailers = options?.trailers;
-  const chunkSize = options?.chunkSize ?? 8192;
+  const chunkSize = options?.chunkSize ?? DEFAULT_CHUNK_SIZE;
 
   for await (const chunk of source) {
     if (chunk.length === 0) {
