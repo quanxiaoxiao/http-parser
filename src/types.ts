@@ -4,6 +4,8 @@ export type HttpParsePhase = 'STARTLINE' | 'HEADERS' | 'BODY_CHUNKED' | 'BODY_CO
 
 export type HttpMethod = 'GET' | 'PUT' | 'DELETE' | 'POST' | 'PATCH' | 'HEAD' | 'OPTIONS' | 'CONNECT';
 
+export type TrailerHeaders = Record<string, string>;
+
 export type HttpVersion = 1.0 | 1.1;
 
 export interface RequestStartLine {

@@ -2,8 +2,7 @@ import { Buffer } from 'node:buffer';
 
 import decodeHttpLine from '../decodeHttpLine.js';
 import { DecodeHttpError } from '../errors.js';
-
-export type TrailerHeaders = Record<string, string>;
+import { type TrailerHeaders } from '../types.js';
 
 export type ChunkedPhase = 'SIZE' | 'DATA' | 'CRLF' | 'TRAILER';
 
