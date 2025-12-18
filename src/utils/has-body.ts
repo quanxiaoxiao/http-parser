@@ -9,7 +9,7 @@ function getHeaderValue(headers: Headers, name: string): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
 
-export default function hasBody(headers: Headers): boolean {
+export function hasBody(headers: Headers): boolean {
   const contentLengthValue = getHeaderValue(headers, 'content-length');
   if (contentLengthValue) {
     const length = parseInteger(contentLengthValue);

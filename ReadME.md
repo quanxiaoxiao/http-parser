@@ -127,6 +127,64 @@ Cache-Control: no-cache, no-store, must-revalidate
 Cache-Control: public, max-age=86400
 ```
 
+### Connection
+
+#### Hop-by-Hop Header
+
+> Hop-by-Hop Header 只对“当前一跳连接”有效，
+> 任何代理如果转发它，都是协议违规 + 潜在安全漏洞。
+
+所以 **必须清洗（strip）**。
+
+
+#### 什么是 Hop-by-Hop Header
+
+- 只在当前 TCP 连接生效
+- 下一跳不应该看到
+- 由 `Connection` 头显式声明，或 RFC 预定义
+
+典型 Hop-by-Hop
+
+
+```
+Connection
+Keep-Alive
+Transfer-Encoding
+Upgrade
+TE
+Trailer
+Proxy-Authenticate
+Proxy-Authorization
+```
+
+以及：
+
+```
+Connection: Foo
+Foo: bar
+```
+
+→ `Foo` 也是 hop-by-hop
+
+### Hop-by-Hop（必须清洗）
+
+- Connection
+- Transfer-Encoding
+- Keep-Alive
+- Upgrade
+- Trailer
+- TE
+
+以及 `Connection` 中声明的任意头
+
+
+### End-to-End（必须转发）
+
+- Host
+- Cookie
+- Authorization
+- Cache-Control
+- Content-Type
 
 ## body
 

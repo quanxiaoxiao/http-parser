@@ -1,7 +1,7 @@
 import * as assert from 'node:assert';
 import { test } from 'node:test';
 
-import hasBody from './hasBody.js';
+import { hasBody } from './has-body.js';
 
 test('hasBody - Content-Length 头部处理', async (t) => {
   await t.test('正数值应返回 true', () => {
