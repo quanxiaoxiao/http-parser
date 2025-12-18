@@ -126,3 +126,17 @@ Cache-Control: max-age=3600
 Cache-Control: no-cache, no-store, must-revalidate
 Cache-Control: public, max-age=86400
 ```
+
+
+## body
+
+Transfer-Encoding: chunked 的编码规则：
+
+```
+chunk-size(hex) CRLF
+chunk-data CRLF
+...
+0 CRLF
+(trailer headers) CRLF
+CRLF
+```
