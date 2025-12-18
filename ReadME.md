@@ -1,124 +1,125 @@
-### Request
+## 1. Request / Response 总体结构
+
+### 1.1 Request
 
 ```
 ┌──────────────────────────────────────────────┐
 │ Start-Line                                   │  ← 例如：GET /path HTTP/1.1
-│                                              │     Method + Request-Target + Version
+│                                              │     Method + Request-Target + HTTP-Version
 ├──────────────────────────────────────────────┤
 │ Headers                                      │  ← Host, User-Agent, Accept, ...
-│                                              │     各种请求头
+│                                              │     每个 Header 一行，格式 key: value
 ├──────────────────────────────────────────────┤
-│ (空行 CRLF)                                   │  ← 用于区分 Header 与 Body
+│ (空行 CRLF)                                  │  ← 区分 Header 与 Body
 ├──────────────────────────────────────────────┤
-│ Body（可选）                                   │  ← JSON / Form / Binary / multipart
-│                                              │     Content-Length 或 chunked
+│ Body（可选）                                 │  ← JSON / Form / Binary / Multipart
+│                                              │     通过 Content-Length 或 Transfer-Encoding 判断
 ├──────────────────────────────────────────────┤
-│ Trailer Headers（可选, chunked 特有）           │  ← 如：Content-MD5, Signature
-│                                              │     仅在 Transfer-Encoding: chunked 时出现
+│ Trailer Headers（可选, chunked 特有）       │  ← 仅在 Transfer-Encoding: chunked 时出现
+│                                              │     例如：Content-MD5, Signature
 └──────────────────────────────────────────────┘
 ```
 
+### 1.2 Response
 
-### Response
 ```
 ┌──────────────────────────────────────────────┐
 │ Start-Line                                   │  ← 例如：HTTP/1.1 200 OK
-│                                              │     Version + Status-Code + Reason-Phrase
+│                                              │     HTTP-Version + Status-Code + Reason-Phrase
 ├──────────────────────────────────────────────┤
 │ Headers                                      │  ← Content-Type, Content-Length, Set-Cookie...
-│                                              │     各种响应头
+│                                              │     每个 Header 一行，格式 key: value
 ├──────────────────────────────────────────────┤
-│ (空行 CRLF)                                   │
+│ (空行 CRLF)                                  │
 ├──────────────────────────────────────────────┤
-│ Body（可选）                                   │  ← HTML / JSON / Binary / Stream
-│                                              │     Content-Length 或 chunked
+│ Body（可选）                                 │  ← HTML / JSON / Binary / Stream
+│                                              │     通过 Content-Length 或 Transfer-Encoding 判断
 ├──────────────────────────────────────────────┤
-│ Trailer Headers（可选, chunked 特有）           │  ← 如：Content-MD5, Signature
-│                                              │     仅在 Transfer-Encoding: chunked 时出现
+│ Trailer Headers（可选, chunked 特有）       │  ← 仅在 Transfer-Encoding: chunked 时出现
+│                                              │     例如：Content-MD5, Signature
 └──────────────────────────────────────────────┘
 ```
 
-## Headers
+---
 
-`Authorization` 的标准格式：
+## 2. Headers 规范
+
+### 2.1 Authorization
+
+格式：
 
 ```
 Authorization: <auth-scheme> <credentials>
 ```
 
-- `<auth-scheme>`：认证方案，如 `Basic` / `Bearer` / `Digest` / `HOBA` / `Mutual` 等
-- `<credentials>`：凭证（可能是 Base64、Token、签名字符串）
+* `<auth-scheme>`：认证方案，如 `Basic` / `Bearer` / `Digest` / `HOBA` / `Mutual`
+* `<credentials>`：凭证（可能是 Base64、Token、签名字符串）
+* ⚠️ **首字母大写**为规范（如 `Basic`、`Bearer`）
 
-⚠️ **auth-scheme** 必须首字母大写（区分度不强但这是行业规范）
+#### 常见认证类型
 
-### 常见认证类型及其规范
-
-#### Basic Auth（RFC 7617）
+**Basic Auth (RFC 7617)**
 
 ```
 Authorization: Basic <base64(username:password)>
 Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
 ```
 
-
-#### Bearer Token（RFC 6750）
+**Bearer Token (RFC 6750)**
 
 ```
 Authorization: Bearer <token>
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
-### Host
+---
 
-Host header validation rules:
+### 2.2 Host
 
-- Must exist for HTTP/1.1+
-- Must appear exactly once
-- Format: \<domain\> | \<IPv4\> | '[' IPv6 ']'
-- Optional port: ":" <1-65535>
-- Max host length: 255 chars
-- No whitespace, CR, LF
-- No comma
-- Domain labels: A-Z a-z 0-9 - (not leading or trailing)
-- IPv6 must be in brackets
-- Reject multiple Host headers
-- Reject malformed ports
-- Reject embedded credentials (e.g. user:pass@host)
+* 必须存在（HTTP/1.1+）
+* 仅允许出现一次
+* 格式：`<domain>` | `<IPv4>` | `[IPv6]`
+* 可选端口：`:<1-65535>`
+* 最大长度：255
+* 不允许空格、CR/LF、逗号
+* 域名标签：A-Z a-z 0-9 - （不能首尾 `-`）
+* IPv6 必须用方括号 `[ ]`
+* 不允许内嵌认证信息（如 `user:pass@host`）
 
+> 注意 `_` 的使用
+> RFC 1035/1123 中域名 label 不能含 `_`，但实际很多内部 DNS 或 SRV 记录允许。
 
-含有 `_`
+---
 
-- 严格按照 RFC 1035/1123，域名 label 不能有下划线 `_`，只允许 `[A-Za-z0-9-]`
-- 实际情况：很多系统（例如内部 DNS、一些云服务）允许下划线，尤其在 SRV 记录里常见，但严格意义上它是非法的域名 label。
+### 2.3 Content-Type
 
+* 格式：`type/subtype[; parameter=value]*`
+* `type/subtype` 建议小写
+* 参数格式：`token=value` 或 `token="quoted string"`
+* 多个参数用 `;` 分隔
+* 不允许 CR/LF
+* `charset` 推荐用于 `text/*`
+* `boundary` 必须用于 `multipart/form-data`
+* 可以校验是否属于允许类型
 
-### Content-Type
+---
 
-Content-Type header rules:
+### 2.4 Cache-Control
 
-- Format: type/subtype[; parameter=value]*
-- type/subtype: token, recommended lowercase
-- Parameters: token=value or token="quoted string"
-- Multiple parameters separated by ;
-- Must not contain CR/LF
-- charset parameter recommended for text/*
-- boundary required for multipart/form-data
-- Validate against allowed types/subtypes if needed
-
-
-### Cache-Control
-
+格式：
 
 ```
 Cache-Control: directive[=value][, directive[=value]]*
 ```
 
-- 多个 `directive` 用逗号 `,` 分隔
-- `value` 可能是：
-  - `token`
-  - `quoted-string`
-  - `delta-seconds`（整数秒）
+* 多个 directive 用逗号分隔
+* value 可为：
 
+  * token
+  * quoted-string
+  * delta-seconds（整数秒）
+
+示例：
 
 ```
 Cache-Control: no-cache
@@ -127,24 +128,15 @@ Cache-Control: no-cache, no-store, must-revalidate
 Cache-Control: public, max-age=86400
 ```
 
-### Connection
+---
+
+### 2.5 Connection
 
 #### Hop-by-Hop Header
 
-> Hop-by-Hop Header 只对“当前一跳连接”有效，
-> 任何代理如果转发它，都是协议违规 + 潜在安全漏洞。
+> 只作用于当前 TCP 连接，代理不得转发，否则协议违规。
 
-所以 **必须清洗（strip）**。
-
-
-#### 什么是 Hop-by-Hop Header
-
-- 只在当前 TCP 连接生效
-- 下一跳不应该看到
-- 由 `Connection` 头显式声明，或 RFC 预定义
-
-典型 Hop-by-Hop
-
+常见 Hop-by-Hop：
 
 ```
 Connection
@@ -157,38 +149,33 @@ Proxy-Authenticate
 Proxy-Authorization
 ```
 
-以及：
+* Connection 可声明任意自定义 header 为 Hop-by-Hop：
 
 ```
 Connection: Foo
 Foo: bar
 ```
 
-→ `Foo` 也是 hop-by-hop
+#### End-to-End Header（必须转发）
 
-### Hop-by-Hop（必须清洗）
+```
+Host
+Cookie
+Authorization
+Cache-Control
+Content-Type
+```
 
-- Connection
-- Transfer-Encoding
-- Keep-Alive
-- Upgrade
-- Trailer
-- TE
+---
 
-以及 `Connection` 中声明的任意头
+## 3. Body
 
+### 3.1 Content-Length vs Transfer-Encoding
 
-### End-to-End（必须转发）
+* **Content-Length**：直接指定字节长度
+* **Transfer-Encoding: chunked**：分块传输
 
-- Host
-- Cookie
-- Authorization
-- Cache-Control
-- Content-Type
-
-## body
-
-Transfer-Encoding: chunked 的编码规则：
+### 3.2 Chunked 编码格式
 
 ```
 chunk-size(hex) CRLF
@@ -198,3 +185,24 @@ chunk-data CRLF
 (trailer headers) CRLF
 CRLF
 ```
+
+* 每个块前是十六进制长度
+* 最后块长度为 `0` 表示结束
+* 可带 Trailer Headers
+
+---
+
+## 4. 常用规范补充
+
+| Header            | 类型         | 说明                |
+| ----------------- | ---------- | ----------------- |
+| Host              | 必须         | HTTP/1.1+ 必须存在，唯一 |
+| Authorization     | End-to-End | 用于身份认证            |
+| Connection        | Hop-by-Hop | 不可转发，代理需清理        |
+| Content-Length    | End-to-End | 指明 body 字节数       |
+| Transfer-Encoding | Hop-by-Hop | 分块传输编码，代理需清理      |
+| Cookie            | End-to-End | 客户端状态             |
+| Cache-Control     | End-to-End | 缓存控制              |
+| Content-Type      | End-to-End | body 类型           |
+
+---
