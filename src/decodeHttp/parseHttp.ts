@@ -300,12 +300,13 @@ function genericParse(
 }
 
 export function parseRequest(
-  prev: HttpState,
+  prev?: HttpRequestState,
   input: Buffer,
   hooks?: HttpParserHooks,
 ): HttpRequestState {
+  const prevState = prev ?? createRequestState();
   return genericParse(
-    prev,
+    prevState,
     input,
     requestPhaseHandlers,
     hooks,
@@ -313,12 +314,13 @@ export function parseRequest(
 }
 
 export function parseResponse(
-  prev: HttpState,
+  prev?: HttpResponseState,
   input: Buffer,
   hooks?: HttpParserHooks,
 ): HttpResponseState {
+  const prevState = prev ?? createResponseState();
   return genericParse(
-    prev,
+    prevState,
     input,
     responsePhaseHandlers,
     hooks,
