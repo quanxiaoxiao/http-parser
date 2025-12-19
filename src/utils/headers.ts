@@ -1,7 +1,7 @@
 import { type Headers, type NormalizedHeaders } from '../types.js';
 import { validateConnectionHeader } from './connection-header.js';
 
-const HOP_BY_HOP_HEADERS = new Set([
+const HOP_BY_HOP_HEADERS = [
   'connection',
   'transfer-encoding',
   'content-length',
@@ -13,13 +13,24 @@ const HOP_BY_HOP_HEADERS = new Set([
   'proxy-authenticate',
   'proxy-authorization',
   'proxy-connection',
-]);
+] as const;
+
+type Body = | undefined | null | string | Buffer | AsyncIterable<Buffer>;
+
+function isAsyncIterable(value: unknown): value is AsyncIterable<Buffer> {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    Symbol.asyncIterator in value
+  );
+}
 
 export function normalizeHeaders(input?: Headers): NormalizedHeaders {
-  const headers: NormalizedHeaders = {};
   if (!input) {
-    return headers;
+    return {};
   }
+
+  const headers: NormalizedHeaders = {};
 
   for (const [rawKey, rawValue] of Object.entries(input)) {
     if (rawValue == null) {
@@ -72,8 +83,9 @@ export function appendHeader(
 ): void {
   const normalizedKey = key.toLowerCase();
   const values = Array.isArray(value) ? value : [value];
-  if (headers[normalizedKey]) {
-    headers[normalizedKey].push(...values);
+  const existing = headers[normalizedKey];
+  if (existing) {
+    existing.push(...values);
   } else {
     headers[normalizedKey] = values;
   }
@@ -97,9 +109,52 @@ export function stripHopByHopHeaders(
 }
 
 export function sanitizeHeaders(headers: NormalizedHeaders): void {
-  const validation = validateConnectionHeader(getHeaderValue(headers, 'connection'));
-  stripHopByHopHeaders(headers);
-  for (const key of validation.hopByHopHeaders) {
-    delete headers[key.toLowerCase()];
+  const connectionValue = getHeaderValue(headers, 'connection');
+  if (connectionValue) {
+    const validation = validateConnectionHeader(connectionValue);
+    stripHopByHopHeaders(headers);
+    for (const key of validation.hopByHopHeaders) {
+      delete headers[key.toLowerCase()];
+    }
   }
+}
+
+export function applyFramingHeaders(
+  headers: NormalizedHeaders,
+  body: Body,
+): void {
+  deleteHeader(headers, 'content-length');
+  deleteHeader(headers, 'transfer-encoding');
+  if (body == null) {
+    return;
+  }
+
+  if (typeof body === 'string') {
+    const length = Buffer.byteLength(body, 'utf8');
+    setHeader(headers, 'content-length', length.toString());
+    return;
+  }
+
+  if (Buffer.isBuffer(body)) {
+    setHeader(headers, 'content-length', body.length.toString());
+    return;
+  }
+
+  if (isAsyncIterable(body)) {
+    setHeader(headers, 'transfer-encoding', 'chunked');
+    return;
+  }
+
+  throw new Error('Unsupported body type');
+}
+
+export function applyHostHeader(
+  headers: NormalizedHeaders,
+  host: string,
+): void {
+  if (!host) {
+    throw new Error('Client request requires host');
+  }
+
+  setHeader(headers, 'host', host);
 }
