@@ -8,7 +8,10 @@ const HOP_BY_HOP_HEADERS = new Set([
   'trailer',
   'upgrade',
   'expect',
+  'te',
   'keep-alive',
+  'proxy-authenticate',
+  'proxy-authorization',
   'proxy-connection',
 ]);
 
