@@ -1,13 +1,15 @@
 import * as assert from 'node:assert';
 import { describe, it } from 'node:test';
 
-import { type Headers, type NormalizedHeaders } from '../types.js';
+import { type NormalizedHeaders } from '../types.js';
 import {
   appendHeader,
   deleteHeader,
   getHeaderValue,
   normalizeHeaders,
+  sanitizeHeaders,
   setHeader,
+  stripHopByHopHeaders,
 } from './headers.js';
 
 describe('normalizeHeaders', () => {
@@ -291,5 +293,310 @@ describe('集成测试', () => {
 
     // 验证最终状态
     assert.deepStrictEqual(Object.keys(headers).sort(), ['content-type', 'set-cookie']);
+  });
+});
+
+describe('normalizeHeaders', () => {
+  it('should return empty object for undefined input', () => {
+    const result = normalizeHeaders();
+    assert.deepStrictEqual(result, {});
+  });
+
+  it('should return empty object for empty input', () => {
+    const result = normalizeHeaders({});
+    assert.deepStrictEqual(result, {});
+  });
+
+  it('should normalize single header', () => {
+    const result = normalizeHeaders({ 'Content-Type': 'application/json' });
+    assert.deepStrictEqual(result, { 'content-type': ['application/json'] });
+  });
+
+  it('should normalize multiple headers', () => {
+    const result = normalizeHeaders({
+      'Content-Type': 'application/json',
+      Authorization: 'Bearer token',
+    });
+    assert.deepStrictEqual(result, {
+      'content-type': ['application/json'],
+      authorization: ['Bearer token'],
+    });
+  });
+
+  it('should handle array values', () => {
+    const result = normalizeHeaders({
+      'Set-Cookie': ['cookie1=value1', 'cookie2=value2'],
+    });
+    assert.deepStrictEqual(result, {
+      'set-cookie': ['cookie1=value1', 'cookie2=value2'],
+    });
+  });
+
+  it('should skip null and undefined values', () => {
+    const result = normalizeHeaders({
+      'Content-Type': 'application/json',
+      Authorization: null,
+      'X-Custom': undefined,
+    });
+    assert.deepStrictEqual(result, {
+      'content-type': ['application/json'],
+    });
+  });
+
+  it('should trim whitespace from values', () => {
+    const result = normalizeHeaders({
+      'Content-Type': '  application/json  ',
+    });
+    assert.deepStrictEqual(result, {
+      'content-type': ['application/json'],
+    });
+  });
+
+  it('should skip empty string values', () => {
+    const result = normalizeHeaders({
+      'Content-Type': '',
+      Authorization: '   ',
+    });
+    assert.deepStrictEqual(result, {});
+  });
+
+  it('should merge duplicate keys', () => {
+    const result = normalizeHeaders({
+      'x-custom': 'value1',
+      'X-Custom': 'value2',
+    });
+    assert.deepStrictEqual(result, {
+      'x-custom': ['value1', 'value2'],
+    });
+  });
+
+  it('should filter out null values in arrays', () => {
+    const result = normalizeHeaders({
+      'Set-Cookie': ['cookie1', null, 'cookie2', undefined, ''],
+    });
+    assert.deepStrictEqual(result, {
+      'set-cookie': ['cookie1', 'cookie2'],
+    });
+  });
+});
+
+describe('getHeaderValue', () => {
+  it('should return first value of existing header', () => {
+    const headers: NormalizedHeaders = {
+      'content-type': ['application/json', 'text/plain'],
+    };
+    const result = getHeaderValue(headers, 'content-type');
+    assert.strictEqual(result, 'application/json');
+  });
+
+  it('should be case-insensitive', () => {
+    const headers: NormalizedHeaders = {
+      'content-type': ['application/json'],
+    };
+    const result = getHeaderValue(headers, 'Content-Type');
+    assert.strictEqual(result, 'application/json');
+  });
+
+  it('should return undefined for non-existent header', () => {
+    const headers: NormalizedHeaders = {};
+    const result = getHeaderValue(headers, 'content-type');
+    assert.strictEqual(result, undefined);
+  });
+
+  it('should return undefined for empty array', () => {
+    const headers: NormalizedHeaders = {
+      'content-type': [],
+    };
+    const result = getHeaderValue(headers, 'content-type');
+    assert.strictEqual(result, undefined);
+  });
+});
+
+describe('setHeader', () => {
+  it('should set single string value', () => {
+    const headers: NormalizedHeaders = {};
+    setHeader(headers, 'Content-Type', 'application/json');
+    assert.deepStrictEqual(headers, {
+      'content-type': ['application/json'],
+    });
+  });
+
+  it('should set array values', () => {
+    const headers: NormalizedHeaders = {};
+    setHeader(headers, 'Set-Cookie', ['cookie1', 'cookie2']);
+    assert.deepStrictEqual(headers, {
+      'set-cookie': ['cookie1', 'cookie2'],
+    });
+  });
+
+  it('should override existing header', () => {
+    const headers: NormalizedHeaders = {
+      'content-type': ['text/plain'],
+    };
+    setHeader(headers, 'Content-Type', 'application/json');
+    assert.deepStrictEqual(headers, {
+      'content-type': ['application/json'],
+    });
+  });
+
+  it('should be case-insensitive', () => {
+    const headers: NormalizedHeaders = {};
+    setHeader(headers, 'Content-Type', 'application/json');
+    assert.deepStrictEqual(headers, {
+      'content-type': ['application/json'],
+    });
+  });
+});
+
+describe('appendHeader', () => {
+  it('should append to non-existent header', () => {
+    const headers: NormalizedHeaders = {};
+    appendHeader(headers, 'Set-Cookie', 'cookie1');
+    assert.deepStrictEqual(headers, {
+      'set-cookie': ['cookie1'],
+    });
+  });
+
+  it('should append to existing header', () => {
+    const headers: NormalizedHeaders = {
+      'set-cookie': ['cookie1'],
+    };
+    appendHeader(headers, 'Set-Cookie', 'cookie2');
+    assert.deepStrictEqual(headers, {
+      'set-cookie': ['cookie1', 'cookie2'],
+    });
+  });
+
+  it('should append array values', () => {
+    const headers: NormalizedHeaders = {
+      'set-cookie': ['cookie1'],
+    };
+    appendHeader(headers, 'Set-Cookie', ['cookie2', 'cookie3']);
+    assert.deepStrictEqual(headers, {
+      'set-cookie': ['cookie1', 'cookie2', 'cookie3'],
+    });
+  });
+
+  it('should be case-insensitive', () => {
+    const headers: NormalizedHeaders = {
+      'set-cookie': ['cookie1'],
+    };
+    appendHeader(headers, 'SET-COOKIE', 'cookie2');
+    assert.deepStrictEqual(headers, {
+      'set-cookie': ['cookie1', 'cookie2'],
+    });
+  });
+});
+
+describe('deleteHeader', () => {
+  it('should delete existing header and return true', () => {
+    const headers: NormalizedHeaders = {
+      'content-type': ['application/json'],
+    };
+    const result = deleteHeader(headers, 'content-type');
+    assert.strictEqual(result, true);
+    assert.deepStrictEqual(headers, {});
+  });
+
+  it('should return false for non-existent header', () => {
+    const headers: NormalizedHeaders = {};
+    const result = deleteHeader(headers, 'content-type');
+    assert.strictEqual(result, false);
+  });
+
+  it('should be case-insensitive', () => {
+    const headers: NormalizedHeaders = {
+      'content-type': ['application/json'],
+    };
+    const result = deleteHeader(headers, 'Content-Type');
+    assert.strictEqual(result, true);
+    assert.deepStrictEqual(headers, {});
+  });
+
+  it('should not affect other headers', () => {
+    const headers: NormalizedHeaders = {
+      'content-type': ['application/json'],
+      authorization: ['Bearer token'],
+    };
+    deleteHeader(headers, 'content-type');
+    assert.deepStrictEqual(headers, {
+      authorization: ['Bearer token'],
+    });
+  });
+});
+
+describe('stripHopByHopHeaders', () => {
+  it('should remove all hop-by-hop headers', () => {
+    const headers: NormalizedHeaders = {
+      'content-type': ['application/json'],
+      connection: ['keep-alive'],
+      'transfer-encoding': ['chunked'],
+      'content-length': ['100'],
+      upgrade: ['websocket'],
+      authorization: ['Bearer token'],
+    };
+    stripHopByHopHeaders(headers);
+    assert.deepStrictEqual(headers, {
+      'content-type': ['application/json'],
+      authorization: ['Bearer token'],
+    });
+  });
+
+  it('should handle empty headers object', () => {
+    const headers: NormalizedHeaders = {};
+    stripHopByHopHeaders(headers);
+    assert.deepStrictEqual(headers, {});
+  });
+
+  it('should remove all standard hop-by-hop headers', () => {
+    const headers: NormalizedHeaders = {
+      connection: ['close'],
+      'transfer-encoding': ['chunked'],
+      'content-length': ['200'],
+      trailer: ['Expires'],
+      upgrade: ['h2c'],
+      expect: ['100-continue'],
+      'keep-alive': ['timeout=5'],
+      'proxy-connection': ['keep-alive'],
+    };
+    stripHopByHopHeaders(headers);
+    assert.deepStrictEqual(headers, {});
+  });
+});
+
+describe('sanitizeHeaders', () => {
+  it('should remove hop-by-hop headers', () => {
+    const headers: NormalizedHeaders = {
+      'content-type': ['application/json'],
+      connection: ['keep-alive'],
+      'transfer-encoding': ['chunked'],
+    };
+    sanitizeHeaders(headers);
+    assert.deepStrictEqual(headers, {
+      'content-type': ['application/json'],
+    });
+  });
+
+  it('should remove custom hop-by-hop headers from Connection header', () => {
+    const headers: NormalizedHeaders = {
+      'content-type': ['application/json'],
+      connection: ['close, x-custom-header'],
+      'x-custom-header': ['value'],
+    };
+    sanitizeHeaders(headers);
+
+    assert.strictEqual(headers['x-custom-header'], undefined);
+  });
+
+  it('should handle headers without connection header', () => {
+    const headers: NormalizedHeaders = {
+      'content-type': ['application/json'],
+      authorization: ['Bearer token'],
+    };
+    sanitizeHeaders(headers);
+    assert.deepStrictEqual(headers, {
+      'content-type': ['application/json'],
+      authorization: ['Bearer token'],
+    });
   });
 });

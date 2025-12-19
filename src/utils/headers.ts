@@ -1,4 +1,16 @@
 import { type Headers, type NormalizedHeaders } from '../types.js';
+import { validateConnectionHeader } from './connection-header.js';
+
+const HOP_BY_HOP_HEADERS = new Set([
+  'connection',
+  'transfer-encoding',
+  'content-length',
+  'trailer',
+  'upgrade',
+  'expect',
+  'keep-alive',
+  'proxy-connection',
+]);
 
 export function normalizeHeaders(input?: Headers): NormalizedHeaders {
   const headers: NormalizedHeaders = {};
@@ -71,4 +83,20 @@ export function deleteHeader(headers: NormalizedHeaders, key: string): boolean {
     return true;
   }
   return false;
+}
+
+export function stripHopByHopHeaders(
+  headers: NormalizedHeaders,
+): void {
+  for (const key of HOP_BY_HOP_HEADERS) {
+    delete headers[key];
+  }
+}
+
+export function sanitizeHeaders(headers: NormalizedHeaders): void {
+  const validation = validateConnectionHeader(getHeaderValue(headers, 'connection'));
+  stripHopByHopHeaders(headers);
+  for (const key of validation.hopByHopHeaders) {
+    delete headers[key.toLowerCase()];
+  }
 }
