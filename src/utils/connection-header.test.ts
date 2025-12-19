@@ -1,10 +1,10 @@
 import * as assert from 'node:assert';
-import { test, describe } from 'node:test';
+import { describe,test } from 'node:test';
 
 import {
-  validateConnectionHeader,
-  stripHopByHopHeaders,
   sanitizeHeaders,
+  stripHopByHopHeaders,
+  validateConnectionHeader,
 } from './connection-header.js';
 
 describe('validateConnectionHeader', () => {
@@ -115,11 +115,11 @@ describe('validateConnectionHeader', () => {
 describe('stripHopByHopHeaders', () => {
   test('应该移除标准逐跳首部', () => {
     const headers = {
-      'Host': 'example.com',
-      'Connection': 'keep-alive',
+      Host: 'example.com',
+      Connection: 'keep-alive',
       'Content-Type': 'application/json',
       'Transfer-Encoding': 'chunked',
-      'Upgrade': 'websocket',
+      Upgrade: 'websocket',
       'Proxy-Authorization': 'Basic xxx',
     };
 
@@ -136,7 +136,7 @@ describe('stripHopByHopHeaders', () => {
 
   test('应该移除自定义逐跳首部', () => {
     const headers = {
-      'Host': 'example.com',
+      Host: 'example.com',
       'X-Custom-Header': 'value',
       'Content-Type': 'application/json',
       'X-Another-Header': 'value2',
@@ -153,8 +153,8 @@ describe('stripHopByHopHeaders', () => {
 
   test('应该处理大小写不敏感的首部名称', () => {
     const headers = {
-      'Host': 'example.com',
-      'CONNECTION': 'close',
+      Host: 'example.com',
+      CONNECTION: 'close',
       'X-Custom': 'value',
     };
 
@@ -168,10 +168,10 @@ describe('stripHopByHopHeaders', () => {
 
   test('应该保留所有非逐跳首部', () => {
     const headers = {
-      'Host': 'example.com',
+      Host: 'example.com',
       'User-Agent': 'Mozilla/5.0',
-      'Accept': 'application/json',
-      'Authorization': 'Bearer token',
+      Accept: 'application/json',
+      Authorization: 'Bearer token',
       'Content-Type': 'application/json',
       'Cache-Control': 'no-cache',
     };
@@ -192,7 +192,7 @@ describe('stripHopByHopHeaders', () => {
 
   test('应该处理没有逐跳首部的情况', () => {
     const headers = {
-      'Host': 'example.com',
+      Host: 'example.com',
       'Content-Type': 'application/json',
     };
 
@@ -207,8 +207,8 @@ describe('stripHopByHopHeaders', () => {
 describe('sanitizeHeaders', () => {
   test('应该一步完成验证和清理', () => {
     const headers = {
-      'host': 'example.com',
-      'connection': 'close, x-custom',
+      host: 'example.com',
+      connection: 'close, x-custom',
       'x-custom': 'value',
       'content-type': 'application/json',
       'transfer-encoding': 'chunked',
@@ -225,7 +225,7 @@ describe('sanitizeHeaders', () => {
 
   test('应该处理没有 Connection 首部的情况', () => {
     const headers = {
-      'Host': 'example.com',
+      Host: 'example.com',
       'Content-Type': 'application/json',
       'Transfer-Encoding': 'chunked',
     };
@@ -239,8 +239,8 @@ describe('sanitizeHeaders', () => {
 
   test('应该处理大写的 Connection 首部', () => {
     const headers = {
-      'Host': 'example.com',
-      'CONNECTION': 'keep-alive',
+      Host: 'example.com',
+      CONNECTION: 'keep-alive',
       'Content-Type': 'application/json',
     };
 
@@ -255,12 +255,12 @@ describe('sanitizeHeaders', () => {
 describe('边缘情况和集成测试', () => {
   test('应该处理复杂的真实场景', () => {
     const headers = {
-      'host': 'api.example.com',
-      'connection': 'upgrade, x-internal-proxy',
-      'upgrade': 'websocket',
+      host: 'api.example.com',
+      connection: 'upgrade, x-internal-proxy',
+      upgrade: 'websocket',
       'x-internal-proxy': 'node1',
       'user-agent': 'Mozilla/5.0',
-      'authorization': 'Bearer token123',
+      authorization: 'Bearer token123',
       'content-type': 'application/json',
       'cache-control': 'no-cache',
       'keep-alive': 'timeout=5',
@@ -287,9 +287,9 @@ describe('边缘情况和集成测试', () => {
   test('应该处理极长的 Connection 值', () => {
     const tokens = Array.from({ length: 50 }, (_, i) => `x-header-${i}`);
     const connectionValue = tokens.join(', ');
-    
+
     const result = validateConnectionHeader(connectionValue);
-    
+
     assert.strictEqual(result.valid, true);
     assert.strictEqual(result.tokens.length, 50);
     assert.strictEqual(result.hopByHopHeaders.length, 50);
@@ -297,7 +297,7 @@ describe('边缘情况和集成测试', () => {
 
   test('应该正确处理所有标准连接令牌的组合', () => {
     const result = validateConnectionHeader('close, keep-alive, upgrade');
-    
+
     assert.strictEqual(result.valid, true);
     assert.strictEqual(result.hasClose, true);
     assert.strictEqual(result.hasKeepAlive, true);

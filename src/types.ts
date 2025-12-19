@@ -1,5 +1,7 @@
 export type Headers = Record<string, string | string[]>;
 
+export type NormalizedHeaders = Record<string, string[]>
+
 export type HttpParsePhase = 'STARTLINE' | 'HEADERS' | 'BODY_CHUNKED' | 'BODY_CONTENT_LENGTH';
 
 export type HttpMethod = 'GET' | 'PUT' | 'DELETE' | 'POST' | 'PATCH' | 'HEAD' | 'OPTIONS' | 'CONNECT';
