@@ -1,6 +1,6 @@
 import { Buffer } from 'node:buffer';
 
-import decodeHttpLine from '../decodeHttpLine.js';
+import { decodeHttpLine } from '../decodeHttpLine.js';
 import { DecodeHttpError } from '../errors.js';
 import parseInteger from '../parseInteger.js';
 import { type Headers, type HttpParsePhase, type HttpParserHooks, type RequestStartLine,type ResponseStartLine } from '../types.js';

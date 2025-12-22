@@ -1,6 +1,6 @@
 import { Buffer } from 'node:buffer';
 
-import decodeHttpLine from '../decodeHttpLine.js';
+import { decodeHttpLine } from '../decodeHttpLine.js';
 import { DecodeHttpError } from '../errors.js';
 import { type TrailerHeaders } from '../types.js';
 

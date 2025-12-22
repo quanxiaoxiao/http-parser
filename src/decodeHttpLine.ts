@@ -75,5 +75,3 @@ export function decodeHttpLine(
 
   return findLineEnd(buf, start, limit, len);
 }
-
-export default decodeHttpLine;

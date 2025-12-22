@@ -1,4 +1,4 @@
-import decodeHttpLine from '../decodeHttpLine.js';
+import { decodeHttpLine } from '../decodeHttpLine.js';
 import { DecodeHttpError } from '../errors.js';
 import { type Headers } from '../types.js';
 import parseHeaderLine from './parseHeaderLine.js';

@@ -2,8 +2,7 @@ import * as assert from 'node:assert';
 import { Buffer } from 'node:buffer';
 import { describe, it } from 'node:test';
 
-import decodeHttpLine from './decodeHttpLine.js';
-import { DecodeHttpError } from './errors.js';
+import { decodeHttpLine } from './decodeHttpLine.js';
 
 describe('decodeHttpLine', () => {
   describe('参数验证', () => {
