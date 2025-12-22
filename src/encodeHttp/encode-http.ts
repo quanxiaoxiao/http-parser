@@ -1,6 +1,6 @@
 import { Buffer } from 'node:buffer';
 
-import encodeHttpLine from '../encodeHttpLine.js';
+import { encodeHttpLine } from '../encodeHttpLine.js';
 import { type Headers,type RequestStartLine } from '../types.js';
 import encodeHeaders from './encodeHeaders.js';
 import encodeRequestLine from './encodeRequestLine.js';
