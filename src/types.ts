@@ -12,6 +12,13 @@ export type HttpVersion = 1.0 | 1.1;
 
 export type Body = undefined | null | string | Buffer | AsyncIterable<Buffer>;
 
+export interface HttpMessage {
+  method?: string;
+  statusCode?: number;
+  headers: Headers;
+  body: unknown;
+}
+
 export interface RequestStartLine {
   method?: HttpMethod;
   path?: string;

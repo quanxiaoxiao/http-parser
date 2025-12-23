@@ -58,11 +58,17 @@ export function normalizeHeaders(input?: Headers): NormalizedHeaders {
 }
 
 export function getHeaderValue(
-  headers: NormalizedHeaders,
+  headers: NormalizedHeaders | Headers,
   key: string,
 ): string | undefined {
   const values = headers[key.toLowerCase()];
-  return values?.[0];
+  if (values == null) {
+    return undefined;
+  }
+  if (Array.isArray(values)) {
+    return values[0];
+  }
+  return values;
 }
 
 export function setHeader(
