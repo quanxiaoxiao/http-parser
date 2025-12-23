@@ -16,7 +16,7 @@ const HOP_BY_HOP_HEADERS = [
   'proxy-connection',
 ] as const;
 
-function isAsyncIterable(value: unknown): value is AsyncIterable<Buffer> {
+function isBodyAsyncIterable(value: Body): value is AsyncIterable<Buffer> {
   return (
     typeof value === 'object' &&
     value !== null &&
@@ -148,7 +148,7 @@ export function applyFramingHeaders(
     return;
   }
 
-  if (isAsyncIterable(body)) {
+  if (isBodyAsyncIterable(body)) {
     setHeader(headers, 'transfer-encoding', 'chunked');
     return;
   }
