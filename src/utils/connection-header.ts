@@ -11,6 +11,7 @@ interface ConnectionValidationResult {
 }
 
 const TOKEN_REGEX = /^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/;
+
 export function validateConnectionHeader(
   value: string | undefined,
 ): ConnectionValidationResult {

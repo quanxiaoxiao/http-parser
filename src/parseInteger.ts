@@ -1,4 +1,4 @@
-export default (str: string | number): number | null => {
+export function parseInteger(str: string | number): number | null {
   const value = typeof str === 'string' ? parseInt(str, 10) : str;
 
   if (
@@ -10,4 +10,6 @@ export default (str: string | number): number | null => {
     return null;
   }
   return value;
-};
+}
+
+export default parseInteger;
