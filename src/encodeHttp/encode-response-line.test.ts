@@ -1,7 +1,7 @@
 import * as assert from 'node:assert';
 import { describe, it } from 'node:test';
 
-import { encodeResponseLine } from './encodeResponseLine.js';
+import { encodeResponseLine } from './encode-response-line.js';
 
 describe('encodeResponseLine', () => {
   it('should encode default 200 OK response', () => {

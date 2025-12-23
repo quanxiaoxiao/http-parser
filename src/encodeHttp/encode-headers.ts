@@ -1,6 +1,6 @@
 import { Buffer } from 'node:buffer';
 
-import { type Headers } from '../types.js';
+import { type Headers, type NormalizedHeaders } from '../types.js';
 
 const CRLF = '\r\n';
 
@@ -22,7 +22,7 @@ function flattenHeadersToArray(headers: Headers): string[] {
   return Object.entries(headers).flatMap(([headerName, headerValue]) => flatten(headerName, headerValue));
 }
 
-export function encodeHeaders(headers: Headers, options?: EncodeHeaderOptions): Buffer {
+export function encodeHeaders(headers: Headers | NormalizedHeaders, options?: EncodeHeaderOptions): Buffer {
   const arr = flattenHeadersToArray(headers);
   const shouldEncodeValue = options?.encodeValue ?? false;
 

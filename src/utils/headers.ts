@@ -1,4 +1,4 @@
-import { type Headers, type NormalizedHeaders } from '../types.js';
+import { type Body, type Headers, type NormalizedHeaders } from '../types.js';
 import { validateConnectionHeader } from './connection-header.js';
 
 const HOP_BY_HOP_HEADERS = [
@@ -14,8 +14,6 @@ const HOP_BY_HOP_HEADERS = [
   'proxy-authorization',
   'proxy-connection',
 ] as const;
-
-type Body = | undefined | null | string | Buffer | AsyncIterable<Buffer>;
 
 function isAsyncIterable(value: unknown): value is AsyncIterable<Buffer> {
   return (

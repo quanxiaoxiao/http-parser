@@ -10,6 +10,8 @@ export type TrailerHeaders = Record<string, string>;
 
 export type HttpVersion = 1.0 | 1.1;
 
+export type Body = undefined | null | string | Buffer | AsyncIterable<Buffer>;
+
 export interface RequestStartLine {
   method?: HttpMethod;
   path?: string;

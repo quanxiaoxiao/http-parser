@@ -1,161 +1,95 @@
-/* eslint no-use-before-define: 0 */
-import { Buffer } from 'node:buffer';
-import fs from 'node:fs/promises';
-import path from 'node:path';
+import { encodeHttpRequest } from './encodeHttp/encode-http.js';
 
-import {
-  createRequestState,
-  createResponseState,
-  type HttpRequestState,
-  type HttpResponseState,
-  parseRequest,
-  parseResponse,
-} from './decodeHttp/parseHttp.js';
-import validateHeaders from './utils/validateHeaders.js';
-import { validateRequestCookie } from './utils/validateRequestCookie.js';
-
-interface ProcessFileResult {
-  success: boolean;
-  filePath: string;
-  errorMessage?: string;
-}
-
-interface ProcessOptions {
-  concurrency?: number;
-  fileExtensions?: string[];
-}
-
-interface ProcessOptions {
-  concurrency?: number;
-  fileExtensions?: string[];
-}
-
-function shouldProcessFile(filePath: string, extensions?: string[]): boolean {
-  if (!extensions || extensions.length === 0) {
-    return true;
-  }
-  const ext = path.extname(filePath).toLowerCase();
-  return extensions.includes(ext);
-}
-
-function processHttpRequest(chunk: Buffer): HttpRequestState {
-  const state: HttpRequestState = createRequestState();
-  return parseRequest(state, chunk, {
-    onHeader: (name, value) => {
-      if (name === 'cookie') {
-        const ret = validateRequestCookie(value);
-        if (!ret.valid) {
-          console.log(ret);
-        }
-      }
+async function exampleSimpleGet() {
+  const request = encodeHttpRequest({
+    startLine: {
+      method: 'GET',
+      path: '/api/users',
     },
-    onHeadersComplete: (headers) => {
-      const errors = validateHeaders(headers);
-      errors.forEach((errorItem) => {
-        if (errorItem.header !== 'authorization') {
-          console.log(errorItem);
-        }
-      });
+    headers: {
+      Host: 'example.com',
+      'User-Agent': 'MyClient/1.0',
     },
+    // 没有 body
   });
+
+  // 收集所有数据块
+  const chunks: Buffer[] = [];
+  for await (const chunk of request) {
+    chunks.push(chunk);
+  }
+
+  const fullRequest = Buffer.concat(chunks);
+  console.log(fullRequest.toString());
 }
 
-function procssHttpResponse(chunk: Buffer): HttpResponseState {
-  const state: HttpResponseState = createResponseState();
-  return parseResponse(state, chunk, {
-    onHeadersComplete: (headers) => {
-      const errors = validateHeaders(headers);
-      errors.forEach((errorItem) => {
-        if (errorItem.header !== 'authorization') {
-          console.log(errorItem);
-        }
-      });
+async function examplePostWithString() {
+  const request = encodeHttpRequest({
+    startLine: {
+      method: 'POST',
+      path: '/api/users',
     },
+    headers: {
+      Host: 'example.com',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ name: 'John', age: 30 }),
   });
-}
 
-async function processFile(filePath: string, options: ProcessOptions): Promise<ProcessFileResult>{
-  if (!shouldProcessFile(filePath, options.fileExtensions)) {
-    return {
-      success: true,
-      filePath,
-      errorMessage: 'Skipped: file extension not matched',
-    };
+  for await (const chunk of request) {
+    // 直接发送到 socket
+    // socket.write(chunk);
+    console.log(chunk.toString());
   }
-  const httpBuf = await fs.readFile(filePath);
-  const requestState: HttpRequestState = processHttpRequest(httpBuf);
-  if (!requestState.finished) {
-    return {
-      success: false,
-      filePath,
-      errorMessage: requestState.error?.message ?? 'parse response uncomplete',
-    };
+}
+
+async function examplePostWithBuffer() {
+  const bodyData = Buffer.from('Hello World', 'utf-8');
+
+  const request = encodeHttpRequest({
+    startLine: {
+      method: 'POST',
+      path: '/api/data',
+    },
+    headers: {
+      Host: 'example.com',
+      'Content-Type': 'text/plain',
+    },
+    body: bodyData,
+  });
+
+  for await (const chunk of request) {
+    console.log(chunk.toString());
+  }
+}
+
+async function exampleStreamUpload() {
+  async function* generateData(): AsyncIterable<Buffer> {
+    yield Buffer.from('chunk1');
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    yield Buffer.from('chunk2');
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    yield Buffer.from('chunk3');
   }
 
-  const responseState: HttpResponseState = procssHttpResponse(requestState.buffer);
+  const request = encodeHttpRequest({
+    startLine: {
+      method: 'POST',
+      path: '/api/upload',
+    },
+    headers: {
+      Host: 'example.com',
+      'Transfer-Encoding': 'chunked',
+    },
+    body: generateData(),
+  });
 
-  return {
-    success: !!responseState.error,
-    filePath,
-    errorMessage: responseState.error?.message ?? '',
-  };
-}
-
-async function processConcurrently<T, R>(
-  items: T[],
-  processor: (item: T) => Promise<R>,
-  concurrency: number = 10,
-): Promise<R[]> {
-  const results: R[] = [];
-  for (let i = 0; i < items.length; i += concurrency) {
-    const batch = items.slice(i, i + concurrency);
-    const batchResults = await Promise.all(batch.map(processor));
-    results.push(...batchResults);
+  for await (const chunk of request) {
+    console.log(chunk.toString());
   }
-  return results;
 }
 
-async function processDirectory(
-  dirPath: string,
-  options: ProcessOptions,
-): Promise<ProcessFileResult[]> {
-  const { concurrency = 10 } = options;
-  const entries = await fs.readdir(dirPath);
-  const fullPaths = entries.map((entry) => path.resolve(dirPath, entry));
-
-  const results = await processConcurrently(
-    fullPaths,
-    (pathname: string) => processPath(pathname, options),
-    concurrency,
-  );
-  return results.flat();
-}
-
-async function processPath (pathname: string, options: ProcessOptions): Promise<ProcessFileResult | ProcessFileResult[]> {
-  const stats = await fs.stat(pathname);
-
-  if (stats.isDirectory()) {
-    return processDirectory(pathname, options);
-  }
-  if (!shouldProcessFile(pathname, options.fileExtensions)) {
-    return {
-      success: false,
-      filePath: pathname,
-      errorMessage: 'Skipped: file extension not matched',
-    };
-  }
-  return processFile(pathname, options);
-}
-
-async function processHttpFiles(
-  pathname: string,
-  options: ProcessOptions = {},
-): Promise<ProcessFileResult[]> {
-  const result = await processPath(pathname, options);
-  return Array.isArray(result) ? result : [result];
-}
-
-const ret = await processHttpFiles(path.resolve('/Users/huzhedong/mylib/http-utils/_data'));
-// const ret = await processHttpFiles(path.resolve('/Users/huzhedong/mylib/http-utils/_data/01/66442ac107c67a1322721b'));
-
-console.log(ret);
+await exampleSimpleGet();
+await examplePostWithString();
+await examplePostWithBuffer();
+await exampleStreamUpload();

@@ -3,7 +3,7 @@ import { Buffer } from 'node:buffer';
 import { describe, it } from 'node:test';
 
 import type { Headers } from '../types.js';
-import { encodeHeaders } from './encodeHeaders.js';
+import { encodeHeaders } from './encode-headers.js';
 
 describe('encodeHeaders', () => {
   it('应该正确编码单个 header', () => {

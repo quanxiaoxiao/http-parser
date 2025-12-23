@@ -1,12 +1,22 @@
 import * as assert from 'node:assert';
 import { describe, it } from 'node:test';
 
-import { encodeRequestLine } from './encodeRequestLine.js'; // 请根据实际路径调整
+import { encodeRequestLine } from './encode-request-line.js';
 
 describe('encodeRequestLine', () => {
   it('should encode default GET request', () => {
     const result = encodeRequestLine();
     assert.strictEqual(result.toString(), 'GET / HTTP/1.1');
+  });
+
+  it('should encode only set path', () => {
+    const result = encodeRequestLine({ path: '/api' });
+    assert.strictEqual(result.toString(), 'GET /api HTTP/1.1');
+  });
+
+  it('should encode only set method', () => {
+    const result = encodeRequestLine({ method: 'post' });
+    assert.strictEqual(result.toString(), 'POST / HTTP/1.1');
   });
 
   it('should encode GET request with custom path', () => {
