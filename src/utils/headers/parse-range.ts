@@ -1,4 +1,4 @@
-import createHttpError from '../createHttpError.js';
+import createHttpError from '../../createHttpError.js';
 
 type RangeResult = [number, number];
 
@@ -25,7 +25,7 @@ const parseNumber = (str: string | null | undefined, fieldName = 'number'): numb
   return num;
 };
 
-export default (rangeHeaderValue: string, contentSize: number): RangeResult => {
+export function parseRange(rangeHeaderValue: string, contentSize: number): RangeResult {
   if (typeof rangeHeaderValue !== 'string') {
     throw createHttpError(400, 'Range header must be a string');
   }
@@ -88,4 +88,4 @@ export default (rangeHeaderValue: string, contentSize: number): RangeResult => {
   }
 
   return [start, end];
-};
+}
