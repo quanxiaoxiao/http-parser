@@ -1,6 +1,6 @@
 import parseInteger from '../parseInteger.js';
 import { type Body, type Headers, type NormalizedHeaders } from '../types.js';
-import { validateConnectionHeader } from './connection-header.js';
+import { validateConnectionHeader } from './headers/connection-header.js';
 
 const HOP_BY_HOP_HEADERS = [
   'connection',

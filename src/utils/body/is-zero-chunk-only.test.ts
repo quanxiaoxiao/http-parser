@@ -1,7 +1,7 @@
 import * as assert from 'node:assert';
 import { describe, it } from 'node:test';
 
-import { isZeroChunkOnly } from './body.js';
+import { isZeroChunkOnly } from './is-zero-chunk-only.js';
 
 describe('isZeroChunkOnly', () => {
   describe('null 和 undefined 情况', () => {
