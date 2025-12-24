@@ -16,6 +16,14 @@ const HOP_BY_HOP_HEADERS = [
   'proxy-connection',
 ] as const;
 
+const FRAMING_HEADERS = [
+  'content-length',
+  'transfer-encoding',
+  'content-encoding',
+  'content-type',
+  'content-range',
+] as const;
+
 function isBodyAsyncIterable(value: Body): value is AsyncIterable<Buffer> {
   return (
     typeof value === 'object' &&
@@ -156,6 +164,15 @@ export function applyFramingHeaders(
   throw new Error('Unsupported body type');
 }
 
+export function isChunked(headers: Headers | NormalizedHeaders): boolean {
+  const te = getHeaderValue(headers, 'transfer-encoding');
+  if (!te) {
+    return false;
+  }
+
+  return te.join(',').toLowerCase().includes('chunked');
+}
+
 export function applyHostHeader(
   headers: NormalizedHeaders,
   host: string,
@@ -167,6 +184,19 @@ export function applyHostHeader(
   setHeader(headers, 'host', host);
 }
 
+export function hasZeroContentLength(headers: Headers | NormalizedHeaders): boolean {
+  const cl = getHeaderValue(headers, 'content-length');
+  if (!cl) {
+    return false;
+  }
+
+  const length = parseInteger(cl[0]!);
+  if (length == null) {
+    return false;
+  }
+  return length === 0;
+}
+
 export function hasBody(headers: Headers | NormalizedHeaders): boolean {
   const contentLengthValue = getHeaderValue(headers, 'content-length');
   if (contentLengthValue) {
@@ -176,10 +206,11 @@ export function hasBody(headers: Headers | NormalizedHeaders): boolean {
     }
   }
 
-  const transferEncoding = getHeaderValue(headers, 'transfer-encoding');
-  if (transferEncoding?.some((value) => value.toLowerCase().includes('chunked'))) {
-    return true;
-  }
+  return isChunked(headers);
+}
 
-  return false;
+export function stripFramingHeaders(headers: NormalizedHeaders): void {
+  for (const key of FRAMING_HEADERS) {
+    delete headers[key];
+  }
 }
