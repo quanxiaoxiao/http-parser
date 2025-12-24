@@ -1,4 +1,6 @@
-import { type RequestStartLine, type ResponseStartLine } from '../types.js';
+import type { RequestStartLine, ResponseStartLine } from '../../types.js';
+import { isRequestStartLine } from './is-request.js';
+import { isResponseStartLine } from './is-response.js';
 
 const BODYLESS_METHODS = new Set(['GET', 'HEAD', 'DELETE', 'CONNECT', 'TRACE', 'OPTIONS']);
 
@@ -11,14 +13,6 @@ const BODYLESS_STATUS_CODES = new Set([
   205, // Reset Content
   304, // Not Modified
 ]);
-
-function isRequestStartLine(startLine: RequestStartLine | ResponseStartLine): startLine is RequestStartLine {
-  return 'method' in startLine;
-}
-
-function isResponseStartLine(startLine: RequestStartLine | ResponseStartLine): startLine is ResponseStartLine {
-  return 'statusCode' in startLine;
-}
 
 export function bodyNotAllowed(startLine: RequestStartLine | ResponseStartLine): boolean {
   if (isRequestStartLine(startLine) && startLine.method) {
