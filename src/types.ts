@@ -17,7 +17,7 @@ export type BodyState = 'NONE' | 'FIXED' | 'STREAM';
 export interface HttpMessage {
   method?: string;
   statusCode?: number;
-  headers: Headers;
+  headers: Headers | NormalizedHeaders;
   body: unknown;
 }
 
