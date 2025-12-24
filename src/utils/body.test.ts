@@ -100,7 +100,7 @@ describe('isZeroChunkOnly', () => {
     it('应该正确处理 Buffer 和 string 的 "0" 差异', () => {
       const bufferZero = Buffer.from('0');
       const stringZero = '0';
-      
+
       // Buffer "0" 长度为 1，不等于 5，应该返回 false
       assert.strictEqual(isZeroChunkOnly(bufferZero), false);
       // String "0" 应该返回 true

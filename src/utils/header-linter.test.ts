@@ -4,7 +4,7 @@ import { describe, it } from 'node:test';
 import { lintHeaderName } from './header-linter.js';
 
 describe('HTTP Header Name Linter', () => {
-  
+
   describe('Valid headers', () => {
     it('should accept standard Title-Case headers', () => {
       const valid = [
@@ -14,12 +14,12 @@ describe('HTTP Header Name Linter', () => {
         'Cache-Control',
         'User-Agent',
         'Accept-Encoding',
-        'Content-Length'
+        'Content-Length',
       ];
 
       valid.forEach(header => {
         const result = lintHeaderName(header);
-        assert.strictEqual(result.errors.length, 0, 
+        assert.strictEqual(result.errors.length, 0,
           `${header} should have no errors`);
       });
     });
@@ -81,7 +81,7 @@ describe('HTTP Header Name Linter', () => {
         'Header\\Name',
         'Header<Name>',
         'Header"Name"',
-        'Header?Name'
+        'Header?Name',
       ];
 
       invalid.forEach(header => {
@@ -98,7 +98,7 @@ describe('HTTP Header Name Linter', () => {
       const valid = [
         'Custom-Header',
         'X-Request-ID',
-        'Cache-Control'
+        'Cache-Control',
       ];
 
       valid.forEach(header => {

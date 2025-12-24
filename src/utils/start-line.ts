@@ -1,5 +1,18 @@
 import { type RequestStartLine, type ResponseStartLine } from '../types.js';
 
+const HTTP_METHODS = [
+  'GET',
+  'PUT',
+  'DELETE',
+  'POST',
+  'PATCH',
+  'HEAD',
+  'OPTIONS',
+  'CONNECT',
+] as const;
+
+type HttpMethod = typeof HTTP_METHODS[number];
+
 const BODYLESS_METHODS = new Set(['GET', 'HEAD', 'DELETE', 'CONNECT', 'TRACE', 'OPTIONS']);
 
 const BODYLESS_STATUS_CODES = new Set([
@@ -12,22 +25,34 @@ const BODYLESS_STATUS_CODES = new Set([
   304, // Not Modified
 ]);
 
+function isRequestStartLine(startLine: RequestStartLine | ResponseStartLine): startLine is RequestStartLine {
+  return 'method' in startLine;
+}
+
+function isResponseStartLine(startLine: RequestStartLine | ResponseStartLine): startLine is ResponseStartLine {
+  return 'statusCode' in startLine;
+}
+
 export function bodyNotAllowed(startLine: RequestStartLine | ResponseStartLine): boolean {
-  if (startLine.method != null) {
-    const method = startLine.method.toUpperCase();
-    if (BODYLESS_METHODS.has(method)) {
+  if (isRequestStartLine(startLine) && startLine.method) {
+    if (BODYLESS_METHODS.has(startLine.method.toUpperCase())) {
       return true;
     }
   }
 
-  if (startLine.statusCode != null) {
-    if (BODYLESS_STATUS_CODES.has(startLine.statusCode)) {
+  if (isResponseStartLine(startLine) && startLine.statusCode != null) {
+    const { statusCode } = startLine;
+    if (BODYLESS_STATUS_CODES.has(statusCode)) {
       return true;
     }
-    if (startLine.statusCode >= 100 && startLine.statusCode < 200) {
+    if (statusCode >= 100 && statusCode < 200) {
       return true;
     }
   }
 
   return false;
+}
+
+export function isHttpMethod(value: string): value is HttpMethod {
+  return HTTP_METHODS.includes(value as HttpMethod);
 }

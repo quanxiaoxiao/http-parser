@@ -1,5 +1,5 @@
 import * as assert from 'node:assert';
-import { test, describe, it } from 'node:test';
+import { describe, it,test } from 'node:test';
 
 import { type NormalizedHeaders } from '../types.js';
 import {
@@ -8,11 +8,11 @@ import {
   applyHostHeader,
   deleteHeader,
   getHeaderValue,
+  hasBody,
   normalizeHeaders,
   sanitizeHeaders,
   setHeader,
   stripHopByHopHeaders,
-  hasBody,
 } from './headers.js';
 
 describe('normalizeHeaders', () => {
