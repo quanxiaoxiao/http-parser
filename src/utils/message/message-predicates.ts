@@ -1,5 +1,5 @@
 import { type HttpMessage } from '../../types.js';
-import { getHeaderValue } from '../headers.js';
+import { getHeaderValue } from '../headers/headers.js';
 
 export function isWebSocketRequest(httpMessage: HttpMessage): boolean {
   if ('method' in httpMessage && httpMessage.method !== 'GET') {

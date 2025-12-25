@@ -1,7 +1,7 @@
 import * as assert from 'node:assert';
 import { describe,test } from 'node:test';
 
-import { bodyNotAllowed } from './body-not-allowed.js';
+import { bodyNotAllowed } from './start-line-predicates.js';
 
 describe('bodyNotAllowed', () => {
   describe('Request Start Line - Bodyless Methods', () => {
