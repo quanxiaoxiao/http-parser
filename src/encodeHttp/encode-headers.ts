@@ -3,15 +3,16 @@ import { Buffer } from 'node:buffer';
 import { type Headers, type NormalizedHeaders } from '../types.js';
 
 const CRLF = '\r\n';
+const CRLF_BUFFER = Buffer.from(CRLF, 'utf8');
 
-const HEADER_TOKEN_EXCEPTIONS: Record<string, string> = {
-  te: 'TE',
-  dnt: 'DNT',
-  etag: 'ETag',
-  www: 'WWW',
-  md5: 'MD5',
-  csrf: 'CSRF',
-};
+const HEADER_TOKEN_EXCEPTIONS: ReadonlyMap<string, string> = new Map([
+  ['te', 'TE'],
+  ['dnt', 'DNT'],
+  ['etag', 'ETag'],
+  ['www', 'WWW'],
+  ['md5', 'MD5'],
+  ['csrf', 'CSRF'],
+]);
 
 interface EncodeHeaderOptions {
   encodeValue?: boolean;
@@ -22,12 +23,11 @@ function capitalizeHeaderToken(token: string): string {
     return token;
   }
 
-  const upper = HEADER_TOKEN_EXCEPTIONS[token];
-  if (upper) {
-    return upper;
+  const exception = HEADER_TOKEN_EXCEPTIONS.get(token);
+  if (exception) {
+    return exception;
   }
-
-  return token.charAt(0).toUpperCase() + token.slice(1);
+  return token[0].toUpperCase() + token.slice(1);
 }
 
 function canonicalizeHeaderName(name: string): string {
@@ -42,41 +42,26 @@ function canonicalizeHeaderName(name: string): string {
     .join('-');
 }
 
-function flatten(
-  headerName: string,
-  headerValue: string | string[],
-): string[] {
-  if (Array.isArray(headerValue)) {
-    return headerValue.flatMap((value) => [headerName, value]);
-  }
-  return [headerName, headerValue];
-}
-
-function flattenHeadersToArray(headers: Headers): string[] {
-  return Object.entries(headers).flatMap(([headerName, headerValue]) => flatten(headerName, headerValue));
-}
-
-export function encodeHeaders(headers: Headers | NormalizedHeaders, options?: EncodeHeaderOptions): Buffer {
-  const arr = flattenHeadersToArray(headers);
+export function encodeHeaders(
+  headers: Headers | NormalizedHeaders,
+  options?: EncodeHeaderOptions,
+): Buffer {
   const shouldEncodeValue = options?.encodeValue ?? false;
 
-  let totalLength = 0;
-  const lines: string[] = [];
-  for (let i = 0; i < arr.length; i += 2) {
-    const headerName = arr[i];
-    const headerValue = arr[i + 1];
-    const encodedValue = shouldEncodeValue ? encodeURIComponent(headerValue) : headerValue;
-    const line = `${canonicalizeHeaderName(headerName)}: ${encodedValue}${CRLF}`;
-    lines.push(line);
-    totalLength += Buffer.byteLength(line, 'utf8');
+  const buffers: Buffer[] = [];
+
+  for (const [headerName, headerValue] of Object.entries(headers)) {
+    const values = Array.isArray(headerValue) ? headerValue : [headerValue];
+    const canonicalName = canonicalizeHeaderName(headerName);
+    for (const value of values) {
+      const processedValue = shouldEncodeValue
+        ? encodeURIComponent(value)
+        : value;
+      const nameBuffer = Buffer.from(`${canonicalName}: `, 'utf8');
+      const valueBuffer = Buffer.from(processedValue, 'utf8');
+      buffers.push(nameBuffer, valueBuffer, CRLF_BUFFER);
+    }
   }
 
-  const result = Buffer.allocUnsafe(totalLength);
-  let offset = 0;
-
-  for (const line of lines) {
-    offset += result.write(line, offset, 'utf8');
-  }
-
-  return result;
+  return Buffer.concat(buffers);
 }

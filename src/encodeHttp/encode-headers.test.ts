@@ -1,6 +1,6 @@
 import * as assert from 'node:assert';
 import { Buffer } from 'node:buffer';
-import { describe, it } from 'node:test';
+import { test, describe, it } from 'node:test';
 
 import type { Headers } from '../types.js';
 import { encodeHeaders } from './encode-headers.js';
@@ -201,3 +201,211 @@ describe('encodeHeaders', () => {
     assert.ok(resultStr.includes('Content-Type: text/plain\r\n'));
   });
 });
+
+describe('encodeHeaders', () => {
+  test('should encode simple headers', () => {
+    const headers = {
+      'content-type': 'application/json',
+      'user-agent': 'test-agent'
+    };
+    
+    const result = encodeHeaders(headers);
+    const expected = 'Content-Type: application/json\r\nUser-Agent: test-agent\r\n';
+    
+    assert.strictEqual(result.toString('utf8'), expected);
+  });
+
+  test('should handle array of header values', () => {
+    const headers = {
+      'set-cookie': ['cookie1=value1', 'cookie2=value2']
+    };
+    
+    const result = encodeHeaders(headers);
+    const expected = 'Set-Cookie: cookie1=value1\r\nSet-Cookie: cookie2=value2\r\n';
+    
+    assert.strictEqual(result.toString('utf8'), expected);
+  });
+
+  test('should canonicalize header names correctly', () => {
+    const headers = {
+      'content-type': 'text/html',
+      'x-custom-header': 'value',
+      'accept-encoding': 'gzip'
+    };
+    
+    const result = encodeHeaders(headers);
+    
+    assert.ok(result.toString('utf8').includes('Content-Type:'));
+    assert.ok(result.toString('utf8').includes('X-Custom-Header:'));
+    assert.ok(result.toString('utf8').includes('Accept-Encoding:'));
+  });
+
+  test('should handle special header token exceptions', () => {
+    const headers = {
+      'te': 'trailers',
+      'dnt': '1',
+      'etag': '"123456"',
+      'content-md5': 'abc123'
+    };
+    
+    const result = encodeHeaders(headers).toString('utf8');
+    
+    assert.ok(result.includes('TE:'));
+    assert.ok(result.includes('DNT:'));
+    assert.ok(result.includes('ETag:'));
+    assert.ok(result.includes('Content-MD5:'));
+  });
+
+  test('should handle empty headers object', () => {
+    const headers = {};
+    
+    const result = encodeHeaders(headers);
+    
+    assert.strictEqual(result.length, 0);
+  });
+
+  test('should handle single character header names', () => {
+    const headers = {
+      'x': 'value'
+    };
+    
+    const result = encodeHeaders(headers);
+    const expected = 'X: value\r\n';
+    
+    assert.strictEqual(result.toString('utf8'), expected);
+  });
+
+  test('should encode header values when encodeValue option is true', () => {
+    const headers = {
+      'location': 'https://example.com/path?query=value with spaces'
+    };
+    
+    const result = encodeHeaders(headers, { encodeValue: true });
+    
+    assert.ok(result.toString('utf8').includes('https%3A%2F%2Fexample.com%2Fpath%3Fquery%3Dvalue%20with%20spaces'));
+  });
+
+  test('should not encode header values when encodeValue option is false', () => {
+    const headers = {
+      'location': 'https://example.com/path?query=value with spaces'
+    };
+    
+    const result = encodeHeaders(headers, { encodeValue: false });
+    
+    assert.ok(result.toString('utf8').includes('https://example.com/path?query=value with spaces'));
+  });
+
+  test('should not encode header values by default', () => {
+    const headers = {
+      'custom-header': 'value with spaces & special=chars'
+    };
+    
+    const result = encodeHeaders(headers);
+    
+    assert.ok(result.toString('utf8').includes('value with spaces & special=chars'));
+  });
+
+  test('should handle mixed array and string header values', () => {
+    const headers = {
+      'content-type': 'text/plain',
+      'set-cookie': ['session=abc', 'token=xyz'],
+      'cache-control': 'no-cache'
+    };
+    
+    const result = encodeHeaders(headers).toString('utf8');
+    
+    assert.ok(result.includes('Content-Type: text/plain'));
+    assert.ok(result.includes('Set-Cookie: session=abc'));
+    assert.ok(result.includes('Set-Cookie: token=xyz'));
+    assert.ok(result.includes('Cache-Control: no-cache'));
+  });
+
+  test('should preserve header value with special characters', () => {
+    const headers = {
+      'authorization': 'Bearer token123!@#$%'
+    };
+    
+    const result = encodeHeaders(headers);
+    
+    assert.ok(result.toString('utf8').includes('Bearer token123!@#$%'));
+  });
+
+  test('should handle headers with empty string values', () => {
+    const headers = {
+      'x-empty': ''
+    };
+    
+    const result = encodeHeaders(headers);
+    const expected = 'X-Empty: \r\n';
+    
+    assert.strictEqual(result.toString('utf8'), expected);
+  });
+
+  test('should handle multiple word header names with hyphens', () => {
+    const headers = {
+      'x-forwarded-for': '192.168.1.1',
+      'strict-transport-security': 'max-age=31536000'
+    };
+    
+    const result = encodeHeaders(headers).toString('utf8');
+    
+    assert.ok(result.includes('X-Forwarded-For:'));
+    assert.ok(result.includes('Strict-Transport-Security:'));
+  });
+
+  test('should return Buffer instance', () => {
+    const headers = {
+      'content-type': 'text/html'
+    };
+    
+    const result = encodeHeaders(headers);
+    
+    assert.ok(Buffer.isBuffer(result));
+  });
+
+  test('should handle www exception in header name', () => {
+    const headers = {
+      'www-authenticate': 'Basic realm="test"'
+    };
+    
+    const result = encodeHeaders(headers);
+    
+    assert.ok(result.toString('utf8').includes('WWW-Authenticate:'));
+  });
+
+  test('should handle csrf exception in header name', () => {
+    const headers = {
+      'x-csrf-token': 'token123'
+    };
+    
+    const result = encodeHeaders(headers);
+    
+    assert.ok(result.toString('utf8').includes('X-CSRF-Token:'));
+  });
+
+  test('should handle array with single value same as string value', () => {
+    const headersWithArray = {
+      'content-type': ['application/json']
+    };
+    const headersWithString = {
+      'content-type': 'application/json'
+    };
+    
+    const resultArray = encodeHeaders(headersWithArray);
+    const resultString = encodeHeaders(headersWithString);
+    
+    assert.strictEqual(resultArray.toString('utf8'), resultString.toString('utf8'));
+  });
+
+  test('should use CRLF line endings', () => {
+    const headers = {
+      'host': 'example.com'
+    };
+    
+    const result = encodeHeaders(headers);
+    
+    assert.ok(result.toString('utf8').endsWith('\r\n'));
+    assert.ok(result.includes(Buffer.from('\r\n')));
+  });
+});
+
