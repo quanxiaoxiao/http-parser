@@ -197,7 +197,7 @@ describe('encodeHeaders', () => {
     const resultStr = result.toString();
 
     assert.ok(resultStr.includes('Content-Type: text/html\r\n'));
-    assert.ok(resultStr.includes('content-type: application/json\r\n'));
-    assert.ok(resultStr.includes('CONTENT-TYPE: text/plain\r\n'));
+    assert.ok(resultStr.includes('Content-Type: application/json\r\n'));
+    assert.ok(resultStr.includes('Content-Type: text/plain\r\n'));
   });
 });
