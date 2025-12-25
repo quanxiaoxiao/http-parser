@@ -231,3 +231,38 @@ CRLF
 | Content-Type      | End-to-End | body 类型           |
 
 ---
+
+
+```
+// body
+isChunked
+hasContentLength
+hasValidContentLength
+hasZeroContentLength
+hasBody
+isBodyDelimitedByClose
+
+// connection
+isConnectionClose
+isConnectionKeepAlive
+hasHopByHopHeaders
+
+// upgrade
+isUpgradeRequest
+isRequestWebSocket
+isTunnelRequest
+
+// cache
+isCacheableRequest
+isCacheableResponse
+
+// content
+hasContentType
+isTextualContent
+isCompressed
+
+// security
+hasConflictingBodyHeaders
+hasMultipleContentLength
+hasObsoleteLineFolding
+```
