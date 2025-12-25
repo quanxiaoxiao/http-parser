@@ -1,6 +1,8 @@
 import { encodeHttpLine } from '../encodeHttpLine.js';
 import type { Body, Headers, RequestStartLine } from '../types.js';
-import { applyFramingHeaders, normalizeHeaders, stripHopByHopHeaders } from '../utils/headers.js';
+import { applyFramingHeaders } from '../utils/headers/header-applys.js';
+import { normalizeHeaders } from '../utils/headers/header-normalize.js';
+import { stripHopByHopHeaders } from '../utils/headers/header-strips.js';
 import { encodeChunkedStream } from './encode-body-chunked.js';
 import { encodeHeaders } from './encode-headers.js';
 import { encodeRequestLine } from './encode-request-line.js';

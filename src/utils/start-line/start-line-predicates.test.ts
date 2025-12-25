@@ -2,10 +2,10 @@ import * as assert from 'node:assert';
 import { describe,test } from 'node:test';
 
 import {
+  bodyNotAllowed,
+  isHttpMethod,
   isRequestStartLine,
   isResponseStartLine,
-  isHttpMethod,
-  bodyNotAllowed,
 } from './start-line-predicates.js';
 
 describe('bodyNotAllowed', () => {

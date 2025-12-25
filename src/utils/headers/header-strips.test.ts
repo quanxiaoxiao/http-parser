@@ -1,21 +1,22 @@
 import * as assert from 'node:assert';
 import { describe, it } from 'node:test';
+
 import {
-  stripHopByHopHeaders,
-  stripFramingHeaders,
   sanitizeHeaders,
+  stripFramingHeaders,
+  stripHopByHopHeaders,
 } from './header-strips.js';
 
 describe('stripHopByHopHeaders', () => {
   it('should remove all hop-by-hop headers', () => {
     const headers = {
-      'connection': 'keep-alive',
+      connection: 'keep-alive',
       'transfer-encoding': 'chunked',
       'content-length': '123',
-      'upgrade': 'websocket',
+      upgrade: 'websocket',
       'keep-alive': 'timeout=5',
       'proxy-authorization': 'Bearer token',
-      'host': 'example.com',
+      host: 'example.com',
       'user-agent': 'test',
     };
 
@@ -39,8 +40,8 @@ describe('stripHopByHopHeaders', () => {
 
   it('should not fail when hop-by-hop headers are not present', () => {
     const headers = {
-      'host': 'example.com',
-      'accept': 'application/json',
+      host: 'example.com',
+      accept: 'application/json',
     };
 
     stripHopByHopHeaders(headers);
@@ -58,8 +59,8 @@ describe('stripFramingHeaders', () => {
       'content-encoding': 'gzip',
       'content-type': 'application/json',
       'content-range': 'bytes 200-1000/67589',
-      'host': 'example.com',
-      'accept': '*/*',
+      host: 'example.com',
+      accept: '*/*',
     };
 
     stripFramingHeaders(headers);
@@ -81,7 +82,7 @@ describe('stripFramingHeaders', () => {
 
   it('should not fail when framing headers are not present', () => {
     const headers = {
-      'authorization': 'Bearer token',
+      authorization: 'Bearer token',
       'x-custom-header': 'value',
     };
 
@@ -95,10 +96,10 @@ describe('stripFramingHeaders', () => {
 describe('sanitizeHeaders', () => {
   it('should strip hop-by-hop headers when connection header is present', () => {
     const headers = {
-      'connection': 'keep-alive',
+      connection: 'keep-alive',
       'keep-alive': 'timeout=5',
       'transfer-encoding': 'chunked',
-      'host': 'example.com',
+      host: 'example.com',
     };
 
     sanitizeHeaders(headers);
@@ -111,7 +112,7 @@ describe('sanitizeHeaders', () => {
 
   it('should handle connection header with custom values', () => {
     const headers = {
-      'connection': 'close, x-custom-header',
+      connection: 'close, x-custom-header',
       'x-custom-header': 'some-value',
       'content-type': 'text/html',
     };
@@ -125,7 +126,7 @@ describe('sanitizeHeaders', () => {
 
   it('should not modify headers when connection header is absent', () => {
     const headers = {
-      'host': 'example.com',
+      host: 'example.com',
       'user-agent': 'test-agent',
     };
 
@@ -143,10 +144,10 @@ describe('sanitizeHeaders', () => {
 
   it('should handle array values for connection header', () => {
     const headers = {
-      'connection': ['keep-alive', 'upgrade'],
+      connection: ['keep-alive', 'upgrade'],
       'keep-alive': 'timeout=5',
-      'upgrade': 'websocket',
-      'host': 'example.com',
+      upgrade: 'websocket',
+      host: 'example.com',
     };
 
     sanitizeHeaders(headers);
