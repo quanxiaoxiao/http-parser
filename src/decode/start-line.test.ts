@@ -2,7 +2,7 @@ import * as assert from 'node:assert';
 import { describe, it } from 'node:test';
 
 import { DecodeHttpError } from '../errors.js';
-import { decodeRequestStartLine, decodeResponseStartLine } from './decode-start-line.js';
+import { decodeRequestStartLine, decodeResponseStartLine } from './start-line.js';
 
 describe('decodeRequestStartLine', () => {
   describe('正常情况', () => {

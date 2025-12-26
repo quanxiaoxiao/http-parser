@@ -4,10 +4,10 @@ import { decodeHttpLine } from '../decodeHttpLine.js';
 import { DecodeHttpError } from '../errors.js';
 import parseInteger from '../parseInteger.js';
 import { type Headers, type HttpParsePhase, type HttpParserHooks, type RequestStartLine,type ResponseStartLine } from '../types.js';
-import { decodeRequestStartLine, decodeResponseStartLine } from './decode-start-line.js';
-import { type ChunkedState, createChunkedState, parseChunked } from './parseChunked.js';
+import { type ChunkedBodyState, createChunkedBodyState, decodeChunkedBody } from './chunked-body.js';
 import { type ContentLengthState, createContentLengthState, parseContentLength } from './parseContentLength.js';
 import { createHeadersState, type HeadersState, parseHeaders } from './parseHeaders.js';
+import { decodeRequestStartLine, decodeResponseStartLine } from './start-line.js';
 
 const CRLF_LENGTH = 2;
 const MAX_HEADER_SIZE = 16 * 1024;
@@ -33,7 +33,7 @@ export interface HttpState {
   error?: Error,
   startLine: RequestStartLine | ResponseStartLine | null;
   headersState: HeadersState | null;
-  bodyState: ChunkedState | ContentLengthState | null;
+  bodyState: ChunkedBodyState | ContentLengthState | null;
 }
 
 export interface HttpRequestState extends HttpState {
@@ -183,7 +183,7 @@ function handleHeadersPhase(state: HttpState, hooks?: HttpParserHooks): HttpStat
   });
 }
 
-function handleBodyPhase<T extends ChunkedState | ContentLengthState>(
+function handleBodyPhase<T extends ChunkedBodyState | ContentLengthState>(
   state: HttpState,
   parser: (bodyState: T, buffer: Buffer, onBody?: (buffer: Buffer) => void) => T,
   hooks?: HttpParserHooks,
@@ -212,10 +212,10 @@ function handleBodyPhase<T extends ChunkedState | ContentLengthState>(
 
 function handleBodyChunkedPhase(state: HttpState, hooks?: HttpParserHooks): HttpState {
   if (!state.bodyState) {
-    state.bodyState = createChunkedState();
+    state.bodyState = createChunkedBodyState();
     hooks?.onBodyBegin?.();
   }
-  return handleBodyPhase(state, parseChunked, hooks);
+  return handleBodyPhase(state, decodeChunkedBody, hooks);
 }
 
 function handleBodyContentLengthPhase(state: HttpState, hooks?: HttpParserHooks): HttpState {
