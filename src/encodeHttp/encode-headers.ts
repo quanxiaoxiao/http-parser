@@ -9,6 +9,8 @@ const HEADER_TOKEN_EXCEPTIONS: ReadonlyMap<string, string> = new Map([
   ['te', 'TE'],
   ['dnt', 'DNT'],
   ['etag', 'ETag'],
+  ['id', 'ID'],
+  ['api', 'API'],
   ['www', 'WWW'],
   ['md5', 'MD5'],
   ['csrf', 'CSRF'],
@@ -27,7 +29,7 @@ function capitalizeHeaderToken(token: string): string {
   if (exception) {
     return exception;
   }
-  return token[0].toUpperCase() + token.slice(1);
+  return token[0]!.toUpperCase() + token.slice(1);
 }
 
 function canonicalizeHeaderName(name: string): string {
