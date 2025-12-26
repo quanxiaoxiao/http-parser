@@ -1,7 +1,8 @@
 import * as assert from 'node:assert';
 import { describe, it } from 'node:test';
 
-import { createHeadersState, parseHeaders } from './parseHeaders.js';
+import { DecodeHttpError } from '../errors.js';
+import { createHeadersState, decodeHeaderLine, decodeHeaders } from './headers.js';
 
 describe('createHeadersState', () => {
   it('should create initial state with empty values', () => {
@@ -15,12 +16,12 @@ describe('createHeadersState', () => {
   });
 });
 
-describe('parseHeaders', () => {
+describe('decodeHeaders', () => {
   describe('basic parsing', () => {
     it('should parse single header line', () => {
       const state = createHeadersState();
       const input = Buffer.from('Host: example.com\r\n');
-      const result = parseHeaders(state, input);
+      const result = decodeHeaders(state, input);
 
       assert.strictEqual(result.headers['host'], 'example.com');
       assert.deepStrictEqual(result.rawHeaders, ['Host', 'example.com']);
@@ -35,7 +36,7 @@ describe('parseHeaders', () => {
         'Content-Length: 123\r\n' +
         'Host: example.com\r\n',
       );
-      const result = parseHeaders(state, input);
+      const result = decodeHeaders(state, input);
 
       assert.strictEqual(result.headers['content-type'], 'application/json');
       assert.strictEqual(result.headers['content-length'], '123');
@@ -46,7 +47,7 @@ describe('parseHeaders', () => {
     it('should handle empty line as headers end', () => {
       const state = createHeadersState();
       const input = Buffer.from('Host: example.com\r\n\r\n');
-      const result = parseHeaders(state, input);
+      const result = decodeHeaders(state, input);
 
       assert.strictEqual(result.headers['host'], 'example.com');
       assert.strictEqual(result.finished, true);
@@ -57,7 +58,7 @@ describe('parseHeaders', () => {
     it('should handle empty input', () => {
       const state = createHeadersState();
       const input = Buffer.from('');
-      const result = parseHeaders(state, input);
+      const result = decodeHeaders(state, input);
 
       assert.strictEqual(result.finished, false);
       assert.deepStrictEqual(result.headers, {});
@@ -71,7 +72,7 @@ describe('parseHeaders', () => {
       const input = Buffer.from(
         'Set-Cookie: cookie1=value1\r\nSet-Cookie: cookie2=value2\r\n',
       );
-      const result = parseHeaders(state, input);
+      const result = decodeHeaders(state, input);
 
       assert.ok(Array.isArray(result.headers['set-cookie']));
       assert.deepStrictEqual(result.headers['set-cookie'], [
@@ -93,7 +94,7 @@ describe('parseHeaders', () => {
         'X-Custom: value2\r\n' +
         'X-Custom: value3\r\n\r\n',
       );
-      const result = parseHeaders(state, input);
+      const result = decodeHeaders(state, input);
 
       assert.deepStrictEqual(result.headers['x-custom'], [
         'value1',
@@ -107,7 +108,7 @@ describe('parseHeaders', () => {
       const input = Buffer.from(
         'Cache-Control: no-cache\r\ncache-control: no-store\r\n',
       );
-      const result = parseHeaders(state, input);
+      const result = decodeHeaders(state, input);
 
       assert.ok(Array.isArray(result.headers['cache-control']));
       assert.deepStrictEqual(result.headers['cache-control'], [
@@ -121,7 +122,7 @@ describe('parseHeaders', () => {
     it('should preserve buffer when line is incomplete', () => {
       const state = createHeadersState();
       const input = Buffer.from('Host: exam');
-      const result = parseHeaders(state, input);
+      const result = decodeHeaders(state, input);
 
       assert.strictEqual(result.buffer.toString(), 'Host: exam');
       assert.strictEqual(result.bytesReceived, 0);
@@ -131,12 +132,12 @@ describe('parseHeaders', () => {
 
     it('should concatenate buffers across multiple calls', () => {
       let state = createHeadersState();
-      state = parseHeaders(state, Buffer.from('Host: exa'));
+      state = decodeHeaders(state, Buffer.from('Host: exa'));
 
       assert.strictEqual(state.buffer.toString(), 'Host: exa');
       assert.strictEqual(state.bytesReceived, 0);
 
-      state = parseHeaders(state, Buffer.from('mple.com\r\n'));
+      state = decodeHeaders(state, Buffer.from('mple.com\r\n'));
 
       assert.strictEqual(state.headers['host'], 'example.com');
       assert.strictEqual(state.buffer.length, 0);
@@ -145,12 +146,12 @@ describe('parseHeaders', () => {
 
     it('should continue parsing from previous buffer', () => {
       let state = createHeadersState();
-      state = parseHeaders(state, Buffer.from('Content-Type: appli'));
+      state = decodeHeaders(state, Buffer.from('Content-Type: appli'));
 
       assert.strictEqual(state.finished, false);
       assert.strictEqual(state.buffer.toString(), 'Content-Type: appli');
 
-      state = parseHeaders(state, Buffer.from('cation/json\r\n\r\n'));
+      state = decodeHeaders(state, Buffer.from('cation/json\r\n\r\n'));
 
       assert.strictEqual(state.headers['content-type'], 'application/json');
       assert.strictEqual(state.finished, true);
@@ -158,8 +159,8 @@ describe('parseHeaders', () => {
 
     it('should preserve previous headers when continuing parsing', () => {
       let state = createHeadersState();
-      state = parseHeaders(state, Buffer.from('Content-Type: application/json\r\n'));
-      state = parseHeaders(state, Buffer.from('Host: example.com\r\n\r\n'));
+      state = decodeHeaders(state, Buffer.from('Content-Type: application/json\r\n'));
+      state = decodeHeaders(state, Buffer.from('Host: example.com\r\n\r\n'));
 
       assert.strictEqual(state.headers['content-type'], 'application/json');
       assert.strictEqual(state.headers['host'], 'example.com');
@@ -175,7 +176,7 @@ describe('parseHeaders', () => {
         'CONTENT-LENGTH: 100\r\n' +
         'CoNtEnT-EnCoDiNg: gzip\r\n\r\n',
       );
-      const result = parseHeaders(state, input);
+      const result = decodeHeaders(state, input);
 
       assert.strictEqual(result.headers['content-type'], 'text/html');
       assert.strictEqual(result.headers['content-length'], '100');
@@ -190,7 +191,7 @@ describe('parseHeaders', () => {
         'Host:   example.com   \r\n' +
         'User-Agent: Mozilla/5.0 (Windows NT)\r\n\r\n',
       );
-      const result = parseHeaders(state, input);
+      const result = decodeHeaders(state, input);
 
       assert.strictEqual(result.headers['host'], 'example.com');
       assert.strictEqual(result.headers['user-agent'], 'Mozilla/5.0 (Windows NT)');
@@ -199,7 +200,7 @@ describe('parseHeaders', () => {
     it('should handle empty header values', () => {
       const state = createHeadersState();
       const input = Buffer.from('X-Empty-Header: \r\n');
-      const result = parseHeaders(state, input);
+      const result = decodeHeaders(state, input);
 
       assert.strictEqual(result.headers['x-empty-header'], '');
       assert.deepStrictEqual(result.rawHeaders, ['X-Empty-Header', '']);
@@ -212,7 +213,7 @@ describe('parseHeaders', () => {
         'Host: example.com\r\n' +
         'Content-Length: 123\r\n\r\n',
       );
-      const result = parseHeaders(state, input);
+      const result = decodeHeaders(state, input);
 
       assert.deepStrictEqual(result.rawHeaders, [
         'Content-Type', 'application/json',
@@ -228,7 +229,7 @@ describe('parseHeaders', () => {
       const input = Buffer.from(
         'Content-Type: text/plain\r\n\r\nThis is body data',
       );
-      const result = parseHeaders(state, input);
+      const result = decodeHeaders(state, input);
 
       assert.strictEqual(result.headers['content-type'], 'text/plain');
       assert.strictEqual(result.finished, true);
@@ -240,7 +241,7 @@ describe('parseHeaders', () => {
     it('should count bytes correctly including CRLF', () => {
       const state = createHeadersState();
       const input = Buffer.from('Content-Type: application/json\r\n\r\n');
-      const result = parseHeaders(state, input);
+      const result = decodeHeaders(state, input);
 
       assert.strictEqual(result.bytesReceived, 32); // 30 + 2 (CRLF)
     });
@@ -249,7 +250,7 @@ describe('parseHeaders', () => {
       const state = createHeadersState();
       const longValue = 'a'.repeat(1000);
       const input = Buffer.from(`X-Long-Header: ${longValue}\r\n`);
-      const result = parseHeaders(state, input);
+      const result = decodeHeaders(state, input);
 
       assert.strictEqual(result.headers['x-long-header'], longValue);
       assert.strictEqual(result.bytesReceived, 1017); // 15 + 1000 + 2
@@ -262,7 +263,7 @@ describe('parseHeaders', () => {
       state.bytesReceived = 19;
 
       const input = Buffer.from('Accept: */*\r\n');
-      const result = parseHeaders(state, input);
+      const result = decodeHeaders(state, input);
 
       assert.strictEqual(result.headers['host'], 'example.com');
       assert.strictEqual(result.headers['accept'], '*/*');
@@ -289,7 +290,7 @@ describe('parseHeaders', () => {
         calls.push({ name, value, headers: { ...headers } });
       };
 
-      parseHeaders(state, input, onHeader);
+      decodeHeaders(state, input, onHeader);
 
       assert.strictEqual(calls.length, 2);
       assert.strictEqual(calls[0].name, 'content-type');
@@ -306,7 +307,7 @@ describe('parseHeaders', () => {
       const input = Buffer.from('Host: example.com\r\n');
 
       assert.throws(
-        () => parseHeaders(state, input),
+        () => decodeHeaders(state, input),
         {
           name: 'DecodeHttpError',
           message: 'Headers parsing already finished',
@@ -316,17 +317,136 @@ describe('parseHeaders', () => {
 
     it('should throw error when parsing already finished headers', () => {
       const state = createHeadersState();
-      const result = parseHeaders(state, Buffer.from('\r\n'));
+      const result = decodeHeaders(state, Buffer.from('\r\n'));
 
       assert.strictEqual(result.finished, true);
 
       assert.throws(
-        () => parseHeaders(result, Buffer.from('More: data\r\n')),
+        () => decodeHeaders(result, Buffer.from('More: data\r\n')),
         {
           name: 'DecodeHttpError',
           message: 'Headers parsing already finished',
         },
       );
+    });
+  });
+});
+
+describe('decodeHeaderLine', () => {
+  describe('正常解析', () => {
+    const validCases = [
+      {
+        desc: '标准 HTTP header',
+        input: 'Content-Type: application/json',
+        expected: ['Content-Type', 'application/json'],
+      },
+      {
+        desc: 'header 带前后空格',
+        input: 'Authorization:   Bearer token123  ',
+        expected: ['Authorization', 'Bearer token123'],
+      },
+      {
+        desc: 'header 无额外空格',
+        input: 'Host:example.com',
+        expected: ['Host', 'example.com'],
+      },
+      {
+        desc: 'value 包含多个冒号',
+        input: 'X-Custom: value:with:colons',
+        expected: ['X-Custom', 'value:with:colons'],
+      },
+      {
+        desc: 'value 以冒号开头',
+        input: 'X-Custom: :startWithColon',
+        expected: ['X-Custom', ':startWithColon'],
+      },
+      {
+        desc: '特殊字符（Cookie）',
+        input: 'Set-Cookie: session=abc123; Path=/; HttpOnly',
+        expected: ['Set-Cookie', 'session=abc123; Path=/; HttpOnly'],
+      },
+      {
+        desc: '单字符 name 和 value',
+        input: 'A: B',
+        expected: ['A', 'B'],
+      },
+      {
+        desc: '数字 value',
+        input: 'Content-Length: 12345',
+        expected: ['Content-Length', '12345'],
+      },
+    ];
+
+    validCases.forEach(({ desc, input, expected }) => {
+      it(`应该正确解析${desc}`, () => {
+        const [name, value] = decodeHeaderLine(input);
+        assert.strictEqual(name, expected[0]);
+        assert.strictEqual(value, expected[1]);
+      });
+    });
+
+    it('应该正确处理超长 header 值', () => {
+      const longValue = 'a'.repeat(1000);
+      const [name, value] = decodeHeaderLine(`Content-Length: ${longValue}`);
+      assert.strictEqual(name, 'Content-Length');
+      assert.strictEqual(value, longValue);
+    });
+  });
+
+  describe('边界情况', () => {
+    const edgeCases = [
+      {
+        desc: 'name 为空',
+        input: ': value',
+        expected: ['', 'value'],
+      },
+      {
+        desc: 'value 为空',
+        input: 'Content-Type:',
+        expected: ['Content-Type', ''],
+      },
+      {
+        desc: 'value 只有空格',
+        input: 'Content-Type:   ',
+        expected: ['Content-Type', ''],
+      },
+      {
+        desc: '只有冒号',
+        input: ':',
+        expected: ['', ''],
+      },
+    ];
+
+    edgeCases.forEach(({ desc, input, expected }) => {
+      it(`应该正确处理${desc}`, () => {
+        const [name, value] = decodeHeaderLine(input);
+        assert.strictEqual(name, expected[0]);
+        assert.strictEqual(value, expected[1]);
+      });
+    });
+  });
+
+  describe('错误情况', () => {
+    const errorCases = [
+      {
+        desc: '缺少冒号',
+        input: 'InvalidHeader',
+        errorCheck: (error: Error) =>
+          error instanceof DecodeHttpError &&
+          error.message.includes('missing') &&
+          error.message.includes('InvalidHeader'),
+      },
+      {
+        desc: '空字符串',
+        input: '',
+        errorCheck: (error: Error) => error instanceof DecodeHttpError,
+      },
+    ];
+
+    errorCases.forEach(({ desc, input, errorCheck }) => {
+      it(`应该在${desc}时抛出 DecodeHttpError`, () => {
+        assert.throws(() => decodeHeaderLine(input), errorCheck);
+      });
     });
   });
 });

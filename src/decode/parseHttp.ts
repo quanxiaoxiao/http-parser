@@ -6,7 +6,7 @@ import parseInteger from '../parseInteger.js';
 import { type Headers, type HttpParsePhase, type HttpParserHooks, type RequestStartLine,type ResponseStartLine } from '../types.js';
 import { type ChunkedBodyState, createChunkedBodyState, decodeChunkedBody } from './chunked-body.js';
 import { createFixedLengthBodyState, decodeFixedLengthBody,type FixedLengthBodyState } from './fixed-length-body.js';
-import { createHeadersState, type HeadersState, parseHeaders } from './parseHeaders.js';
+import { createHeadersState, decodeHeaders,type HeadersState } from './headers.js';
 import { decodeRequestStartLine, decodeResponseStartLine } from './start-line.js';
 
 const CRLF_LENGTH = 2;
@@ -159,7 +159,7 @@ function handleHeadersPhase(state: HttpState, hooks?: HttpParserHooks): HttpStat
     state.headersState = createHeadersState();
     hooks?.onHeadersBegin?.();
   }
-  const headersState = parseHeaders(state.headersState!, state.buffer, hooks?.onHeader);
+  const headersState = decodeHeaders(state.headersState!, state.buffer, hooks?.onHeader);
 
   if (headersState.bytesReceived > MAX_HEADER_SIZE) {
     throw new DecodeHttpError(`Headers too large: ${headersState.bytesReceived} bytes exceeds limit of ${MAX_HEADER_SIZE}`);

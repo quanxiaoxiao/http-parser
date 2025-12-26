@@ -1,7 +1,17 @@
 import { decodeHttpLine } from '../decodeHttpLine.js';
 import { DecodeHttpError } from '../errors.js';
 import { type Headers } from '../types.js';
-import parseHeaderLine from './parseHeaderLine.js';
+
+export function decodeHeaderLine(headerString: string): [string, string] {
+  const separatorIndex = headerString.indexOf(':');
+  if (separatorIndex === -1) {
+    throw new DecodeHttpError(`HTTP Header missing ':' separator in "${headerString}"`);
+  }
+  const name = headerString.slice(0, separatorIndex).trim();
+  const value = headerString.slice(separatorIndex + 1).trim();
+
+  return [name, value];
+}
 
 export interface HeadersState {
   buffer: Buffer;
@@ -34,7 +44,7 @@ function addHeader(headers: Headers, name: string, value: string): void {
   }
 }
 
-export function parseHeaders(
+export function decodeHeaders(
   prev: HeadersState,
   input: Buffer,
   onHeader?: (field: string, value: string, headers: Headers) => void,
@@ -70,7 +80,7 @@ export function parseHeaders(
 
     bytesReceived += lineLength;
 
-    const [name, value] = parseHeaderLine(line.toString());
+    const [name, value] = decodeHeaderLine(line.toString());
     rawHeaders.push(name, value);
     const lowerName = name.toLowerCase();
     addHeader(headers, lowerName, value);
