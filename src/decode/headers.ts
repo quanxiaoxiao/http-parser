@@ -1,6 +1,6 @@
-import { decodeHttpLine } from '../decodeHttpLine.js';
 import { DecodeHttpError } from '../errors.js';
 import { type Headers } from '../types.js';
+import { decodeHttpLine } from './http-line.js';
 
 export function decodeHeaderLine(headerString: string): [string, string] {
   const separatorIndex = headerString.indexOf(':');

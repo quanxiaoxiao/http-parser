@@ -1,8 +1,8 @@
 import { Buffer } from 'node:buffer';
 
-import { decodeHttpLine } from '../decodeHttpLine.js';
 import { DecodeHttpError } from '../errors.js';
 import { type TrailerHeaders } from '../types.js';
+import { decodeHttpLine } from './http-line.js';
 
 export type ChunkedPhase = 'SIZE' | 'DATA' | 'CRLF' | 'TRAILER';
 
