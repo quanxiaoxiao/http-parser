@@ -2,10 +2,10 @@ import type { Body, Headers, RequestStartLine } from '../types.js';
 import { applyFramingHeaders } from '../utils/headers/header-applys.js';
 import { normalizeHeaders } from '../utils/headers/header-normalize.js';
 import { stripHopByHopHeaders } from '../utils/headers/header-strips.js';
-import { encodeChunkedStream } from './encode-body-chunked.js';
-import { encodeHeaders } from './encode-headers.js';
-import { encodeRequestLine } from './encode-request-line.js';
+import { encodeChunkedStream } from './body-chunked.js';
+import { encodeHeaders } from './headers.js';
 import { encodeHttpLine } from './http-line.js';
+import { encodeRequestLine } from './start-line.js';
 
 function isAsyncIterable(value: unknown): value is AsyncIterable<Buffer> {
   return (

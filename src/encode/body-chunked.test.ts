@@ -6,7 +6,7 @@ import {
   encodeChunked,
   encodeChunkedBuffer,
   encodeChunkedStream,
-} from './encode-body-chunked.js';
+} from './body-chunked.js';
 
 describe('Chunked Encoding', () => {
   describe('encodeChunkedBuffer', () => {
