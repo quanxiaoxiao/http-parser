@@ -27,7 +27,7 @@ async function encodeAndCollect(params: any): Promise<string> {
 describe('encodeHttpRequest - 基础功能', () => {
   test('应该正确编码 GET 请求', async () => {
     const params = {
-      startLine: { method: 'GET', path: '/api/users', version: '1.1' },
+      startLine: { method: 'GET', path: '/api/users' },
       headers: { host: 'example.com', 'User-Agent': 'test-client' },
     };
 
@@ -37,6 +37,16 @@ describe('encodeHttpRequest - 基础功能', () => {
     assert.ok(output.includes('Host: example.com'));
     assert.ok(output.includes('User-Agent: test-client'));
     assert.ok(output.endsWith('\r\n\r\n'));
+  });
+
+  test('应该正确编码 GET 请求2', async () => {
+    const params = {
+      startLine: { method: 'GET', path: '/api/users' },
+      headers: { host: 'example.com', 'User-Agent': 'test-client' },
+    };
+
+    const output = await encodeAndCollect(params);
+    assert.strictEqual(output.toString(), 'GET /api/users HTTP/1.1\r\nHost: example.com\r\nUser-Agent: test-client\r\n\r\n');
   });
 
   test('应该正确编码带字符串 Body 的 POST 请求', async () => {
