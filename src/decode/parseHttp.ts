@@ -4,11 +4,10 @@ import { decodeHttpLine } from '../decodeHttpLine.js';
 import { DecodeHttpError } from '../errors.js';
 import parseInteger from '../parseInteger.js';
 import { type Headers, type HttpParsePhase, type HttpParserHooks, type RequestStartLine,type ResponseStartLine } from '../types.js';
+import { decodeRequestStartLine, decodeResponseStartLine } from './decode-start-line.js';
 import { type ChunkedState, createChunkedState, parseChunked } from './parseChunked.js';
 import { type ContentLengthState, createContentLengthState, parseContentLength } from './parseContentLength.js';
 import { createHeadersState, type HeadersState, parseHeaders } from './parseHeaders.js';
-import parseRequestLine from './parseRequestLine.js';
-import parseResponseLine from './parseResponseLine.js';
 
 const CRLF_LENGTH = 2;
 const MAX_HEADER_SIZE = 16 * 1024;
@@ -112,7 +111,7 @@ function handleRequestStartLinePhase(
 ): HttpRequestState {
   return handleStartLinePhase(
     state,
-    parseRequestLine,
+    decodeRequestStartLine,
     hooks?.onRequestStartLine,
     hooks,
   );
@@ -124,7 +123,7 @@ function handleResponseStartLinePhase(
 ): HttpResponseState {
   return handleStartLinePhase(
     state,
-    parseResponseLine,
+    decodeResponseStartLine,
     hooks?.onResponseStartLine,
     hooks,
   );
@@ -300,7 +299,7 @@ function genericParse(
 }
 
 export function parseRequest(
-  prev?: HttpRequestState,
+  prev: HttpRequestState | null,
   input: Buffer,
   hooks?: HttpParserHooks,
 ): HttpRequestState {
@@ -314,7 +313,7 @@ export function parseRequest(
 }
 
 export function parseResponse(
-  prev?: HttpResponseState,
+  prev: HttpResponseState | null,
   input: Buffer,
   hooks?: HttpParserHooks,
 ): HttpResponseState {

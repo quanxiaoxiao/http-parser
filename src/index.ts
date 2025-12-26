@@ -1,7 +1,7 @@
-import process from 'node:process';
-import path from 'node:path';
-import { setTimeout } from 'node:timers/promises';
 import { open } from 'node:fs/promises';
+import path from 'node:path';
+import process from 'node:process';
+import { setTimeout } from 'node:timers/promises';
 
 import { encodeHttpRequest } from './encode/encode-http.js';
 
