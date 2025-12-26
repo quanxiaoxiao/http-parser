@@ -15,24 +15,34 @@ type ChunkedBufferOptions = ChunkedEncodeOptions & {
   chunkSize?: number;
 };
 
+function ensureBuffer(data: Buffer | Uint8Array): Buffer {
+  if (Buffer.isBuffer(data)) {
+    return data;
+  }
+
+  return Buffer.from(data.buffer, data.byteOffset, data.byteLength);
+}
+
 function encodeChunkSize(size: number): Buffer {
   const hex = size.toString(16);
   return Buffer.from(hex, 'ascii');
 }
 
-function encodeChunk(data: Buffer): Buffer {
-  if (data.length === 0) {
+function encodeChunk(data: Buffer | Uint8Array): Buffer {
+  const buf = ensureBuffer(data);
+
+  if (buf.length === 0) {
     return EMPTY_BUFFER;
   }
 
-  const chunkSize = encodeChunkSize(data.length);
-  const totalLength = chunkSize.length + CRLF.length + data.length + CRLF.length;
+  const chunkSize = encodeChunkSize(buf.length);
+  const totalLength = chunkSize.length + CRLF.length + buf.length + CRLF.length;
   const result = Buffer.allocUnsafe(totalLength);
 
   let offset = 0;
   offset += chunkSize.copy(result, offset);
   offset += CRLF.copy(result, offset);
-  offset += data.copy(result, offset);
+  offset += buf.copy(result, offset);
   CRLF.copy(result, offset);
 
   return result;
