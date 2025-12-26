@@ -36,7 +36,7 @@ export async function* encodeHttpRequest({
   headers,
   body,
 }: { startLine: RequestStartLine, headers: Headers, body?: Body}) {
-  yield encodeHttpLine(encodeHttpLine(encodeRequestLine(startLine)));
+  yield encodeHttpLine(encodeRequestLine(startLine));
   const headersNormalized = normalizeHeaders(headers);
   stripHopByHopHeaders(headersNormalized);
   applyFramingHeaders(headersNormalized, body);

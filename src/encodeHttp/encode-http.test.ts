@@ -1,5 +1,5 @@
 import * as assert from 'node:assert';
-import { describe,test } from 'node:test';
+import { describe, test } from 'node:test';
 import { setTimeout } from 'node:timers/promises';
 
 import { encodeHttpRequest } from './encode-http.js';
@@ -19,344 +19,229 @@ async function* createMockStream(chunks: Buffer[], delayMs = 0) {
   }
 }
 
-describe('encodeHttpRequest', () => {
-  test('应该正确编码带有字符串 Body 的请求', async () => {
+async function encodeAndCollect(params: any): Promise<string> {
+  const result = await collectGenerator(encodeHttpRequest(params));
+  return result.toString();
+}
+
+describe('encodeHttpRequest - 基础功能', () => {
+  test('应该正确编码 GET 请求', async () => {
+    const params = {
+      startLine: { method: 'GET', path: '/api/users', version: '1.1' },
+      headers: { host: 'example.com', 'User-Agent': 'test-client' },
+    };
+
+    const output = await encodeAndCollect(params);
+
+    assert.ok(output.includes('GET /api/users HTTP/1.1'));
+    assert.ok(output.includes('Host: example.com'));
+    assert.ok(output.includes('User-Agent: test-client'));
+    assert.ok(output.endsWith('\r\n\r\n'));
+  });
+
+  test('应该正确编码带字符串 Body 的 POST 请求', async () => {
     const params = {
       startLine: { method: 'POST', path: '/api/data', version: 1.1 },
       headers: { 'content-type': 'application/json' },
       body: '{"foo":"bar"}',
     };
 
-    const generator = encodeHttpRequest(params);
-    const result = await collectGenerator(generator);
-    const output = result.toString();
+    const output = await encodeAndCollect(params);
 
     assert.match(output, /^POST \/api\/data HTTP\/1\.1\r\n/);
     assert.match(output, /Content-Type: application\/json/i);
     assert.match(output, /Content-Length: 13\r\n/i);
-    assert.match(output, /\r\n\r\n/);
+    assert.ok(output.includes('\r\n\r\n'));
     assert.ok(output.endsWith('{"foo":"bar"}'));
   });
 
-  test('应该正确处理没有 Body 的 GET 请求', async () => {
+  test('应该正确编码带字符串 Body 的 POST 请求2', async () => {
     const params = {
-      startLine: { method: 'GET', path: '/' },
-      headers: { host: 'localhost' },
+      startLine: { method: 'POST', path: '/api/data', version: 1.1 },
+      headers: { 'content-type': 'application/json' },
+      body: '{"foo":"bar"}',
     };
 
-    const generator = encodeHttpRequest(params);
-    const chunks: Buffer[] = [];
-    for await (const chunk of generator) {
-      chunks.push(chunk);
-    }
+    const output = await encodeAndCollect(params);
+    assert.strictEqual(output.toString(), 'POST /api/data HTTP/1.1\r\nContent-Type: application/json\r\nContent-Length: 13\r\n\r\n{"foo":"bar"}');
+  });
 
-    const output = Buffer.concat(chunks).toString();
-    assert.match(output, /^GET \/ HTTP\/1\.1\r\n/);
-    assert.match(output, /Host: localhost/);
+  test('应该正确编码带字符串 Body 的 POST 请求3', async () => {
+    const params = {
+      startLine: { method: 'POST', path: '/api/data', version: 1.1 },
+      headers: { 'content-type': 'application/json' },
+      body: Buffer.from('{"foo":"bar"}'),
+    };
+
+    const output = await encodeAndCollect(params);
+    assert.strictEqual(output.toString(), 'POST /api/data HTTP/1.1\r\nContent-Type: application/json\r\nContent-Length: 13\r\n\r\n{"foo":"bar"}');
+  });
+
+  test('应该正确处理 DELETE 请求（无 Body）', async () => {
+    const params = {
+      startLine: { method: 'DELETE', path: '/api/resource/123' },
+      headers: { host: 'example.com' },
+    };
+
+    const output = await encodeAndCollect(params);
+
+    assert.ok(output.includes('DELETE /api/resource/123 HTTP/1.1'));
+    assert.ok(output.includes('Host: example.com'));
     assert.ok(output.endsWith('\r\n\r\n'));
   });
 
+  test('应该正确处理空字符串 Body', async () => {
+    const params = {
+      startLine: { method: 'POST', path: '/empty' },
+      headers: { host: 'example.com' },
+      body: '',
+    };
+
+    const output = await encodeAndCollect(params);
+
+    assert.ok(output.includes('POST /empty HTTP/1.1'));
+    assert.ok(output.endsWith('\r\n\r\n'));
+  });
 });
 
-test('encodeHttpRequest - 基本的 GET 请求', async () => {
-  const request = {
-    startLine: {
-      method: 'GET',
-      path: '/api/users',
-      version: '1.1',
-    },
-    headers: {
-      host: 'example.com',
-      'User-Agent': 'test-client',
-    },
-  };
+describe('encodeHttpRequest - Body 类型处理', () => {
+  test('应该正确处理 Buffer Body', async () => {
+    const bodyBuffer = Buffer.from('binary data');
+    const params = {
+      startLine: { method: 'PUT', path: '/upload' },
+      headers: { host: 'example.com' },
+      body: bodyBuffer,
+    };
 
-  const chunks = [];
-  for await (const chunk of encodeHttpRequest(request)) {
-    chunks.push(chunk);
-  }
+    const result = await collectGenerator(encodeHttpRequest(params));
 
-  const result = Buffer.concat(chunks).toString();
-  assert.ok(result.includes('GET /api/users HTTP/1.1'));
-  assert.ok(result.includes('Host: example.com'));
-  assert.ok(result.includes('User-Agent: test-client'));
+    assert.ok(result.includes(bodyBuffer));
+    assert.ok(result.toString().includes('Content-Length:'));
+  });
+
+  test('应该正确处理 AsyncIterable Body（分块传输）', async () => {
+    async function* generateBody() {
+      yield Buffer.from('chunk1');
+      yield Buffer.from('chunk2');
+      yield Buffer.from('chunk3');
+    }
+
+    const params = {
+      startLine: { method: 'POST', path: '/stream' },
+      headers: { host: 'example.com' },
+      body: generateBody(),
+    };
+
+    const output = await encodeAndCollect(params);
+
+    assert.ok(output.includes('POST /stream HTTP/1.1'));
+    assert.match(output, /transfer-encoding: chunked/i);
+    assert.ok(output.includes('chunk1'));
+    assert.ok(output.includes('chunk2'));
+    assert.ok(output.includes('chunk3'));
+  });
 });
 
-test('encodeHttpRequest - 带字符串 body 的 POST 请求', async () => {
-  const request = {
-    startLine: {
-      method: 'POST',
-      path: '/api/data',
-      version: '1.1',
-    },
-    headers: {
-      host: 'example.com',
-      'content-Type': 'application/json',
-    },
-    body: '{"name":"test"}',
-  };
+describe('encodeHttpRequest - Headers 处理', () => {
+  test('应该移除 hop-by-hop headers', async () => {
+    const params = {
+      startLine: { method: 'GET', path: '/' },
+      headers: {
+        host: 'example.com',
+        connection: 'keep-alive',
+        'keep-alive': 'timeout=5',
+      },
+    };
 
-  const chunks = [];
-  for await (const chunk of encodeHttpRequest(request)) {
-    chunks.push(chunk);
-  }
+    const output = await encodeAndCollect(params);
 
-  const result = Buffer.concat(chunks).toString();
-  assert.ok(result.includes('POST /api/data HTTP/1.1'));
-  assert.ok(result.includes('{"name":"test"}'));
+    assert.ok(!output.includes('Connection:'));
+    assert.ok(!output.includes('Keep-Alive:'));
+  });
+
+  test('应该自动添加 Content-Length（字符串 Body）', async () => {
+    const params = {
+      startLine: { method: 'POST', path: '/data' },
+      headers: { host: 'example.com' },
+      body: 'test body',
+    };
+
+    const output = await encodeAndCollect(params);
+
+    assert.ok(output.includes('Content-Length:'));
+  });
+
+  test('应该验证 Headers 格式正确性', async () => {
+    const params = {
+      startLine: { method: 'GET', path: '/test' },
+      headers: {
+        host: 'example.com',
+        accept: 'application/json',
+      },
+    };
+
+    const output = await encodeAndCollect(params);
+
+    assert.ok(output.startsWith('GET /test HTTP/1.1'));
+    const lines = output.split('\r\n');
+    assert.ok(lines.length >= 2);
+    assert.ok(lines.some(line => line.includes('Host:')));
+    assert.ok(lines.some(line => line.includes('Accept:')));
+  });
 });
 
-test('encodeHttpRequest - 带 Buffer body 的请求', async () => {
-  const bodyBuffer = Buffer.from('binary data');
-  const request = {
-    startLine: {
-      method: 'PUT',
-      path: '/upload',
-    },
-    headers: {
-      host: 'example.com',
-    },
-    body: bodyBuffer,
-  };
-
-  const chunks = [];
-  for await (const chunk of encodeHttpRequest(request)) {
-    chunks.push(chunk);
-  }
-
-  const result = Buffer.concat(chunks);
-  assert.ok(result.includes(bodyBuffer));
-});
-
-test('encodeHttpRequest - 带 AsyncIterable body 的请求', async () => {
-  async function* generateBody() {
-    yield Buffer.from('chunk1');
-    yield Buffer.from('chunk2');
-    yield Buffer.from('chunk3');
-  }
-
-  const request = {
-    startLine: {
-      method: 'POST',
-      path: '/stream',
-    },
-    headers: {
-      host: 'example.com',
-    },
-    body: generateBody(),
-  };
-
-  const chunks = [];
-  for await (const chunk of encodeHttpRequest(request)) {
-    chunks.push(chunk);
-  }
-
-  const result = Buffer.concat(chunks).toString();
-  assert.ok(result.includes('POST /stream HTTP/1.1'));
-  // 应该包含分块编码的内容
-  assert.ok(result.includes('chunk1'));
-  assert.ok(result.includes('chunk2'));
-  assert.ok(result.includes('chunk3'));
-});
-
-test('encodeHttpRequest - 没有 body 的请求', async () => {
-  const request = {
-    startLine: {
-      method: 'DELETE',
-      path: '/api/resource/123',
-    },
-    headers: {
-      host: 'example.com',
-    },
-  };
-
-  const chunks = [];
-  for await (const chunk of encodeHttpRequest(request)) {
-    chunks.push(chunk);
-  }
-
-  const result = Buffer.concat(chunks).toString();
-  assert.ok(result.includes('DELETE /api/resource/123 HTTP/1.1'));
-  assert.ok(result.includes('Host: example.com'));
-});
-
-test('encodeHttpRequest - 移除 hop-by-hop headers', async () => {
-  const request = {
-    startLine: {
-      method: 'GET',
-      path: '/',
-    },
-    headers: {
-      host: 'example.com',
-      connection: 'keep-alive',
-      'keep-alive': 'timeout=5',
-    },
-  };
-
-  const chunks = [];
-  for await (const chunk of encodeHttpRequest(request)) {
-    chunks.push(chunk);
-  }
-
-  const result = Buffer.concat(chunks).toString();
-  // Connection 和 Keep-Alive 应该被移除
-  assert.ok(!result.includes('Connection:'));
-  assert.ok(!result.includes('Keep-Alive:'));
-});
-
-test('encodeHttpRequest - 应用 framing headers', async () => {
-  const request = {
-    startLine: {
-      method: 'POST',
-      path: '/data',
-    },
-    headers: {
-      host: 'example.com',
-    },
-    body: 'test body',
-  };
-
-  const chunks = [];
-  for await (const chunk of encodeHttpRequest(request)) {
-    chunks.push(chunk);
-  }
-
-  const result = Buffer.concat(chunks).toString();
-  // 应该添加 Content-Length header
-  assert.ok(result.includes('Content-Length:'));
-});
-
-test('encodeHttpRequest - 处理空字符串 body', async () => {
-  const request = {
-    startLine: {
-      method: 'POST',
-      path: '/empty',
-    },
-    headers: {
-      host: 'example.com',
-    },
-    body: '',
-  };
-
-  const chunks = [];
-  for await (const chunk of encodeHttpRequest(request)) {
-    chunks.push(chunk);
-  }
-
-  const result = Buffer.concat(chunks).toString();
-  assert.ok(result.includes('POST /empty HTTP/1.1'));
-});
-
-test('encodeHttpRequest - 验证输出格式正确', async () => {
-  const request = {
-    startLine: {
-      method: 'GET',
-      path: '/test',
-    },
-    headers: {
-      host: 'example.com',
-      accept: 'application/json',
-    },
-  };
-
-  const chunks = [];
-  for await (const chunk of encodeHttpRequest(request)) {
-    chunks.push(chunk);
-  }
-
-  const result = Buffer.concat(chunks).toString();
-
-  // 验证请求行
-  assert.ok(result.startsWith('GET /test HTTP/1.1'));
-
-  // 验证 headers 格式
-  const lines = result.split('\r\n');
-  assert.ok(lines.length >= 2);
-  assert.ok(lines.some(line => line.includes('Host:')));
-  assert.ok(lines.some(line => line.includes('Accept:')));
-});
-
-describe('encodeHttpRequest - AsyncIterable (Stream) 专项测试', () => {
-
+describe('encodeHttpRequest - 流式传输（AsyncIterable）', () => {
   const defaultStartLine = { method: 'POST', target: '/upload', version: 1.1 };
 
   test('应该将异步流正确编码为分块传输格式', async () => {
-    const chunks = [
-      Buffer.from('hello '),
-      Buffer.from('world'),
-    ];
+    const chunks = [Buffer.from('hello '), Buffer.from('world')];
     const stream = createMockStream(chunks);
 
-    const generator = encodeHttpRequest({
+    const output = await encodeAndCollect({
       startLine: defaultStartLine,
       headers: { host: 'api.test' },
       body: stream,
     });
 
-    const parts: Buffer[] = [];
-    for await (const chunk of generator) {
-      parts.push(chunk);
-    }
+    assert.match(output, /transfer-encoding: chunked/i);
+    assert.match(output, /hello /);
+    assert.match(output, /world/);
 
-    const fullOutput = Buffer.concat(parts).toString();
-
-    // 1. 验证必须包含 Transfer-Encoding: chunked (由 applyFramingHeaders 触发)
-    assert.match(fullOutput, /transfer-encoding: chunked/i);
-
-    // 2. 验证 Body 内容是否按顺序到达
-    assert.match(fullOutput, /hello /);
-    assert.match(fullOutput, /world/);
-
-    // 3. 验证结构：Header 块应该在 Body 块之前产出
-    const headerIndex = fullOutput.indexOf('\r\n\r\n');
-    const bodyIndex = fullOutput.indexOf('hello ');
-    assert.ok(headerIndex < bodyIndex, 'Header 必须在 Body 之前发送');
+    const headerIndex = output.indexOf('\r\n\r\n');
+    const bodyIndex = output.indexOf('hello ');
+    assert.ok(headerIndex < bodyIndex, 'Headers 必须在 Body 之前发送');
   });
 
-  test('处理带有延迟的异步流，确保非阻塞', async () => {
+  test('应该正确处理带延迟的异步流（非阻塞）', async () => {
     const chunks = [Buffer.from('slow'), Buffer.from('data')];
-    // 每个 chunk 延迟 50ms
     const stream = createMockStream(chunks, 50);
 
     const startTime = Date.now();
-    const generator = encodeHttpRequest({
+    const output = await encodeAndCollect({
       startLine: defaultStartLine,
       headers: {},
       body: stream,
     });
-
-    let receivedBody = '';
-    for await (const chunk of generator) {
-      receivedBody += chunk.toString();
-    }
     const duration = Date.now() - startTime;
 
-    assert.ok(duration >= 100, `应该至少耗时 100ms，实际耗时: ${duration}ms`);
-    assert.match(receivedBody, /slow/);
-    assert.match(receivedBody, /data/);
+    assert.ok(duration >= 100, `应该至少耗时 100ms，实际: ${duration}ms`);
+    assert.match(output, /slow/);
+    assert.match(output, /data/);
   });
 
-  test('当异步流为空时，依然应该发送正确的 Header', async () => {
+  test('应该正确处理空的异步流', async () => {
     async function* emptyStream() {}
 
-    const generator = encodeHttpRequest({
+    const output = await encodeAndCollect({
       startLine: defaultStartLine,
       headers: {},
       body: emptyStream(),
     });
 
-    const parts: Buffer[] = [];
-    for await (const chunk of generator) {
-      parts.push(chunk);
-    }
-
-    const fullOutput = Buffer.concat(parts).toString();
-
-    // 即使 body 为空，只要它是 AsyncIterable，通常也会被标记为 chunked
-    assert.match(fullOutput, /transfer-encoding: chunked/i);
+    assert.match(output, /transfer-encoding: chunked/i);
   });
 
-  test('当上游异步流抛出错误时，Generator 应该能捕获异常', async () => {
+  test('应该能捕获异步流中抛出的错误', async () => {
     async function* errorStream() {
       yield Buffer.from('good data');
       throw new Error('Stream Interrupted');
@@ -368,18 +253,17 @@ describe('encodeHttpRequest - AsyncIterable (Stream) 专项测试', () => {
       body: errorStream(),
     });
 
-    try {
-      for await (const chunk of generator) {
-        // 可能会收到一部分数据
-      }
-      assert.fail('应该抛出上游流的错误');
-    } catch (err: any) {
-      assert.strictEqual(err.message, 'Stream Interrupted');
-    }
+    await assert.rejects(
+      async () => {
+        for await (const chunk of generator) {
+          // 消费数据直到错误
+        }
+      },
+      { message: 'Stream Interrupted' },
+    );
   });
 
-  test('验证 Headers 产出的原子性', async () => {
-    // 这是一个关键测试：确保在开始拉取 Body 之前，Headers 已经全部 yield 出来了
+  test('应该保证 Headers 的原子性（在拉取 Body 前完整输出）', async () => {
     let bodyPulled = false;
     async function* spyStream() {
       bodyPulled = true;
@@ -392,15 +276,11 @@ describe('encodeHttpRequest - AsyncIterable (Stream) 专项测试', () => {
       body: spyStream(),
     });
 
-    // 第一次和第二次 yield 应该是请求行和 Headers
-    const firstYield = await generator.next();
-    const secondYield = await generator.next();
-
-    assert.strictEqual(bodyPulled, false, '在 Headers 发送完毕前不应拉取 Body 数据');
-
-    // 第三次开始才是 Body
     await generator.next();
-    assert.strictEqual(bodyPulled, true, '此时应该已经开始拉取 Body');
-  });
+    await generator.next();
+    assert.strictEqual(bodyPulled, false, 'Headers 发送完毕前不应拉取 Body');
 
+    await generator.next();
+    assert.strictEqual(bodyPulled, true, '此时应该已开始拉取 Body');
+  });
 });
