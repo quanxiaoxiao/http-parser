@@ -1,4 +1,4 @@
-import type { Headers, NormalizedHeaders } from '../../types.js';
+import type { Headers, NormalizedHeaders } from '../types.js';
 
 export function normalizeHeaders(input?: Headers): NormalizedHeaders {
   if (!input) {

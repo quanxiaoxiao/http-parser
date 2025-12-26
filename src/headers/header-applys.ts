@@ -1,4 +1,4 @@
-import type { Body, NormalizedHeaders } from '../../types.js';
+import type { Body, NormalizedHeaders } from '../types.js';
 import { deleteHeader, setHeader } from './headers.js';
 
 function isBodyAsyncIterable(value: Body): value is AsyncIterable<Buffer> {

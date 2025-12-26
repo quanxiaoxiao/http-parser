@@ -1,4 +1,4 @@
-import type { NormalizedHeaders } from '../../types.js';
+import type { NormalizedHeaders } from '../types.js';
 import { validateConnectionHeader } from './connection-header.js';
 import { getHeaderValue } from './headers.js';
 

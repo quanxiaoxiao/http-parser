@@ -2,7 +2,7 @@ import * as assert from 'node:assert';
 import { describe, test } from 'node:test';
 import { setTimeout } from 'node:timers/promises';
 
-import { encodeHttpRequest } from './encode-http.js';
+import { encodeHttpRequest } from './message.js';
 
 async function collectGenerator(generator: AsyncIterable<Buffer>): Promise<Buffer> {
   const chunks: Buffer[] = [];

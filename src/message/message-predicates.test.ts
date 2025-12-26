@@ -1,7 +1,7 @@
 import * as assert from 'node:assert';
 import { describe, test } from 'node:test';
 
-import type { HttpMessage } from '../../types.js';
+import type { HttpMessage } from '../types.js';
 import { isWebSocketRequest } from './message-predicates.js';
 
 describe('isWebSocketRequest', () => {
