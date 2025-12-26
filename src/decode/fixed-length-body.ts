@@ -1,6 +1,6 @@
 import { DecodeHttpError } from '../errors.js';
 
-export type ContentLengthState = {
+export type FixedLengthBodyState = {
   buffer: Buffer;
   contentLength: number;
   bytesReceived: number;
@@ -8,7 +8,7 @@ export type ContentLengthState = {
   finished: boolean;
 };
 
-export function createContentLengthState(contentLength: number): ContentLengthState {
+export function createFixedLengthBodyState(contentLength: number): FixedLengthBodyState {
   if (!Number.isInteger(contentLength) || contentLength < 0) {
     throw new DecodeHttpError(`Invalid content length: ${contentLength}`);
   }
@@ -22,11 +22,11 @@ export function createContentLengthState(contentLength: number): ContentLengthSt
   };
 }
 
-export function parseContentLength(
-  prev: ContentLengthState,
+export function decodeFixedLengthBody(
+  prev: FixedLengthBodyState,
   input: Buffer,
   onChunk?: (chunk: Buffer) => void,
-): ContentLengthState {
+): FixedLengthBodyState {
   if (prev.finished) {
     throw new DecodeHttpError('Content-Length parsing already finished');
   }
@@ -63,13 +63,13 @@ export function parseContentLength(
   };
 }
 
-export function getProgress(state: ContentLengthState): number {
+export function getProgress(state: FixedLengthBodyState): number {
   if (state.contentLength === 0) {
     return 1;
   }
   return Math.min(state.bytesReceived / state.contentLength, 1);
 }
 
-export function getRemainingBytes(state: ContentLengthState): number {
+export function getRemainingBytes(state: FixedLengthBodyState): number {
   return Math.max(state.contentLength - state.bytesReceived, 0);
 }

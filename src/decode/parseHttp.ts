@@ -5,7 +5,7 @@ import { DecodeHttpError } from '../errors.js';
 import parseInteger from '../parseInteger.js';
 import { type Headers, type HttpParsePhase, type HttpParserHooks, type RequestStartLine,type ResponseStartLine } from '../types.js';
 import { type ChunkedBodyState, createChunkedBodyState, decodeChunkedBody } from './chunked-body.js';
-import { type ContentLengthState, createContentLengthState, parseContentLength } from './parseContentLength.js';
+import { createFixedLengthBodyState, decodeFixedLengthBody,type FixedLengthBodyState } from './fixed-length-body.js';
 import { createHeadersState, type HeadersState, parseHeaders } from './parseHeaders.js';
 import { decodeRequestStartLine, decodeResponseStartLine } from './start-line.js';
 
@@ -33,7 +33,7 @@ export interface HttpState {
   error?: Error,
   startLine: RequestStartLine | ResponseStartLine | null;
   headersState: HeadersState | null;
-  bodyState: ChunkedBodyState | ContentLengthState | null;
+  bodyState: ChunkedBodyState | FixedLengthBodyState | null;
 }
 
 export interface HttpRequestState extends HttpState {
@@ -183,7 +183,7 @@ function handleHeadersPhase(state: HttpState, hooks?: HttpParserHooks): HttpStat
   });
 }
 
-function handleBodyPhase<T extends ChunkedBodyState | ContentLengthState>(
+function handleBodyPhase<T extends ChunkedBodyState | FixedLengthBodyState>(
   state: HttpState,
   parser: (bodyState: T, buffer: Buffer, onBody?: (buffer: Buffer) => void) => T,
   hooks?: HttpParserHooks,
@@ -224,10 +224,10 @@ function handleBodyContentLengthPhase(state: HttpState, hooks?: HttpParserHooks)
     if (contentLength === null) {
       throw new DecodeHttpError('Content-Length not found or invalid');
     }
-    state.bodyState = createContentLengthState(contentLength!);
+    state.bodyState = createFixedLengthBodyState(contentLength!);
     hooks?.onBodyBegin?.();
   }
-  return handleBodyPhase(state, parseContentLength, hooks);
+  return handleBodyPhase(state, decodeFixedLengthBody, hooks);
 }
 
 const requestPhaseHandlers = new Map<
