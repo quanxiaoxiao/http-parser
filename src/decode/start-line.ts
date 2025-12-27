@@ -16,7 +16,7 @@ const ERROR_PREVIEW_LENGTH = 50;
 const HTTP_VERSION_MAP: Record<string, number> = {
   'HTTP/1.0': HTTP_VERSION_1_0,
   'HTTP/1.1': HTTP_VERSION_1_1,
-};
+} as const;
 
 function createErrorPreview(str: string, maxLength: number = ERROR_PREVIEW_LENGTH): string {
   return str.length > maxLength
@@ -49,6 +49,7 @@ export function decodeRequestStartLine(str: string): RequestStartLine {
   const version = validateHttpVersion(versionStr!);
 
   return {
+    raw: str,
     method: method!.toUpperCase() as HttpMethod,
     path: path!,
     version: version as HttpVersion,
@@ -79,6 +80,7 @@ export function decodeResponseStartLine(str: string): ResponseStartLine {
   const finalStatusMessage = statusText?.trim() || STATUS_CODES[statusCode] || 'Unknown';
 
   return {
+    raw: str,
     version: version as HttpVersion,
     statusCode,
     statusText: finalStatusMessage,

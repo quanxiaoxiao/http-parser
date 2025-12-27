@@ -24,11 +24,13 @@ export interface HttpMessage {
 export interface RequestStartLine {
   method?: HttpMethod;
   path?: string;
+  raw?: string;
   version?: HttpVersion;
 }
 
 export interface ResponseStartLine {
   version?: HttpVersion;
+  raw?: string;
   statusCode?: number;
   statusText?: string;
 }

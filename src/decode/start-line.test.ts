@@ -11,6 +11,7 @@ describe('decodeRequestStartLine', () => {
       assert.deepStrictEqual(result, {
         method: 'GET',
         path: '/api/users',
+        raw: 'GET /api/users HTTP/1.1',
         version: 1.1,
       });
     });
@@ -20,6 +21,7 @@ describe('decodeRequestStartLine', () => {
       assert.deepStrictEqual(result, {
         method: 'POST',
         path: '/api/users',
+        raw: 'POST /api/users HTTP/1.1',
         version: 1.1,
       });
     });
@@ -29,6 +31,7 @@ describe('decodeRequestStartLine', () => {
       assert.deepStrictEqual(result, {
         method: 'GET',
         path: '/',
+        raw: 'GET / HTTP/1.1',
         version: 1.1,
       });
     });
@@ -38,6 +41,7 @@ describe('decodeRequestStartLine', () => {
       assert.deepStrictEqual(result, {
         method: 'GET',
         path: '/api/users?id=123&name=test',
+        raw: 'GET /api/users?id=123&name=test HTTP/1.1',
         version: 1.1,
       });
     });
@@ -47,6 +51,7 @@ describe('decodeRequestStartLine', () => {
       assert.deepStrictEqual(result, {
         method: 'OPTIONS',
         path: '*',
+        raw: 'OPTIONS * HTTP/1.1',
         version: 1.1,
       });
     });
@@ -56,6 +61,7 @@ describe('decodeRequestStartLine', () => {
       assert.deepStrictEqual(result, {
         method: 'GET',
         path: '/index.html',
+        raw: 'GET /index.html HTTP/1.0',
         version: 1.0,
       });
     });
@@ -65,6 +71,7 @@ describe('decodeRequestStartLine', () => {
       assert.deepStrictEqual(result, {
         method: 'GET',
         path: '/api/test',
+        raw: 'get /api/test HTTP/1.1',
         version: 1.1,
       });
     });
@@ -74,6 +81,7 @@ describe('decodeRequestStartLine', () => {
       assert.deepStrictEqual(result, {
         method: 'GET',
         path: '/test',
+        raw: 'GET /test http/1.1',
         version: 1.1,
       });
     });
@@ -83,6 +91,7 @@ describe('decodeRequestStartLine', () => {
       assert.deepStrictEqual(result, {
         method: 'GET',
         path: '/api/users',
+        raw: 'GET  /api/users  HTTP/1.1',
         version: 1.1,
       });
     });
@@ -92,6 +101,7 @@ describe('decodeRequestStartLine', () => {
       assert.deepStrictEqual(result, {
         method: 'GET',
         path: '/api/users',
+        raw: '  GET /api/users HTTP/1.1  ',
         version: 1.1,
       });
     });
@@ -103,6 +113,7 @@ describe('decodeRequestStartLine', () => {
         assert.strictEqual(result.method, method);
         assert.strictEqual(result.path, '/test');
         assert.strictEqual(result.version, 1.1);
+        assert.strictEqual(result.raw, `${method} /test HTTP/1.1`);
       });
     });
 
@@ -111,6 +122,7 @@ describe('decodeRequestStartLine', () => {
       assert.deepStrictEqual(result, {
         method: 'GET',
         path: '/api/v2/users/123/posts/456/comments',
+        raw: 'GET /api/v2/users/123/posts/456/comments HTTP/1.1',
         version: 1.1,
       });
     });
@@ -183,6 +195,7 @@ describe('decodeRequestStartLine', () => {
       assert.deepStrictEqual(result, {
         method: 'GET',
         path: 'api/users',
+        raw: 'GET api/users HTTP/1.1',
         version: 1.1,
       });
     });
