@@ -18,7 +18,7 @@ export interface HeadersState {
   headers: Headers;
   finished: boolean;
   bytesReceived: number;
-  rawHeaders: string[];
+  rawHeaders: Array<[name: string, value: string]>;
 }
 
 const CRLF_LENGTH = 2;
