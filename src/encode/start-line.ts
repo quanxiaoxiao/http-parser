@@ -1,5 +1,4 @@
-import * as http from 'node:http';
-
+import { STATUS_CODES } from '../status-codes.js';
 import type { RequestStartLine, ResponseStartLine } from '../types.js';
 
 export function encodeRequestLine(startLine: RequestStartLine = {
@@ -21,7 +20,7 @@ export function encodeResponseLine(startLine: ResponseStartLine = {
 }) {
   const { version, statusCode = 200, statusText } = startLine;
   const versionStr = `HTTP/${String(Number.isInteger(version) ? `${version}.0` : version)}`;
-  const text = statusText ?? http.STATUS_CODES[statusCode] ?? 'Unknown';
+  const text = statusText ?? STATUS_CODES[statusCode] ?? 'Unknown';
   const line = `${versionStr} ${statusCode} ${text}`;
   return Buffer.from(line);
 }
