@@ -1,6 +1,8 @@
 import { Buffer } from 'node:buffer';
 
 import { DecodeHttpError } from '../errors.js';
+import { isChunked } from '../headers/header-predicates.js';
+import { getHeaderValue } from '../headers/headers.js';
 import parseInteger from '../parseInteger.js';
 import { type Headers, type HttpParsePhase, type HttpParserHooks, type RequestStartLine,type ResponseStartLine } from '../types.js';
 import { type ChunkedBodyState, createChunkedBodyState, decodeChunkedBody } from './chunked-body.js';
@@ -13,14 +15,6 @@ const CRLF_LENGTH = 2;
 const MAX_HEADER_SIZE = 16 * 1024;
 const MAX_START_LINE_SIZE = 16 * 1024;
 const EMPTY_BUFFER = Buffer.alloc(0);
-
-function getHeaderValue(headers: Headers, name: string): string | undefined {
-  const value = headers[name];
-  if (!value) {
-    return undefined;
-  }
-  return Array.isArray(value) ? value[0] : value;
-}
 
 function formatError(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -129,20 +123,17 @@ function handleResponseStartLinePhase(
   );
 }
 
-function isChunkedEncoding(headers: Headers): boolean {
-  const transferEncoding = getHeaderValue(headers, 'transfer-encoding');
-  return transferEncoding?.toLowerCase().includes('chunked') ?? false;
-}
-
 function getContentLength(headers: Headers): number | null {
   const contentLengthValue = getHeaderValue(headers, 'content-length');
-  if (!contentLengthValue) return null;
-  const length = parseInteger(contentLengthValue);
+  if (!contentLengthValue) {
+    return null;
+  }
+  const length = parseInteger(contentLengthValue[0]);
   return (length != null && length > 0) ? length : null;
 }
 
 function determineBodyPhase(headers: Headers): Partial<HttpState> {
-  if (isChunkedEncoding(headers)) {
+  if (isChunked(headers)) {
     return { phase: 'BODY_CHUNKED' };
   }
 
