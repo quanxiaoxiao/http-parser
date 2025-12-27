@@ -298,7 +298,7 @@ function genericParse(
   return state;
 }
 
-export function parseRequest(
+export function decodeRequest(
   prev: HttpRequestState | null,
   input: Buffer,
   hooks?: HttpParserHooks,
@@ -312,7 +312,7 @@ export function parseRequest(
   );
 }
 
-export function parseResponse(
+export function decodeResponse(
   prev: HttpResponseState | null,
   input: Buffer,
   hooks?: HttpParserHooks,
