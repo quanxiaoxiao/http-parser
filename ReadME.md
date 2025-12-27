@@ -266,3 +266,24 @@ hasConflictingBodyHeaders
 hasMultipleContentLength
 hasObsoleteLineFolding
 ```
+
+### request
+
+| Method | body 为空时的策略                       |
+| ------ | --------------------------------- |
+| GET    | **不写** `Content-Length`（默认无 body） |
+| HEAD   | **不写**                            |
+| POST   | **必须写** `Content-Length: 0`       |
+| PUT    | **必须写** `Content-Length: 0`       |
+| PATCH  | **必须写** `Content-Length: 0`       |
+| DELETE | **推荐写**（兼容性 + 安全）                 |
+
+### response
+
+| Status Code | body 为空时策略                     |
+| ----------- | ------------------------------ |
+| 1xx         | 禁止 `Content-Length`            |
+| 204         | 禁止                             |
+| 304         | 禁止                             |
+| 200 / 201   | **可写 `Content-Length: 0`（推荐）** |
+| 404 / 500 等 | **推荐写**                        |

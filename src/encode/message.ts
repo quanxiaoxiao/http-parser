@@ -21,10 +21,16 @@ async function* encodeBody(body: Body): AsyncGenerator<Buffer> {
     return;
   }
   if (typeof body === 'string') {
+    if (body === '') {
+      return;
+    }
     yield Buffer.from(body, 'utf-8');
     return;
   }
   if (Buffer.isBuffer(body)) {
+    if (body.length === 0) {
+      return;
+    }
     yield body;
     return;
   }
