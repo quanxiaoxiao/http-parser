@@ -65,13 +65,17 @@ export function decodeHttpLine(
 
   const len = buf.length;
 
-  if (len === 0) return null;
+  if (len === 0) {
+    return null;
+  }
 
   if (buf[start] === LF) {
     throwDecodeHttpError('line cannot start with LF');
   }
 
-  if (len === 1) return null;
+  if (len === 1) {
+    return null;
+  }
 
   return findLineEnd(buf, start, limit, len);
 }
