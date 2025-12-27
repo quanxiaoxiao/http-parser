@@ -3,7 +3,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { setTimeout } from 'node:timers/promises';
 
-import { encodeHttpRequest } from './encode/encode-http.js';
+import { encodeHttpRequest } from './encode/message.js';
 
 async function exampleStreamUpload() {
   async function* generateData(): AsyncIterable<Buffer> {
