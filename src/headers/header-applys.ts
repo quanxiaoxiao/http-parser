@@ -1,13 +1,6 @@
+import { isStreamBody } from '../body/body-predicates.js';
 import type { Body, NormalizedHeaders } from '../types.js';
 import { deleteHeader, setHeader } from './headers.js';
-
-function isBodyAsyncIterable(value: Body): value is AsyncIterable<Buffer> {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    Symbol.asyncIterator in value
-  );
-}
 
 export function applyFramingHeaders(
   headers: NormalizedHeaders,
@@ -30,7 +23,7 @@ export function applyFramingHeaders(
     return;
   }
 
-  if (isBodyAsyncIterable(body)) {
+  if (isStreamBody(body)) {
     setHeader(headers, 'transfer-encoding', 'chunked');
     return;
   }

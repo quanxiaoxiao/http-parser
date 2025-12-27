@@ -1,7 +1,7 @@
 import * as assert from 'node:assert';
 import { describe, it } from 'node:test';
 
-import { isZeroChunkOnly } from './body-predicates.js';
+import { isStreamBody,isZeroChunkOnly } from './body-predicates.js';
 
 describe('isZeroChunkOnly', () => {
   describe('null 和 undefined 情况', () => {
@@ -106,5 +106,95 @@ describe('isZeroChunkOnly', () => {
       // String "0" 应该返回 true
       assert.strictEqual(isZeroChunkOnly(stringZero), true);
     });
+  });
+});
+
+describe('isStreamBody', () => {
+  it('should return true for async iterable objects', () => {
+    const asyncIterable = {
+      async *[Symbol.asyncIterator]() {
+        yield Buffer.from('test');
+      },
+    };
+
+    assert.strictEqual(isStreamBody(asyncIterable), true);
+  });
+
+  it('should return false for null', () => {
+    assert.strictEqual(isStreamBody(null), false);
+  });
+
+  it('should return false for undefined', () => {
+    assert.strictEqual(isStreamBody(undefined), false);
+  });
+
+  it('should return false for primitive strings', () => {
+    assert.strictEqual(isStreamBody('test string'), false);
+  });
+
+  it('should return false for primitive numbers', () => {
+    assert.strictEqual(isStreamBody(123), false);
+  });
+
+  it('should return false for primitive booleans', () => {
+    assert.strictEqual(isStreamBody(true), false);
+  });
+
+  it('should return false for plain objects without async iterator', () => {
+    const plainObject = { data: 'test' };
+    assert.strictEqual(isStreamBody(plainObject), false);
+  });
+
+  it('should return false for arrays', () => {
+    const array = [Buffer.from('test')];
+    assert.strictEqual(isStreamBody(array), false);
+  });
+
+  it('should return false for regular iterables (not async)', () => {
+    const iterable = {
+      *[Symbol.iterator]() {
+        yield Buffer.from('test');
+      },
+    };
+
+    assert.strictEqual(isStreamBody(iterable), false);
+  });
+
+  it('should return true for async generators', async () => {
+    async function* generator() {
+      yield Buffer.from('chunk1');
+      yield Buffer.from('chunk2');
+    }
+
+    assert.strictEqual(isStreamBody(generator()), true);
+  });
+
+  it('should return false for objects with asyncIterator property but not a symbol', () => {
+    const fakeIterable = {
+      async *asyncIterator () {
+        yield Buffer.from('test');
+      },
+    };
+
+    assert.strictEqual(isStreamBody(fakeIterable), false);
+  });
+
+  it('should return true for ReadableStream-like objects with async iterator', () => {
+    const streamLike = {
+      async *[Symbol.asyncIterator] () {
+        yield Buffer.from('data');
+      },
+    };
+
+    assert.strictEqual(isStreamBody(streamLike), true);
+  });
+
+  it('should return false for functions', () => {
+    const func = () => {};
+    assert.strictEqual(isStreamBody(func), false);
+  });
+
+  it('should return false for empty objects', () => {
+    assert.strictEqual(isStreamBody({}), false);
   });
 });
