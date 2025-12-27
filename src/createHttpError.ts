@@ -1,10 +1,10 @@
-import * as http from 'node:http';
+import { STATUS_CODES } from './status-codes.js';
 
 export class HttpError extends Error {
   public readonly statusCode: number;
 
   constructor(statusCode: number, message?: string) {
-    super(message || http.STATUS_CODES[statusCode] || 'Unknown Error');
+    super(message || STATUS_CODES[statusCode] || 'Unknown Error');
     this.name = 'HttpError';
     this.statusCode = statusCode;
 
