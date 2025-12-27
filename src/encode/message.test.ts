@@ -2,7 +2,7 @@ import * as assert from 'node:assert';
 import { describe, test } from 'node:test';
 import { setTimeout } from 'node:timers/promises';
 
-import { encodeHttpRequest } from './message.js';
+import { encodeRequest } from './message.js';
 
 async function collectGenerator(generator: AsyncIterable<Buffer>): Promise<Buffer> {
   const chunks: Buffer[] = [];
@@ -20,11 +20,11 @@ async function* createMockStream(chunks: Buffer[], delayMs = 0) {
 }
 
 async function encodeAndCollect(params: any): Promise<string> {
-  const result = await collectGenerator(encodeHttpRequest(params));
+  const result = await collectGenerator(encodeRequest(params));
   return result.toString();
 }
 
-describe('encodeHttpRequest - 基础功能', () => {
+describe('encodeRequest - 基础功能', () => {
   test('应该正确编码 GET 请求', async () => {
     const params = {
       startLine: { method: 'GET', path: '/api/users' },
@@ -175,7 +175,7 @@ describe('encodeHttpRequest - 基础功能', () => {
   });
 });
 
-describe('encodeHttpRequest - Body 类型处理', () => {
+describe('encodeRequest - Body 类型处理', () => {
   test('应该正确处理 Buffer Body', async () => {
     const bodyBuffer = Buffer.from('binary data');
     const params = {
@@ -184,7 +184,7 @@ describe('encodeHttpRequest - Body 类型处理', () => {
       body: bodyBuffer,
     };
 
-    const result = await collectGenerator(encodeHttpRequest(params));
+    const result = await collectGenerator(encodeRequest(params));
 
     assert.ok(result.includes(bodyBuffer));
     assert.ok(result.toString().includes('Content-Length:'));
@@ -262,7 +262,7 @@ describe('encodeHttpRequest - Body 类型处理', () => {
   });
 });
 
-describe('encodeHttpRequest - Headers 处理', () => {
+describe('encodeRequest - Headers 处理', () => {
   test('应该移除 hop-by-hop headers', async () => {
     const params = {
       startLine: { method: 'GET', path: '/' },
@@ -397,7 +397,7 @@ describe('encodeHttpRequest - Headers 处理', () => {
   });
 });
 
-describe('encodeHttpRequest - 流式传输（AsyncIterable）', () => {
+describe('encodeRequest - 流式传输（AsyncIterable）', () => {
   const defaultStartLine = { method: 'POST', target: '/upload', version: 1.1 };
 
   test('应该将异步流正确编码为分块传输格式', async () => {
@@ -454,7 +454,7 @@ describe('encodeHttpRequest - 流式传输（AsyncIterable）', () => {
       throw new Error('Stream Interrupted');
     }
 
-    const generator = encodeHttpRequest({
+    const generator = encodeRequest({
       startLine: defaultStartLine,
       headers: {},
       body: errorStream(),
@@ -477,7 +477,7 @@ describe('encodeHttpRequest - 流式传输（AsyncIterable）', () => {
       yield Buffer.from('data');
     }
 
-    const generator = encodeHttpRequest({
+    const generator = encodeRequest({
       startLine: defaultStartLine,
       headers: { 'X-Test': 'true' },
       body: spyStream(),
@@ -545,7 +545,7 @@ describe('encodeHttpRequest - 流式传输（AsyncIterable）', () => {
   });
 });
 
-describe('encodeHttpRequest - HTTP 版本处理', () => {
+describe('encodeRequest - HTTP 版本处理', () => {
   test('应该默认使用 HTTP/1.1', async () => {
     const params = {
       startLine: { method: 'GET', path: '/test' },
@@ -577,7 +577,7 @@ describe('encodeHttpRequest - HTTP 版本处理', () => {
   });
 });
 
-describe('encodeHttpRequest - 路径处理', () => {
+describe('encodeRequest - 路径处理', () => {
   test('应该正确处理包含查询参数的路径', async () => {
     const params = {
       startLine: { method: 'GET', path: '/api/search?q=test&limit=10' },
@@ -619,7 +619,7 @@ describe('encodeHttpRequest - 路径处理', () => {
   });
 });
 
-describe('encodeHttpRequest - 实际场景测试', () => {
+describe('encodeRequest - 实际场景测试', () => {
   test('应该正确编码标准的 JSON API 请求', async () => {
     const params = {
       startLine: { method: 'POST', path: '/api/v1/users' },

@@ -31,7 +31,7 @@ async function* encodeBody(body: Body): AsyncGenerator<Buffer> {
   throw new TypeError(`Unsupported body type: ${typeof body}`);
 }
 
-export async function* encodeHttpRequest({
+export async function* encodeRequest({
   startLine,
   headers,
   body,
