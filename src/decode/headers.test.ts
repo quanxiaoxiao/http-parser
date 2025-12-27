@@ -24,7 +24,7 @@ describe('decodeHeaders', () => {
       const result = decodeHeaders(state, input);
 
       assert.strictEqual(result.headers['host'], 'example.com');
-      assert.deepStrictEqual(result.rawHeaders, ['Host', 'example.com']);
+      assert.deepStrictEqual(result.rawHeaders, ['Host', ' example.com']);
       assert.strictEqual(result.bytesReceived, 19);
       assert.strictEqual(result.finished, false);
     });
@@ -81,9 +81,9 @@ describe('decodeHeaders', () => {
       ]);
       assert.deepStrictEqual(result.rawHeaders, [
         'Set-Cookie',
-        'cookie1=value1',
+        ' cookie1=value1',
         'Set-Cookie',
-        'cookie2=value2',
+        ' cookie2=value2',
       ]);
     });
 
@@ -203,7 +203,7 @@ describe('decodeHeaders', () => {
       const result = decodeHeaders(state, input);
 
       assert.strictEqual(result.headers['x-empty-header'], '');
-      assert.deepStrictEqual(result.rawHeaders, ['X-Empty-Header', '']);
+      assert.deepStrictEqual(result.rawHeaders, ['X-Empty-Header', ' ']);
     });
 
     it('should preserve raw headers order', () => {
@@ -216,9 +216,9 @@ describe('decodeHeaders', () => {
       const result = decodeHeaders(state, input);
 
       assert.deepStrictEqual(result.rawHeaders, [
-        'Content-Type', 'application/json',
-        'Host', 'example.com',
-        'Content-Length', '123',
+        'Content-Type', ' application/json',
+        'Host', ' example.com',
+        'Content-Length', ' 123',
       ]);
     });
   });
@@ -271,7 +271,7 @@ describe('decodeHeaders', () => {
         'Host',
         'example.com',
         'Accept',
-        '*/*',
+        ' */*',
       ]);
       assert.strictEqual(result.bytesReceived, 32); // 19 + 13
     });
@@ -381,13 +381,13 @@ describe('decodeHeaderLine', () => {
       it(`应该正确解析${desc}`, () => {
         const [name, value] = decodeHeaderLine(input);
         assert.strictEqual(name, expected[0]);
-        assert.strictEqual(value, expected[1]);
+        assert.strictEqual(value.trim(), expected[1]);
       });
     });
 
     it('应该正确处理超长 header 值', () => {
       const longValue = 'a'.repeat(1000);
-      const [name, value] = decodeHeaderLine(`Content-Length: ${longValue}`);
+      const [name, value] = decodeHeaderLine(`Content-Length:${longValue}`);
       assert.strictEqual(name, 'Content-Length');
       assert.strictEqual(value, longValue);
     });
@@ -421,7 +421,7 @@ describe('decodeHeaderLine', () => {
       it(`应该正确处理${desc}`, () => {
         const [name, value] = decodeHeaderLine(input);
         assert.strictEqual(name, expected[0]);
-        assert.strictEqual(value, expected[1]);
+        assert.strictEqual(value.trim(), expected[1]);
       });
     });
   });

@@ -7,8 +7,8 @@ export function decodeHeaderLine(headerString: string): [string, string] {
   if (separatorIndex === -1) {
     throw new DecodeHttpError(`HTTP Header missing ':' separator in "${headerString}"`);
   }
-  const name = headerString.slice(0, separatorIndex).trim();
-  const value = headerString.slice(separatorIndex + 1).trim();
+  const name = headerString.slice(0, separatorIndex);
+  const value = headerString.slice(separatorIndex + 1);
 
   return [name, value];
 }
@@ -82,10 +82,11 @@ export function decodeHeaders(
 
     const [name, value] = decodeHeaderLine(line.toString());
     rawHeaders.push(name, value);
-    const lowerName = name.toLowerCase();
-    addHeader(headers, lowerName, value);
+    const lowerName = name.trim().toLowerCase();
+    const headerValue = value.trim();
+    addHeader(headers, lowerName, headerValue);
     if (onHeader) {
-      onHeader(lowerName, value, headers);
+      onHeader(lowerName, headerValue, headers);
     }
   }
 
