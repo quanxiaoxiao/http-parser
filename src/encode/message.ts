@@ -1,3 +1,4 @@
+import { isStreamBody } from '../body/body-predicates.js';
 import { applyFramingHeaders } from '../headers/header-applys.js';
 import { normalizeHeaders } from '../headers/header-normalize.js';
 import { stripHopByHopHeaders } from '../headers/header-strips.js';
@@ -7,16 +8,8 @@ import { encodeHeaders } from './headers.js';
 import { encodeHttpLine } from './http-line.js';
 import { encodeRequestLine } from './start-line.js';
 
-function isAsyncIterable(value: unknown): value is AsyncIterable<Buffer> {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    Symbol.asyncIterator in value
-  );
-}
-
 async function* encodeBody(body: Body): AsyncGenerator<Buffer> {
-  if (isAsyncIterable(body)) {
+  if (isStreamBody(body)) {
     yield* encodeChunkedStream(body);
     return;
   }

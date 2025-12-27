@@ -1,3 +1,5 @@
+import type { Body } from '../types.js';
+
 export function isZeroChunkOnly(body: string | Buffer | null | undefined): boolean {
   if (body == null) {
     return true;
@@ -20,4 +22,13 @@ export function isZeroChunkOnly(body: string | Buffer | null | undefined): boole
   }
 
   return false;
+}
+
+export function isStreamBody(value: Body): value is AsyncIterable<Buffer> {
+  return (
+    value != null &&
+    typeof value === 'object' &&
+    Symbol.asyncIterator in value &&
+    typeof value[Symbol.asyncIterator] === 'function'
+  );
 }
