@@ -269,14 +269,16 @@ hasObsoleteLineFolding
 
 ### request
 
-| Method | body 为空时的策略                       |
-| ------ | --------------------------------- |
-| GET    | **不写** `Content-Length`（默认无 body） |
-| HEAD   | **不写**                            |
-| POST   | **必须写** `Content-Length: 0`       |
-| PUT    | **必须写** `Content-Length: 0`       |
-| PATCH  | **必须写** `Content-Length: 0`       |
-| DELETE | **推荐写**（兼容性 + 安全）                 |
+| Method      | 是否推荐 CL:0 | 说明           |
+| ----------- | --------- | ------------ |
+| GET         | ❌         | 默认无 body     |
+| HEAD        | ❌         | 同 GET        |
+| POST        | ✅ 必须      | 消歧义          |
+| PUT         | ✅ 必须      | 消歧义          |
+| PATCH       | ✅ 必须      | 消歧义          |
+| DELETE      | ✅ 推荐      | 兼容           |
+| OPTIONS | ✅ 推荐      | 实际等同 POST    |
+| CONNECT | ✅ 推荐      | 隧道前的 HTTP 阶段 |
 
 ### response
 
