@@ -5,7 +5,7 @@ const FORBIDDEN_PREFIX = /^X-/i;
 
 const VALID_TOKEN_CHARS = /^[!#$%&'*+\-.0-9A-Z^_`a-z|~]+$/;
 
-const STANDARD_HEADERS_SET = new Set(STANDARD_HEADERS) as Set<string>;
+const STANDARD_HEADERS_SET = new Set(STANDARD_HEADERS) as ReadonlySet<string>;
 
 interface LintResult {
   errors: string[];

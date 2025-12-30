@@ -7,9 +7,9 @@ export enum HeaderSide {
   Unknown = 'unknown'
 }
 
-const REQUEST_HEADER_SET = new Set(REQUEST_ONLY_HEADERS) as Set<string>;;
-const RESPONSE_HEADER_SET = new Set(RESPONSE_ONLY_HEADERS) as Set<string>;
-const BOTH_HEADER_SET = new Set(BOTH_HEADERS) as Set<string>;
+const REQUEST_HEADER_SET = new Set(REQUEST_ONLY_HEADERS) as ReadonlySet<string>;;
+const RESPONSE_HEADER_SET = new Set(RESPONSE_ONLY_HEADERS) as ReadonlySet<string>;
+const BOTH_HEADER_SET = new Set(BOTH_HEADERS) as ReadonlySet<string>;
 
 export function getHeaderSide(headerName: string): HeaderSide {
   if (!headerName) {
