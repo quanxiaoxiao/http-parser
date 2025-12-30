@@ -1,7 +1,6 @@
 import { Buffer } from 'node:buffer';
 
-const CR = 0x0d;
-const LF = 0x0a;
+import { CR, LF } from '../specs.js';
 
 export function encodeHttpLine(buf: Buffer): Buffer {
   const result = Buffer.allocUnsafe(buf.length + 2);

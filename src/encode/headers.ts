@@ -5,7 +5,7 @@ import { type Headers, type NormalizedHeaders } from '../types.js';
 const CRLF = '\r\n';
 const CRLF_BUFFER = Buffer.from(CRLF, 'utf8');
 
-const HEADER_TOKEN_EXCEPTIONS: ReadonlyMap<string, string> = new Map([
+const HEADER_TOKEN_EXCEPTIONS = new Map([
   ['te', 'TE'],
   ['dnt', 'DNT'],
   ['etag', 'ETag'],
@@ -14,7 +14,7 @@ const HEADER_TOKEN_EXCEPTIONS: ReadonlyMap<string, string> = new Map([
   ['www', 'WWW'],
   ['md5', 'MD5'],
   ['csrf', 'CSRF'],
-]);
+]) as ReadonlyMap<string, string>;
 
 interface EncodeHeaderOptions {
   encodeValue?: boolean;

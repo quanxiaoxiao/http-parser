@@ -1,10 +1,9 @@
 import { Buffer } from 'node:buffer';
 
 import { DecodeHttpError } from '../errors.js';
+import { CR, LF } from '../specs.js';
 
 const MAX_LINE_SIZE = 16 * 1024;
-const CR = 0x0d;
-const LF = 0x0a;
 
 function throwDecodeHttpError(message: string): never {
   throw new DecodeHttpError(`Decode Http Error: ${message}`);

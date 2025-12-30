@@ -1,6 +1,7 @@
 import { Buffer } from 'node:buffer';
 
 import { DecodeHttpError } from '../errors.js';
+import { CR, LF } from '../specs.js';
 import { type TrailerHeaders } from '../types.js';
 import { decodeHttpLine } from './http-line.js';
 
@@ -15,8 +16,6 @@ export type ChunkedBodyState = {
   finished: boolean;
 };
 
-const CR = 0x0d;
-const LF = 0x0a;
 const CRLF_LENGTH = 2;
 const DOUBLE_CRLF_LENGTH = 4;
 const EMPTY_BUFFER = Buffer.alloc(0);

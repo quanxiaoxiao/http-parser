@@ -1,3 +1,4 @@
+import { CRLF } from '../specs.js';
 import type { Body } from '../types.js';
 
 export function isZeroChunkOnly(body: string | Buffer | null | undefined): boolean {
@@ -10,7 +11,7 @@ export function isZeroChunkOnly(body: string | Buffer | null | undefined): boole
       return true;
     }
     if (body.length === 5) {
-      const zeroChunk = Buffer.from('0\r\n\r\n');
+      const zeroChunk = Buffer.from(`0${CRLF}${CRLF}`);
       return body.equals(zeroChunk);
     }
     return false;
@@ -18,7 +19,7 @@ export function isZeroChunkOnly(body: string | Buffer | null | undefined): boole
 
   if (typeof body === 'string') {
     const trimmed = body.trim();
-    return trimmed === '' || trimmed === '0' || trimmed === '0\r\n\r\n';
+    return trimmed === '' || trimmed === '0' || trimmed === `0${CRLF}${CRLF}`;
   }
 
   return false;

@@ -27,3 +27,7 @@ export const STANDARD_HEADERS = [
   ...RESPONSE_ONLY_HEADERS,
   ...BOTH_HEADERS,
 ] as const;
+
+export const CR = 0x0d;
+export const LF = 0x0a;
+export const CRLF = '\r\n';
