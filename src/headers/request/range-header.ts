@@ -1,4 +1,4 @@
-import createHttpError from '../createHttpError.js';
+import createHttpError from '../../createHttpError.js';
 
 type RangeResult = [number, number];
 
