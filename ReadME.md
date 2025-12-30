@@ -289,3 +289,24 @@ hasObsoleteLineFolding
 | 304         | 禁止                             |
 | 200 / 201   | **可写 `Content-Length: 0`（推荐）** |
 | 404 / 500 等 | **推荐写**                        |
+
+```
+START_LINE
+   |
+   v
+HEADER_FIELD
+   |
+   | (empty line)
+   v
+HEADER_END
+   |
+   v
+BODY_DETERMINE
+   |        \
+   |         \
+   v          v
+BODY        FINISHED
+   |
+   v
+FINISHED
+```
