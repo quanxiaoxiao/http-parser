@@ -1,7 +1,7 @@
 import { isStreamBody } from '../body/body-predicates.js';
-import { applyFramingHeaders } from '../headers/header-applys.js';
 import { normalizeHeaders } from '../headers/header-normalize.js';
 import { stripHopByHopHeaders } from '../headers/header-strips.js';
+import { applyFramingHeaders } from '../message/message-applys.js';
 import type { Body, Headers, RequestStartLine } from '../types.js';
 import { encodeChunkedStream } from './body-chunked.js';
 import { encodeHeaders } from './headers.js';
@@ -38,7 +38,11 @@ export async function* encodeRequest({
   yield encodeHttpLine(encodeRequestLine(startLine));
   const headersNormalized = normalizeHeaders(headers);
   stripHopByHopHeaders(headersNormalized);
-  applyFramingHeaders(headersNormalized, body);
+  applyFramingHeaders(
+    startLine,
+    headersNormalized,
+    body,
+  );
   yield encodeHttpLine(encodeHeaders(headersNormalized));
 
   if (body != null) {
