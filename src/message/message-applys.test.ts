@@ -2,28 +2,24 @@ import * as assert from 'node:assert';
 import { describe, it } from 'node:test';
 import { setTimeout } from 'node:timers/promises';
 
-import type { Body, NormalizedHeaders, RequestStartLine, ResponseStartLine } from '../types.js';
-import { decideBodyHeaders } from './message-applys.js';
+import type { NormalizedHeaders, RequestStartLine, ResponseStartLine } from '../types.js';
+import { applyFramingHeaders } from './message-applys.js';
 
-// Mock 依赖模块
-// 辅助函数：创建空的 headers 对象
 const createHeaders = (): NormalizedHeaders => ({});
 
-// 辅助函数：创建请求起始行
 const createRequestStartLine = (method: string): RequestStartLine => ({
   method,
   path: '/',
   version: 1.1,
 });
 
-// 辅助函数：创建响应起始行
 const createResponseStartLine = (statusCode: number): ResponseStartLine => ({
   statusCode,
   statusText: 'OK',
   version: 1.1,
 });
 
-describe('decideBodyHeaders', () => {
+describe('applyFramingHeaders', () => {
   describe('流式 Body 处理', () => {
     it('应该为流式 body 设置 transfer-encoding: chunked', () => {
       const headers = createHeaders();
@@ -33,7 +29,7 @@ describe('decideBodyHeaders', () => {
         yield Buffer.from('aa');
       }
 
-      decideBodyHeaders(startLine, headers, streamBody());
+      applyFramingHeaders(startLine, headers, streamBody());
 
       assert.strictEqual(headers['transfer-encoding']?.[0], 'chunked');
       assert.strictEqual(headers['content-length'], undefined);
@@ -51,7 +47,7 @@ describe('decideBodyHeaders', () => {
         yield Buffer.from('aa');
       }
 
-      decideBodyHeaders(startLine, headers, streamBody());
+      applyFramingHeaders(startLine, headers, streamBody());
 
       assert.strictEqual(headers['content-length'], undefined);
       assert.strictEqual(headers['content-range'], undefined);
@@ -64,7 +60,7 @@ describe('decideBodyHeaders', () => {
       const headers = createHeaders();
       const startLine = createRequestStartLine('POST');
 
-      decideBodyHeaders(startLine, headers, null);
+      applyFramingHeaders(startLine, headers, null);
 
       assert.strictEqual(headers['content-length']?.[0], '0');
     });
@@ -73,7 +69,7 @@ describe('decideBodyHeaders', () => {
       const headers = createHeaders();
       const startLine = createRequestStartLine('PUT');
 
-      decideBodyHeaders(startLine, headers, null);
+      applyFramingHeaders(startLine, headers, null);
 
       assert.strictEqual(headers['content-length']?.[0], '0');
     });
@@ -82,7 +78,7 @@ describe('decideBodyHeaders', () => {
       const headers = createHeaders();
       const startLine = createRequestStartLine('GET');
 
-      decideBodyHeaders(startLine, headers, null);
+      applyFramingHeaders(startLine, headers, null);
 
       assert.strictEqual(headers['content-length'], undefined);
     });
@@ -91,7 +87,7 @@ describe('decideBodyHeaders', () => {
       const headers = createHeaders();
       const startLine = createRequestStartLine('HEAD');
 
-      decideBodyHeaders(startLine, headers, null);
+      applyFramingHeaders(startLine, headers, null);
 
       assert.strictEqual(headers['content-length'], undefined);
     });
@@ -100,7 +96,7 @@ describe('decideBodyHeaders', () => {
       const headers = createHeaders();
       const startLine = createRequestStartLine('OPTIONS');
 
-      decideBodyHeaders(startLine, headers, null);
+      applyFramingHeaders(startLine, headers, null);
 
       assert.strictEqual(headers['content-length'], undefined);
     });
@@ -109,7 +105,7 @@ describe('decideBodyHeaders', () => {
       const headers = createHeaders();
       const startLine = createRequestStartLine('TRACE');
 
-      decideBodyHeaders(startLine, headers, null);
+      applyFramingHeaders(startLine, headers, null);
 
       assert.strictEqual(headers['content-length'], undefined);
     });
@@ -118,7 +114,7 @@ describe('decideBodyHeaders', () => {
       const headers = createHeaders();
       const startLine = createRequestStartLine('post');
 
-      decideBodyHeaders(startLine, headers, null);
+      applyFramingHeaders(startLine, headers, null);
 
       assert.strictEqual(headers['content-length']?.[0], '0');
     });
@@ -129,7 +125,7 @@ describe('decideBodyHeaders', () => {
       const headers = createHeaders();
       const startLine = createResponseStartLine(200);
 
-      decideBodyHeaders(startLine, headers, null);
+      applyFramingHeaders(startLine, headers, null);
 
       assert.strictEqual(headers['content-length']?.[0], '0');
     });
@@ -138,7 +134,7 @@ describe('decideBodyHeaders', () => {
       const headers = createHeaders();
       const startLine = createResponseStartLine(100);
 
-      decideBodyHeaders(startLine, headers, null);
+      applyFramingHeaders(startLine, headers, null);
 
       assert.strictEqual(headers['content-length'], undefined);
     });
@@ -147,7 +143,7 @@ describe('decideBodyHeaders', () => {
       const headers = createHeaders();
       const startLine = createResponseStartLine(204);
 
-      decideBodyHeaders(startLine, headers, null);
+      applyFramingHeaders(startLine, headers, null);
 
       assert.strictEqual(headers['content-length'], undefined);
     });
@@ -156,7 +152,7 @@ describe('decideBodyHeaders', () => {
       const headers = createHeaders();
       const startLine = createResponseStartLine(304);
 
-      decideBodyHeaders(startLine, headers, null);
+      applyFramingHeaders(startLine, headers, null);
 
       assert.strictEqual(headers['content-length'], undefined);
     });
@@ -165,7 +161,7 @@ describe('decideBodyHeaders', () => {
       const headers = createHeaders();
       const startLine = createResponseStartLine(404);
 
-      decideBodyHeaders(startLine, headers, null);
+      applyFramingHeaders(startLine, headers, null);
 
       assert.strictEqual(headers['content-length']?.[0], '0');
     });
@@ -176,7 +172,7 @@ describe('decideBodyHeaders', () => {
       const headers = createHeaders();
       const startLine = createRequestStartLine('POST');
 
-      decideBodyHeaders(startLine, headers, '');
+      applyFramingHeaders(startLine, headers, '');
 
       assert.strictEqual(headers['content-length']?.[0], '0');
     });
@@ -185,7 +181,7 @@ describe('decideBodyHeaders', () => {
       const headers = createHeaders();
       const startLine = createRequestStartLine('POST');
 
-      decideBodyHeaders(startLine, headers, Buffer.from(''));
+      applyFramingHeaders(startLine, headers, Buffer.from(''));
 
       assert.strictEqual(headers['content-length']?.[0], '0');
     });
@@ -197,7 +193,7 @@ describe('decideBodyHeaders', () => {
       const startLine = createRequestStartLine('POST');
       const body = 'Hello World';
 
-      decideBodyHeaders(startLine, headers, body);
+      applyFramingHeaders(startLine, headers, body);
 
       assert.strictEqual(headers['content-length']?.[0], '11');
       assert.strictEqual(headers['transfer-encoding'], undefined);
@@ -208,7 +204,7 @@ describe('decideBodyHeaders', () => {
       const startLine = createRequestStartLine('POST');
       const body = Buffer.from('Hello World');
 
-      decideBodyHeaders(startLine, headers, body);
+      applyFramingHeaders(startLine, headers, body);
 
       assert.strictEqual(headers['content-length']?.[0], '11');
       assert.strictEqual(headers['transfer-encoding'], undefined);
@@ -221,7 +217,7 @@ describe('decideBodyHeaders', () => {
       const startLine = createRequestStartLine('POST');
       const body = 'Hello World';
 
-      decideBodyHeaders(startLine, headers, body);
+      applyFramingHeaders(startLine, headers, body);
 
       assert.strictEqual(headers['transfer-encoding'], undefined);
       assert.strictEqual(headers['content-length']?.[0], '11');
@@ -232,7 +228,7 @@ describe('decideBodyHeaders', () => {
       const startLine = createResponseStartLine(200);
       const body = 'Response body';
 
-      decideBodyHeaders(startLine, headers, body);
+      applyFramingHeaders(startLine, headers, body);
 
       assert.strictEqual(headers['content-length']?.[0], '13');
       assert.strictEqual(headers['transfer-encoding'], undefined);
@@ -244,7 +240,7 @@ describe('decideBodyHeaders', () => {
       const headers = createHeaders();
       const startLine = createRequestStartLine('POST');
 
-      decideBodyHeaders(startLine, headers, undefined as any);
+      applyFramingHeaders(startLine, headers, undefined as any);
 
       assert.strictEqual(headers['content-length']?.[0], '0');
     });
@@ -254,7 +250,7 @@ describe('decideBodyHeaders', () => {
       const startLine = { method: undefined } as any;
 
       assert.doesNotThrow(() => {
-        decideBodyHeaders(startLine, headers, null);
+        applyFramingHeaders(startLine, headers, null);
       });
     });
 
@@ -263,7 +259,7 @@ describe('decideBodyHeaders', () => {
       const startLine = createRequestStartLine('POST');
       const body = 'x'.repeat(1000000);
 
-      decideBodyHeaders(startLine, headers, body);
+      applyFramingHeaders(startLine, headers, body);
 
       assert.strictEqual(headers['content-length']?.[0], '1000000');
     });

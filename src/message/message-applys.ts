@@ -50,7 +50,7 @@ const setHeadersForFixedBody = (
   appendHeader(headers, 'content-length', String(bodyLength));
 };
 
-export function decideBodyHeaders(
+export function applyFramingHeaders(
   startLine: RequestStartLine | ResponseStartLine,
   headers: NormalizedHeaders,
   body: Body,
