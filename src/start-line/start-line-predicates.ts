@@ -1,6 +1,6 @@
 import type { RequestStartLine, ResponseStartLine } from '../types.js';
 
-const BODYLESS_METHODS = new Set(['GET', 'HEAD', 'DELETE', 'CONNECT', 'TRACE', 'OPTIONS']);
+const BODYLESS_METHODS = new Set(['GET', 'HEAD', 'DELETE', 'CONNECT', 'TRACE', 'OPTIONS']) as ReadonlySet<string>;
 
 const HTTP_METHODS = [
   'GET',
@@ -21,7 +21,7 @@ const BODYLESS_STATUS_CODES = new Set([
   204, // No Content
   205, // Reset Content
   304, // Not Modified
-]);
+]) as ReadonlySet<number>;
 
 type HttpMethod = typeof HTTP_METHODS[number];
 
