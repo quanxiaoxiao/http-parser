@@ -1,18 +1,11 @@
+import { STANDARD_HEADERS } from '../specs.js';
+
 const HEADER_NAME_REGEX = /^([A-Z][a-z0-9]*)(-[A-Z][a-z0-9]*)*$/;
 const FORBIDDEN_PREFIX = /^X-/i;
 
 const VALID_TOKEN_CHARS = /^[!#$%&'*+\-.0-9A-Z^_`a-z|~]+$/;
 
-const STANDARD_HEADERS = new Set([
-  'Accept', 'Accept-Encoding', 'Accept-Language', 'Authorization',
-  'Cache-Control', 'Content-Type', 'Content-Length', 'Content-Encoding',
-  'Cookie', 'Date', 'ETag', 'Expires', 'Host', 'If-Modified-Since',
-  'If-None-Match', 'Last-Modified', 'Location', 'Range', 'Referer',
-  'Server', 'Set-Cookie', 'Transfer-Encoding', 'User-Agent',
-  'Vary', 'WWW-Authenticate', 'Access-Control-Allow-Origin',
-  'Access-Control-Allow-Methods', 'Access-Control-Allow-Headers',
-  'Content-Security-Policy', 'Strict-Transport-Security',
-]);
+const STANDARD_HEADERS_SET = new Set(STANDARD_HEADERS) as Set<string>;
 
 interface LintResult {
   errors: string[];
@@ -23,12 +16,10 @@ interface LintResult {
 function findSimilarHeader(name: string): string | null {
   const nameLower = name.toLowerCase();
 
-  for (const standard of STANDARD_HEADERS) {
-    const standardLower = standard.toLowerCase();
-
-    if (Math.abs(nameLower.length - standardLower.length) <= 2) {
-      if (nameLower.startsWith(standardLower.slice(0, 3)) ||
-          standardLower.startsWith(nameLower.slice(0, 3))) {
+  for (const standard of STANDARD_HEADERS_SET) {
+    if (Math.abs(nameLower.length - standard.length) <= 2) {
+      if (nameLower.startsWith(standard.slice(0, 3)) ||
+          standard.startsWith(nameLower.slice(0, 3))) {
         return standard;
       }
     }
@@ -96,18 +87,20 @@ export function lintHeaderName(name: string): LintResult {
     warnings.push('Avoid all-uppercase header names, use Title-Case instead');
   }
 
-  if (name === name.toLowerCase() && name.includes('-')) {
+  const nameLower = name.toLowerCase();
+
+  if (name === nameLower && name.includes('-')) {
     warnings.push('Header name should use Title-Case, not all-lowercase');
   }
 
-  if (!STANDARD_HEADERS.has(name)) {
+  if (!STANDARD_HEADERS_SET.has(nameLower)) {
     const similar = findSimilarHeader(name);
     if (similar) {
       suggestions.push(`Did you mean: ${similar}?`);
     }
   }
 
-  if (name.toLowerCase() === 'referrer') {
+  if (nameLower === 'referrer') {
     suggestions.push('Note: The standard header is "Referer" (misspelled by design in HTTP spec)');
   }
 
