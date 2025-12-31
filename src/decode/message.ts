@@ -45,7 +45,7 @@ export interface HttpState {
   startLine: RequestStartLine | ResponseStartLine | null;
   headersState: HeadersState | null;
   bodyState: ChunkedBodyState | FixedLengthBodyState | null;
-  events?: DecodeEvent[];
+  events: HttpDecodeEvent[];
 }
 
 export interface HttpRequestState extends HttpState {
@@ -71,7 +71,7 @@ function createHttpState(): HttpState {
 function transition(state: HttpState, next: HttpDecodePhase) {
   if (state.phase !== next) {
     state.phase = next;
-    state.events!.push({
+    state.events.push({
       type: 'phase-enter',
       phase: next,
     });
