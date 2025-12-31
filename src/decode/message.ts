@@ -19,7 +19,6 @@ const EMPTY_BUFFER = Buffer.alloc(0);
 export enum HttpDecodePhase {
   START_LINE = 'start-line',
   HEADERS = 'headers',
-  BODY = 'body',
   BODY_CHUNKED = 'body-chunked',
   BODY_CONTENT_LENGTH = 'body-content-length',
   FINISHED = 'finished',
