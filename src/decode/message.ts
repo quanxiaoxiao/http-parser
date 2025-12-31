@@ -24,6 +24,15 @@ export enum HttpDecodePhase {
   FINISHED = 'finished',
 }
 
+export type HttpDecodeEvent =
+  | { type: 'phase-enter'; phase: HttpDecodePhase }
+  | { type: 'start-line-complete'; raw: string }
+  | { type: 'header-line'; name: string; value: string }
+  | { type: 'headers-complete'; headers: Headers }
+  | { type: 'body-chunk'; size: number }
+  | { type: 'body-complete'; totalSize: number }
+  | { type: 'request-complete' };
+
 function formatError(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
@@ -36,6 +45,7 @@ export interface HttpState {
   startLine: RequestStartLine | ResponseStartLine | null;
   headersState: HeadersState | null;
   bodyState: ChunkedBodyState | FixedLengthBodyState | null;
+  events?: DecodeEvent[];
 }
 
 export interface HttpRequestState extends HttpState {
