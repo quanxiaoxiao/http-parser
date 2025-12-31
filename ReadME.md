@@ -310,3 +310,44 @@ BODY        FINISHED
    v
 FINISHED
 ```
+
+```
+onStartLineStart
+onStartLineEnd
+
+onHeaderNameStart
+onHeaderValueStart
+onHeaderLineEnd
+onHeadersEnd
+
+onBodyChunkStart
+onBodyChunkEnd
+
+onMessageDone
+```
+
+```
+export enum ParserState {
+  START_LINE,
+  HEADER_NAME,
+  HEADER_VALUE,
+  HEADER_LINE_END,
+  HEADERS_END,
+  BODY_IDENTITY,
+  BODY_CHUNK_SIZE,
+  BODY_CHUNK_DATA,
+  BODY_CHUNK_END,
+  MESSAGE_DONE,
+}
+```
+
+```
+STATE              COUNT     TOTAL(ms)   AVG(ns)   %
+-----------------------------------------------------
+START_LINE         1         0.01        10000     0.2
+HEADER_NAME        12        0.12        10000     2.1
+HEADER_VALUE       12        4.80        400000    83.5  ← 🔥
+HEADER_LINE_END    12        0.05        4000      0.9
+BODY_CHUNK_DATA    3         0.70        230000    12.2
+MESSAGE_DONE       1         0.01        9000      0.1
+```

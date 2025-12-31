@@ -64,8 +64,19 @@ function createHttpState(): HttpState {
     startLine: null,
     headersState: null,
     bodyState: null,
+    events: [],
   };
 };
+
+function transition(state: HttpState, next: HttpDecodePhase) {
+  if (state.phase !== next) {
+    state.phase = next;
+    state.events!.push({
+      type: 'phase-enter',
+      phase: next,
+    });
+  }
+}
 
 export function createRequestState(): HttpRequestState {
   return createHttpState();
@@ -276,6 +287,8 @@ function genericParse(
   let state: HttpState = input.length > 0
     ? updateState(prev, { buffer: Buffer.concat([prev.buffer, input]) })
     : prev;
+
+  state.events = [];
 
   while (!state.finished) {
     const prevPhase = state.phase;
