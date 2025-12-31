@@ -4,7 +4,7 @@ import { DecodeHttpError } from '../errors.js';
 import { isChunked } from '../headers/header-predicates.js';
 import { getHeaderValue } from '../headers/headers.js';
 import parseInteger from '../parseInteger.js';
-import type { Headers, HttpParsePhase, HttpParserHooks, RequestStartLine, ResponseStartLine } from '../types.js';
+import type { Headers, HttpParserHooks, RequestStartLine, ResponseStartLine } from '../types.js';
 import { type ChunkedBodyState, createChunkedBodyState, decodeChunkedBody } from './chunked-body.js';
 import { createFixedLengthBodyState, decodeFixedLengthBody,type FixedLengthBodyState } from './fixed-length-body.js';
 import { createHeadersState, decodeHeaders,type HeadersState } from './headers.js';
@@ -16,12 +16,21 @@ const MAX_HEADER_SIZE = 16 * 1024;
 const MAX_START_LINE_SIZE = 16 * 1024;
 const EMPTY_BUFFER = Buffer.alloc(0);
 
+export enum HttpDecodePhase {
+  START_LINE = 'start-line',
+  HEADERS = 'headers',
+  BODY = 'body',
+  BODY_CHUNKED = 'body-chunked',
+  BODY_CONTENT_LENGTH = 'body-content-length',
+  FINISHED = 'finished',
+}
+
 function formatError(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
 export interface HttpState {
-  phase: HttpParsePhase;
+  phase: HttpDecodePhase;
   buffer: Buffer;
   finished: boolean;
   error?: Error,
@@ -40,7 +49,7 @@ export interface HttpResponseState extends HttpState {
 
 function createHttpState(): HttpState {
   return {
-    phase: 'STARTLINE',
+    phase: HttpDecodePhase.STARTLINE,
     buffer: EMPTY_BUFFER,
     finished: false,
     startLine: null,
@@ -95,7 +104,7 @@ function handleStartLinePhase<T extends HttpState>(
   return updateState(state, {
     buffer: state.buffer.subarray(endOfLine),
     startLine,
-    phase: 'HEADERS',
+    phase: HttpDecodePhase.HEADERS,
   }) as T;
 }
 
@@ -134,12 +143,12 @@ function getContentLength(headers: Headers): number | null {
 
 function determineBodyPhase(headers: Headers): Partial<HttpState> {
   if (isChunked(headers)) {
-    return { phase: 'BODY_CHUNKED' };
+    return { phase: HttpDecodePhase.BODY_CHUNKED };
   }
 
   const contentLength = getContentLength(headers);
   if (contentLength) {
-    return { phase: 'BODY_CONTENT_LENGTH' };
+    return { phase: HttpDecodePhase.BODY_CONTENT_LENGTH };
   }
 
   return { finished: true };
@@ -222,29 +231,29 @@ function handleBodyContentLengthPhase(state: HttpState, hooks?: HttpParserHooks)
 }
 
 const requestPhaseHandlers = new Map<
-  HttpParsePhase,
+  HttpDecodePhase,
   (state: HttpState, hooks?: HttpParserHooks) => HttpState
     >([
-      ['STARTLINE', handleRequestStartLinePhase],
-      ['HEADERS', handleHeadersPhase],
-      ['BODY_CHUNKED', handleBodyChunkedPhase],
-      ['BODY_CONTENT_LENGTH', handleBodyContentLengthPhase],
+      [HttpDecodePhase.STARTLINE, handleRequestStartLinePhase],
+      [HttpDecodePhase.HEADERS, handleHeadersPhase],
+      [HttpDecodePhase.BODY_CHUNKED, handleBodyChunkedPhase],
+      [HttpDecodePhase.BODY_CONTENT_LENGTH, handleBodyContentLengthPhase],
     ]);
 
 const responsePhaseHandlers = new Map<
-  HttpParsePhase,
+  HttpDecodePhase,
   (state: HttpState, hooks?: HttpParserHooks) => HttpState
     >([
-      ['STARTLINE', handleResponseStartLinePhase],
-      ['HEADERS', handleHeadersPhase],
-      ['BODY_CHUNKED', handleBodyChunkedPhase],
-      ['BODY_CONTENT_LENGTH', handleBodyContentLengthPhase],
+      [HttpDecodePhase.STARTLINE, handleResponseStartLinePhase],
+      [HttpDecodePhase.HEADERS, handleHeadersPhase],
+      [HttpDecodePhase.BODY_CHUNKED, handleBodyChunkedPhase],
+      [HttpDecodePhase.BODY_CONTENT_LENGTH, handleBodyContentLengthPhase],
     ]);
 
 function genericParse(
   prev: HttpState,
   input: Buffer,
-  phaseHandlers: Map<HttpParsePhase, (state: HttpState, hooks?: HttpParserHooks) => HttpState>,
+  phaseHandlers: Map<HttpDecodePhase, (state: HttpState, hooks?: HttpParserHooks) => HttpState>,
   hooks?: HttpParserHooks,
 ): HttpState {
   if (prev.finished) {
