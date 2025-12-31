@@ -4,7 +4,7 @@ import { DecodeHttpError } from '../errors.js';
 import { isChunked } from '../headers/header-predicates.js';
 import { getHeaderValue } from '../headers/headers.js';
 import parseInteger from '../parseInteger.js';
-import { type Headers, type HttpParsePhase, type HttpParserHooks, type RequestStartLine,type ResponseStartLine } from '../types.js';
+import type { Headers, HttpParsePhase, HttpParserHooks, RequestStartLine, ResponseStartLine } from '../types.js';
 import { type ChunkedBodyState, createChunkedBodyState, decodeChunkedBody } from './chunked-body.js';
 import { createFixedLengthBodyState, decodeFixedLengthBody,type FixedLengthBodyState } from './fixed-length-body.js';
 import { createHeadersState, decodeHeaders,type HeadersState } from './headers.js';
