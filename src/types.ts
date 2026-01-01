@@ -1,3 +1,5 @@
+import { Buffer } from 'node:buffer';
+
 export type Headers = Record<string, string | string[]>;
 
 export type NormalizedHeaders = Record<string, string[]>
@@ -11,6 +13,11 @@ export type HttpVersion = 1.0 | 1.1;
 export type Body = undefined | null | string | Buffer | AsyncIterable<Buffer>;
 
 export type BodyState = 'NONE' | 'FIXED' | 'STREAM';
+
+export interface BufferQueue {
+  chunks: Buffer[];
+  length: number;
+}
 
 export interface HttpMessage {
   method?: string;

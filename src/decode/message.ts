@@ -16,6 +16,12 @@ const MAX_HEADER_SIZE = 16 * 1024;
 const MAX_START_LINE_SIZE = 16 * 1024;
 const EMPTY_BUFFER = Buffer.alloc(0);
 
+export type TransitionResult =
+  | { type: 'need-more-data' }
+  | { type: 'stay' }
+  | { type: 'transition'; next: HttpDecodePhase }
+  | { type: 'finish' };
+
 export enum HttpDecodePhase {
   START_LINE = 'start-line',
   HEADERS = 'headers',
@@ -56,7 +62,21 @@ export interface HttpResponseState extends HttpState {
   startLine: ResponseStartLine | null;
 }
 
-function createHttpState(): HttpState {
+function transition(state: HttpState, next: HttpDecodePhase) {
+  if (state.phase !== next) {
+    state.phase = next;
+    state.events.push({
+      type: 'phase-enter',
+      phase: next,
+    });
+    if (next === HttpDecodePhase.FINISHED) {
+      state.finished = true;
+      state.events.push({ type: 'message-complete' });
+    }
+  }
+}
+
+export function createHttpState(mode: 'request' | 'response'): HttpState {
   return {
     phase: HttpDecodePhase.STARTLINE,
     buffer: EMPTY_BUFFER,
@@ -65,25 +85,16 @@ function createHttpState(): HttpState {
     headersState: null,
     bodyState: null,
     events: [],
+    mode,
   };
 };
 
-function transition(state: HttpState, next: HttpDecodePhase) {
-  if (state.phase !== next) {
-    state.phase = next;
-    state.events.push({
-      type: 'phase-enter',
-      phase: next,
-    });
-  }
-}
-
 export function createRequestState(): HttpRequestState {
-  return createHttpState();
+  return createHttpState('request');
 }
 
 export function createResponseState(): HttpResponseState {
-  return createHttpState();
+  return createHttpState('response');
 }
 
 function handleStartLinePhase<T extends HttpState>(
@@ -138,28 +149,6 @@ function handleResponseStartLinePhase(
   );
 }
 
-function getContentLength(headers: Headers): number | null {
-  const contentLengthValue = getHeaderValue(headers, 'content-length');
-  if (!contentLengthValue) {
-    return null;
-  }
-  const length = parseInteger(contentLengthValue[0]);
-  return (length != null && length > 0) ? length : null;
-}
-
-function determineBodyPhase(headers: Headers): Partial<HttpState> {
-  if (isChunked(headers)) {
-    return { phase: HttpDecodePhase.BODY_CHUNKED };
-  }
-
-  const contentLength = getContentLength(headers);
-  if (contentLength) {
-    return { phase: HttpDecodePhase.BODY_CONTENT_LENGTH };
-  }
-
-  return { finished: true };
-}
-
 function handleHeadersPhase(state: HttpState): HttpState {
   if (!state.headersState) {
     state.headersState = createHeadersState();
@@ -170,13 +159,14 @@ function handleHeadersPhase(state: HttpState): HttpState {
     throw new DecodeHttpError(`Headers too large: ${headersState.bytesReceived} bytes exceeds limit of ${MAX_HEADER_SIZE}`);
   }
 
+  const newLines = headersState.rawHeaders.slice(state.headersState.rawHeaders.length);
+  if (newLines.length > 0) {
+    state.events.push({ type: 'headers-lines', rawHeaders: newLines });
+  }
+  state.headersState = headersState;
+
   if (!headersState.finished) {
     state.buffer = EMPTY_BUFFER;
-    state.events.push({
-      typ: 'headers-lines',
-      rawHeaders: state.headersState ? headersState.rawHeaders : headersState.rawHeaders.slice(state.headersState.rawHeaders.length),
-    });
-    state.headersState = headersState;
     return state;
   }
   state.events.push({
@@ -184,24 +174,32 @@ function handleHeadersPhase(state: HttpState): HttpState {
     headers: state.headersState.headers,
   });
 
-  const nextPhase = determineBodyPhase(headersState.headers);
+  const headers = headersState.headers;
+  if (isChunked(headers)) {
+    state.bodyState = createChunkedBodyState();
+    transition(state, HttpDecodePhase.BODY_CHUNKED);
+  } else {
+    const clValue = getHeaderValue(headers, 'content-length')?.[0];
+    const cl = clValue ? parseInteger(clValue) : 0;
+    if (cl && cl > 0) {
+      state.bodyState = createFixedLengthBodyState(cl);
+      transition(state, HttpDecodePhase.BODY_CONTENT_LENGTH);
+    } else {
+      transition(state, HttpDecodePhase.FINISHED);
+    }
+  }
 
   state.buffer = headersState.buffer;
   state.headersState = {
     ...headersState,
     buffer: EMPTY_BUFFER,
   };
-  if (nextPhase.finished) {
-    state.finished = true;
-  } else {
-    transition(state, nextPhase.phase);
-  }
   return state;
 }
 
 function handleBodyPhase<T extends ChunkedBodyState | FixedLengthBodyState>(
   state: HttpState,
-  parser: (bodyState: T, buffer: Buffer, onBody?: (buffer: Buffer) => void) => T,
+  parser: (bodyState: T, buffer: Buffer) => T,
 ): HttpState {
   const bodyState = parser(
     state.bodyState as T,
@@ -233,20 +231,10 @@ function handleBodyPhase<T extends ChunkedBodyState | FixedLengthBodyState>(
 }
 
 function handleBodyChunkedPhase(state: HttpState): HttpState {
-  if (!state.bodyState) {
-    state.bodyState = createChunkedBodyState();
-  }
   return handleBodyPhase(state, decodeChunkedBody);
 }
 
 function handleBodyContentLengthPhase(state: HttpState): HttpState {
-  if (!state.bodyState) {
-    const contentLength = getContentLength(state.headersState!.headers);
-    if (contentLength === null) {
-      throw new DecodeHttpError('Content-Length not found or invalid');
-    }
-    state.bodyState = createFixedLengthBodyState(contentLength!);
-  }
   return handleBodyPhase(state, decodeFixedLengthBody);
 }
 
