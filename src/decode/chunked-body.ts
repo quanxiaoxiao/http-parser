@@ -1,7 +1,7 @@
 import { Buffer } from 'node:buffer';
 
 import { DecodeHttpError } from '../errors.js';
-import { CR, CRLF,LF } from '../specs.js';
+import { CR, CRLF, LF } from '../specs.js';
 import type { TrailerHeaders } from '../types.js';
 import { decodeHttpLine } from './http-line.js';
 
