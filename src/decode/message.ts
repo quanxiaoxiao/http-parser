@@ -187,6 +187,10 @@ function handleHeadersPhase(state: HttpState, hooks?: HttpParserHooks): HttpStat
     state.headersState = headersState;
     return state;
   }
+  state.events.push({
+    type: 'headers-complete',
+    headers: state.headersState.headers,
+  });
 
   hooks?.onHeadersComplete?.(headersState.headers);
 
@@ -197,11 +201,10 @@ function handleHeadersPhase(state: HttpState, hooks?: HttpParserHooks): HttpStat
     ...headersState,
     buffer: EMPTY_BUFFER,
   };
-  if (nextPhase.phase) {
-    state.phase = nextPhase.phase;
-  }
   if (nextPhase.finished) {
-    state.finished = nextPhase.finished;
+    state.finished = true;
+  } else {
+    transition(state, nextPhase.phase);
   }
   return state;
 }
