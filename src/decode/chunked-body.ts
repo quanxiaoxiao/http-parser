@@ -10,6 +10,7 @@ export type ChunkedPhase = 'SIZE' | 'DATA' | 'CRLF' | 'TRAILER';
 export type ChunkedBodyState = {
   phase: ChunkedPhase;
   buffer: Buffer;
+  totalSize: number;
   currentChunkSize: number;
   bodyChunks: Buffer[];
   trailers: TrailerHeaders;
@@ -25,6 +26,7 @@ export function createChunkedBodyState(): ChunkedBodyState {
     phase: 'SIZE',
     buffer: EMPTY_BUFFER,
     currentChunkSize: 0,
+    totalSize: 0,
     bodyChunks: [],
     trailers: {},
     finished: false,
@@ -144,6 +146,8 @@ function handleDataPhase(
   if (buffer.length < currentChunkSize) {
     return state;
   }
+
+  state.totalSize += currentChunkSize;
 
   const data = buffer.subarray(0, currentChunkSize);
   const rest = buffer.subarray(currentChunkSize);

@@ -211,7 +211,7 @@ function handleBodyPhase<T extends ChunkedBodyState | FixedLengthBodyState>(
   if (!bodyState.finished) {
     state.events.push({
       type: 'body-chunk',
-      size: 0,
+      size: bodyState.contentLength != null ? bodyState.receivedBody - (state.bodyState?.receivedBody ?? 0) : bodyState.totalSize - (state.bodyState?.totalSize ?? 0),
     });
     state.buffer = EMPTY_BUFFER;
     state.bodyState = bodyState;
@@ -220,7 +220,7 @@ function handleBodyPhase<T extends ChunkedBodyState | FixedLengthBodyState>(
 
   state.events.push({
     type: 'body-complete',
-    totalSize: 0,
+    totalSize: bodyState.contentLength != null ? bodyState.contentLength : bodyState.totalSize,
   });
   state.bodyState = {
     ...bodyState,
