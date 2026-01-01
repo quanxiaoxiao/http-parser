@@ -2,13 +2,13 @@ import * as assert from 'node:assert';
 import { describe, it, test } from 'node:test';
 
 import { DecodeHttpError } from '../errors.js';
-import { createChunkedBodyState, decodeChunkedBody } from './chunked-body.js';
+import { ChunkedPhase, createChunkedBodyState, decodeChunkedBody } from './chunked-body.js';
 
 describe('createChunkedBodyState', () => {
   test('should create initial state with correct defaults', () => {
     const state = createChunkedBodyState();
 
-    assert.strictEqual(state.phase, 'SIZE');
+    assert.strictEqual(state.phase, ChunkedPhase.SIZE);
     assert.strictEqual(state.buffer.length, 0);
     assert.strictEqual(state.currentChunkSize, 0);
     assert.deepStrictEqual(state.bodyChunks, []);
@@ -67,11 +67,11 @@ describe('decodeChunkedBody - incremental parsing', () => {
     let state = createChunkedBodyState();
 
     state = decodeChunkedBody(state, Buffer.from('5\r\n'));
-    assert.strictEqual(state.phase, 'DATA');
+    assert.strictEqual(state.phase, ChunkedPhase.DATA);
     assert.strictEqual(state.finished, false);
 
     state = decodeChunkedBody(state, Buffer.from('hello'));
-    assert.strictEqual(state.phase, 'CRLF');
+    assert.strictEqual(state.phase, ChunkedPhase.CRLF);
 
     state = decodeChunkedBody(state, Buffer.from('\r\n0\r\n\r\n'));
     assert.strictEqual(state.finished, true);
@@ -82,7 +82,7 @@ describe('decodeChunkedBody - incremental parsing', () => {
     let state = createChunkedBodyState();
 
     state = decodeChunkedBody(state, Buffer.from('a'));
-    assert.strictEqual(state.phase, 'SIZE');
+    assert.strictEqual(state.phase, ChunkedPhase.SIZE);
     assert.strictEqual(state.finished, false);
 
     state = decodeChunkedBody(state, Buffer.from('\r\nhelloworld\r\n0\r\n\r\n'));
@@ -94,7 +94,7 @@ describe('decodeChunkedBody - incremental parsing', () => {
     let state = createChunkedBodyState();
 
     state = decodeChunkedBody(state, Buffer.from('a\r\nhello'));
-    assert.strictEqual(state.phase, 'DATA');
+    assert.strictEqual(state.phase, ChunkedPhase.DATA);
 
     state = decodeChunkedBody(state, Buffer.from('world\r\n0\r\n\r\n'));
     assert.strictEqual(state.finished, true);
@@ -259,7 +259,7 @@ describe('decodeChunkedBody - edge cases', () => {
     const result = decodeChunkedBody(state, Buffer.from(''));
 
     assert.strictEqual(result.finished, false);
-    assert.strictEqual(result.phase, 'SIZE');
+    assert.strictEqual(result.phase, ChunkedPhase.SIZE);
   });
 
   test('should handle whitespace in chunk size with extension', () => {
@@ -338,7 +338,7 @@ describe('decodeChunkedBody - real-world scenarios', () => {
 describe('createChunkedBodyState', () => {
   it('应该创建初始状态', () => {
     const state = createChunkedBodyState();
-    assert.strictEqual(state.phase, 'SIZE');
+    assert.strictEqual(state.phase, ChunkedPhase.SIZE);
     assert.strictEqual(state.buffer.length, 0);
     assert.strictEqual(state.currentChunkSize, 0);
     assert.strictEqual(state.bodyChunks.length, 0);
@@ -375,12 +375,12 @@ describe('decodeChunkedBody', () => {
 
       // 第一块：chunk size
       state = decodeChunkedBody(state, Buffer.from('5\r\n'));
-      assert.strictEqual(state.phase, 'DATA');
+      assert.strictEqual(state.phase, ChunkedPhase.DATA);
       assert.strictEqual(state.currentChunkSize, 5);
 
       // 第二块：chunk data
       state = decodeChunkedBody(state, Buffer.from('hello\r\n'));
-      assert.strictEqual(state.phase, 'SIZE');
+      assert.strictEqual(state.phase, ChunkedPhase.SIZE);
       assert.strictEqual(state.bodyChunks[0]?.toString(), 'hello');
 
       // 第三块：结束
@@ -544,36 +544,6 @@ describe('decodeChunkedBody', () => {
     });
   });
 
-  describe('onChunk 回调', () => {
-    it('应该在解析chunk时调用onChunk回调', () => {
-      const state = createChunkedBodyState();
-      const input = Buffer.from('5\r\nhello\r\n0\r\n\r\n');
-      const chunks: Buffer[] = [];
-
-      const result = decodeChunkedBody(state, input, (chunk) => {
-        chunks.push(chunk);
-      });
-
-      assert.strictEqual(chunks.length, 1);
-      assert.strictEqual(chunks[0]?.toString(), 'hello');
-      assert.strictEqual(result.bodyChunks.length, 0);
-    });
-
-    it('应该对多个chunks调用onChunk回调', () => {
-      const state = createChunkedBodyState();
-      const input = Buffer.from('5\r\nhello\r\n6\r\n world\r\n0\r\n\r\n');
-      const chunks: Buffer[] = [];
-
-      decodeChunkedBody(state, input, (chunk) => {
-        chunks.push(chunk);
-      });
-
-      assert.strictEqual(chunks.length, 2);
-      assert.strictEqual(chunks[0]?.toString(), 'hello');
-      assert.strictEqual(chunks[1]?.toString(), ' world');
-    });
-  });
-
   describe('边界情况', () => {
     it('应该处理空chunk (size 0)', () => {
       const state = createChunkedBodyState();
@@ -601,7 +571,7 @@ describe('decodeChunkedBody', () => {
       const state = createChunkedBodyState();
       const result = decodeChunkedBody(state, Buffer.from('5'));
 
-      assert.strictEqual(result.phase, 'SIZE');
+      assert.strictEqual(result.phase, ChunkedPhase.SIZE);
       assert.strictEqual(result.finished, false);
     });
 
@@ -609,7 +579,7 @@ describe('decodeChunkedBody', () => {
       let state = createChunkedBodyState();
       state = decodeChunkedBody(state, Buffer.from('5\r\nhel'));
 
-      assert.strictEqual(state.phase, 'DATA');
+      assert.strictEqual(state.phase, ChunkedPhase.DATA);
       assert.strictEqual(state.currentChunkSize, 5);
       assert.strictEqual(state.buffer.toString(), 'hel');
     });
@@ -637,20 +607,20 @@ describe('decodeChunkedBody', () => {
   describe('状态机转换', () => {
     it('应该正确转换状态: SIZE -> DATA -> CRLF -> SIZE -> TRAILER', () => {
       let state = createChunkedBodyState();
-      assert.strictEqual(state.phase, 'SIZE');
+      assert.strictEqual(state.phase, ChunkedPhase.SIZE);
 
       state = decodeChunkedBody(state, Buffer.from('5\r\n'));
-      assert.strictEqual(state.phase, 'DATA');
+      assert.strictEqual(state.phase, ChunkedPhase.DATA);
 
       state = decodeChunkedBody(state, Buffer.from('hello'));
-      assert.strictEqual(state.phase, 'CRLF');
+      assert.strictEqual(state.phase, ChunkedPhase.CRLF);
 
       state = decodeChunkedBody(state, Buffer.from('\r\n'));
-      assert.strictEqual(state.phase, 'SIZE');
+      assert.strictEqual(state.phase, ChunkedPhase.SIZE);
 
       state = decodeChunkedBody(state, Buffer.from('0\r\n'));
       assert.strictEqual(state.finished, false);
-      assert.strictEqual(state.phase, 'TRAILER');
+      assert.strictEqual(state.phase, ChunkedPhase.TRAILER);
 
       state = decodeChunkedBody(state, Buffer.from('\r\n'));
       assert.strictEqual(state.finished, true);

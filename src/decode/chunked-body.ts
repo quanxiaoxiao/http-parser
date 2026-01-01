@@ -5,7 +5,12 @@ import { CR, LF } from '../specs.js';
 import { type TrailerHeaders } from '../types.js';
 import { decodeHttpLine } from './http-line.js';
 
-export type ChunkedPhase = 'SIZE' | 'DATA' | 'CRLF' | 'TRAILER';
+export enum ChunkedPhase {
+  SIZE,
+  DATA,
+  CRLF,
+  TRAILER,
+}
 
 export type ChunkedBodyState = {
   phase: ChunkedPhase;
@@ -23,7 +28,7 @@ const EMPTY_BUFFER = Buffer.alloc(0);
 
 export function createChunkedBodyState(): ChunkedBodyState {
   return {
-    phase: 'SIZE',
+    phase: ChunkedPhase.SIZE,
     buffer: EMPTY_BUFFER,
     currentChunkSize: 0,
     totalSize: 0,
@@ -125,21 +130,20 @@ function handleSizePhase(state: ChunkedBodyState): ChunkedBodyState {
     return {
       ...state,
       buffer: newBuffer,
-      phase: 'TRAILER',
+      phase: ChunkedPhase.TRAILER,
     };
   }
 
   return {
     ...state,
     buffer: newBuffer,
-    phase: 'DATA',
+    phase: ChunkedPhase.DATA,
     currentChunkSize: size,
   };
 }
 
 function handleDataPhase(
   state: ChunkedBodyState,
-  onChunk?: (chunk: Buffer) => void,
 ): ChunkedBodyState {
   const { buffer, currentChunkSize } = state;
 
@@ -152,23 +156,12 @@ function handleDataPhase(
   const data = buffer.subarray(0, currentChunkSize);
   const rest = buffer.subarray(currentChunkSize);
 
-  if (onChunk) {
-    onChunk(data);
-    return {
-      ...state,
-      buffer: rest,
-      bodyChunks: [],
-      currentChunkSize: 0,
-      phase: 'CRLF',
-    };
-  }
-
   return {
     ...state,
     buffer: rest,
     bodyChunks: [...state.bodyChunks, data],
     currentChunkSize: 0,
-    phase: 'CRLF',
+    phase: ChunkedPhase.CRLF,
   };
 }
 
@@ -188,7 +181,7 @@ function handleCRLFPhase(state: ChunkedBodyState): ChunkedBodyState {
   return {
     ...state,
     buffer: buffer.subarray(CRLF_LENGTH),
-    phase: 'SIZE',
+    phase: ChunkedPhase.SIZE,
   };
 }
 
@@ -228,18 +221,17 @@ function handleTrailerPhase(state: ChunkedBodyState): ChunkedBodyState {
 
 const phaseHandlers = new Map<
 ChunkedPhase,
-(state: ChunkedBodyState, onChunk?: (chunk: Buffer) => void) => ChunkedBodyState
+(state: ChunkedBodyState) => ChunkedBodyState
   >([
-    ['SIZE', handleSizePhase],
-    ['DATA', handleDataPhase],
-    ['CRLF', handleCRLFPhase],
-    ['TRAILER', handleTrailerPhase],
+    [ChunkedPhase.SIZE, handleSizePhase],
+    [ChunkedPhase.DATA, handleDataPhase],
+    [ChunkedPhase.CRLF, handleCRLFPhase],
+    [ChunkedPhase.TRAILER, handleTrailerPhase],
   ]);
 
 export function decodeChunkedBody(
   prev: ChunkedBodyState,
   input: Buffer,
-  onChunk?: (chunk: Buffer) => void,
 ): ChunkedBodyState {
   if (prev.finished) {
     throw new DecodeHttpError('Chunked decoding already finished');
@@ -257,7 +249,7 @@ export function decodeChunkedBody(
       throw new DecodeHttpError(`Unknown phase: ${state.phase}`);
     }
 
-    state = handler(state, onChunk);
+    state = handler(state);
 
     if (state.phase === prevPhase) {
       break;
