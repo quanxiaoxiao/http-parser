@@ -2,7 +2,6 @@ import * as assert from 'node:assert';
 import { Buffer } from 'node:buffer';
 import { describe, it } from 'node:test';
 
-import { type HttpParserHooks } from '../types.js';
 import { createRequestState, decodeRequest, HttpDecodePhase } from './message.js';
 
 describe('decodeRequest', () => {
@@ -544,87 +543,6 @@ describe('HTTP Request Parser', () => {
     });
   });
 
-  describe('decodeRequest - Hooks', () => {
-    it('应该触发所有生命周期钩子（无 body）', () => {
-      const events: string[] = [];
-      const hooks: HttpParserHooks = {
-        onMessageBegin: () => events.push('messageBegin'),
-        onRequestStartLine: () => events.push('startLine'),
-        onHeadersBegin: () => events.push('headersBegin'),
-        onHeader: () => events.push('header'),
-        onHeadersComplete: () => events.push('headersComplete'),
-        onMessageComplete: () => events.push('messageComplete'),
-      };
-
-      const state = createRequestState();
-      const input = Buffer.from(
-        'GET / HTTP/1.1\r\n' +
-        'Host: example.com\r\n' +
-        '\r\n',
-      );
-
-      decodeRequest(state, input, hooks);
-
-      assert.deepStrictEqual(events, [
-        'messageBegin',
-        'startLine',
-        'headersBegin',
-        'header',
-        'headersComplete',
-        'messageComplete',
-      ]);
-    });
-
-    it('应该触发 body 相关钩子', () => {
-      const events: string[] = [];
-      const hooks: HttpParserHooks = {
-        onMessageBegin: () => events.push('messageBegin'),
-        onBodyBegin: () => events.push('bodyBegin'),
-        onBody: () => events.push('body'),
-        onBodyComplete: () => events.push('bodyComplete'),
-        onMessageComplete: () => events.push('messageComplete'),
-      };
-
-      const state = createRequestState();
-      const input = Buffer.from(
-        'POST / HTTP/1.1\r\n' +
-        'Content-Length: 4\r\n' +
-        '\r\n' +
-        'test',
-      );
-
-      decodeRequest(state, input, hooks);
-
-      assert.ok(events.includes('bodyBegin'));
-      assert.ok(events.includes('body'));
-      assert.ok(events.includes('bodyComplete'));
-      assert.ok(events.includes('messageComplete'));
-    });
-
-    it('应该在 onHeader 中接收 header 信息', () => {
-      const headers: Array<{ name: string; value: string }> = [];
-      const hooks: HttpParserHooks = {
-        onHeader: (name, value) => headers.push({ name, value }),
-      };
-
-      const state = createRequestState();
-      const input = Buffer.from(
-        'GET / HTTP/1.1\r\n' +
-        'Host: example.com\r\n' +
-        'Accept: */*\r\n' +
-        '\r\n',
-      );
-
-      decodeRequest(state, input, hooks);
-
-      assert.strictEqual(headers.length, 2);
-      assert.strictEqual(headers[0].name, 'host');
-      assert.strictEqual(headers[0].value, 'example.com');
-      assert.strictEqual(headers[1].name, 'accept');
-      assert.strictEqual(headers[1].value, '*/*');
-    });
-  });
-
   describe('decodeRequest - Error Handling', () => {
     it('应该拒绝已完成的请求继续解析', () => {
       const state = createRequestState();
@@ -656,20 +574,6 @@ describe('HTTP Request Parser', () => {
       assert.throws(() => {
         decodeRequest(state, Buffer.from('GET / HTTP/1.1\r\n'));
       }, /Decoding encountered error:/);
-    });
-
-    it('应该触发 onError 钩子', () => {
-      let errorCaught: Error | null = null;
-      const hooks: HttpParserHooks = {
-        onError: (error) => { errorCaught = error; },
-      };
-
-      const state = createRequestState();
-      const input = Buffer.from('INVALID\r\n');
-
-      decodeRequest(state, input, hooks);
-
-      assert.ok(errorCaught instanceof Error);
     });
   });
 

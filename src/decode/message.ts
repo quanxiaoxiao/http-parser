@@ -4,7 +4,7 @@ import { DecodeHttpError } from '../errors.js';
 import { isChunked } from '../headers/header-predicates.js';
 import { getHeaderValue } from '../headers/headers.js';
 import parseInteger from '../parseInteger.js';
-import type { Headers, HttpParserHooks, RequestStartLine, ResponseStartLine } from '../types.js';
+import type { Headers, RequestStartLine, ResponseStartLine } from '../types.js';
 import { type ChunkedBodyState, createChunkedBodyState, decodeChunkedBody } from './chunked-body.js';
 import { createFixedLengthBodyState, decodeFixedLengthBody,type FixedLengthBodyState } from './fixed-length-body.js';
 import { createHeadersState, decodeHeaders,type HeadersState } from './headers.js';
@@ -90,12 +90,7 @@ function handleStartLinePhase<T extends HttpState>(
   state: T,
   parseLineFn: (line: string) => RequestStartLine | ResponseStartLine,
   hookFn: ((startLine: ResponseStartLine | ResponseStartLine) => void) | undefined,
-  hooks?: HttpParserHooks,
 ): T {
-  if (!state.startLine) {
-    hooks?.onMessageBegin?.();
-  }
-
   let lineBuf: Buffer | null;
   try {
     lineBuf = decodeHttpLine(state.buffer, 0, MAX_START_LINE_SIZE);
@@ -127,25 +122,19 @@ function handleStartLinePhase<T extends HttpState>(
 
 function handleRequestStartLinePhase(
   state: HttpRequestState,
-  hooks?: HttpParserHooks,
 ): HttpRequestState {
   return handleStartLinePhase(
     state,
     decodeRequestStartLine,
-    hooks?.onRequestStartLine,
-    hooks,
   );
 }
 
 function handleResponseStartLinePhase(
   state: HttpResponseState,
-  hooks?: HttpParserHooks,
 ): HttpResponseState {
   return handleStartLinePhase(
     state,
     decodeResponseStartLine,
-    hooks?.onResponseStartLine,
-    hooks,
   );
 }
 
@@ -171,12 +160,11 @@ function determineBodyPhase(headers: Headers): Partial<HttpState> {
   return { finished: true };
 }
 
-function handleHeadersPhase(state: HttpState, hooks?: HttpParserHooks): HttpState {
+function handleHeadersPhase(state: HttpState): HttpState {
   if (!state.headersState) {
     state.headersState = createHeadersState();
-    hooks?.onHeadersBegin?.();
   }
-  const headersState = decodeHeaders(state.headersState!, state.buffer, hooks?.onHeader);
+  const headersState = decodeHeaders(state.headersState!, state.buffer);
 
   if (headersState.bytesReceived > MAX_HEADER_SIZE) {
     throw new DecodeHttpError(`Headers too large: ${headersState.bytesReceived} bytes exceeds limit of ${MAX_HEADER_SIZE}`);
@@ -196,8 +184,6 @@ function handleHeadersPhase(state: HttpState, hooks?: HttpParserHooks): HttpStat
     headers: state.headersState.headers,
   });
 
-  hooks?.onHeadersComplete?.(headersState.headers);
-
   const nextPhase = determineBodyPhase(headersState.headers);
 
   state.buffer = headersState.buffer;
@@ -216,12 +202,10 @@ function handleHeadersPhase(state: HttpState, hooks?: HttpParserHooks): HttpStat
 function handleBodyPhase<T extends ChunkedBodyState | FixedLengthBodyState>(
   state: HttpState,
   parser: (bodyState: T, buffer: Buffer, onBody?: (buffer: Buffer) => void) => T,
-  hooks?: HttpParserHooks,
 ): HttpState {
   const bodyState = parser(
     state.bodyState as T,
     state.buffer,
-    hooks?.onBody,
   );
 
   if (!bodyState.finished) {
@@ -234,7 +218,6 @@ function handleBodyPhase<T extends ChunkedBodyState | FixedLengthBodyState>(
     return state;
   }
 
-  hooks?.onBodyComplete?.();
   state.events.push({
     type: 'body-complete',
     totalSize: 0,
@@ -249,29 +232,27 @@ function handleBodyPhase<T extends ChunkedBodyState | FixedLengthBodyState>(
   return state;
 }
 
-function handleBodyChunkedPhase(state: HttpState, hooks?: HttpParserHooks): HttpState {
+function handleBodyChunkedPhase(state: HttpState): HttpState {
   if (!state.bodyState) {
     state.bodyState = createChunkedBodyState();
-    hooks?.onBodyBegin?.();
   }
-  return handleBodyPhase(state, decodeChunkedBody, hooks);
+  return handleBodyPhase(state, decodeChunkedBody);
 }
 
-function handleBodyContentLengthPhase(state: HttpState, hooks?: HttpParserHooks): HttpState {
+function handleBodyContentLengthPhase(state: HttpState): HttpState {
   if (!state.bodyState) {
     const contentLength = getContentLength(state.headersState!.headers);
     if (contentLength === null) {
       throw new DecodeHttpError('Content-Length not found or invalid');
     }
     state.bodyState = createFixedLengthBodyState(contentLength!);
-    hooks?.onBodyBegin?.();
   }
-  return handleBodyPhase(state, decodeFixedLengthBody, hooks);
+  return handleBodyPhase(state, decodeFixedLengthBody);
 }
 
 const requestPhaseHandlers = new Map<
   HttpDecodePhase,
-  (state: HttpState, hooks?: HttpParserHooks) => HttpState
+  (state: HttpState) => HttpState
     >([
       [HttpDecodePhase.STARTLINE, handleRequestStartLinePhase],
       [HttpDecodePhase.HEADERS, handleHeadersPhase],
@@ -281,7 +262,7 @@ const requestPhaseHandlers = new Map<
 
 const responsePhaseHandlers = new Map<
   HttpDecodePhase,
-  (state: HttpState, hooks?: HttpParserHooks) => HttpState
+  (state: HttpState) => HttpState
     >([
       [HttpDecodePhase.STARTLINE, handleResponseStartLinePhase],
       [HttpDecodePhase.HEADERS, handleHeadersPhase],
@@ -292,8 +273,7 @@ const responsePhaseHandlers = new Map<
 function genericParse(
   prev: HttpState,
   input: Buffer,
-  phaseHandlers: Map<HttpDecodePhase, (state: HttpState, hooks?: HttpParserHooks) => HttpState>,
-  hooks?: HttpParserHooks,
+  phaseHandlers: Map<HttpDecodePhase, (state: HttpState) => HttpState>,
 ): HttpState {
   if (prev.finished) {
     throw new DecodeHttpError('Decoding already finished');
@@ -317,10 +297,9 @@ function genericParse(
       throw new DecodeHttpError(`Unknown phase: ${state.phase}`);
     }
     try {
-      handler(state, hooks);
+      handler(state);
     } catch (error) {
       state.error = error as Error;
-      hooks?.onError?.(error as Error);
       break;
     }
 
@@ -333,37 +312,29 @@ function genericParse(
     return state;
   }
 
-  if (state.finished) {
-    hooks?.onMessageComplete?.();
-  }
-
   return state;
 }
 
 export function decodeRequest(
   prev: HttpRequestState | null,
   input: Buffer,
-  hooks?: HttpParserHooks,
 ): HttpRequestState {
   const prevState = prev ?? createRequestState();
   return genericParse(
     prevState,
     input,
     requestPhaseHandlers,
-    hooks,
   );
 }
 
 export function decodeResponse(
   prev: HttpResponseState | null,
   input: Buffer,
-  hooks?: HttpParserHooks,
 ): HttpResponseState {
   const prevState = prev ?? createResponseState();
   return genericParse(
     prevState,
     input,
     responsePhaseHandlers,
-    hooks,
   );
 }
