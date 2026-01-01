@@ -101,19 +101,6 @@ describe('decodeFixedLengthBody', () => {
     assert.strictEqual(state.buffer.toString(), input.subarray(5).toString());
   });
 
-  test('should call onChunk callback  more data than content length', () => {
-    let state = createFixedLengthBodyState(5);
-    const input = Buffer.from('1234567890');
-
-    state = decodeFixedLengthBody(state, input, () => {});
-
-    assert.strictEqual(state.finished, true);
-    assert.strictEqual(state.bodyChunks.length, 0);
-    assert.strictEqual(state.bytesReceived, input.length);
-    assert.strictEqual(state.contentLength, 5);
-    assert.strictEqual(state.buffer.toString(), input.subarray(5 - input.length).toString());
-  });
-
   test('should throw error when parsing already finished state', () => {
     let state = createFixedLengthBodyState(5);
     state = decodeFixedLengthBody(state, Buffer.from('12345'));
@@ -126,50 +113,6 @@ describe('decodeFixedLengthBody', () => {
         return true;
       },
     );
-  });
-
-  test('should call onChunk callback for each chunk', () => {
-    const chunks: Buffer[] = [];
-    const onChunk = (chunk: Buffer) => chunks.push(chunk);
-
-    let state = createFixedLengthBodyState(10);
-
-    state = decodeFixedLengthBody(state, Buffer.from('12345'), onChunk);
-    state = decodeFixedLengthBody(state, Buffer.from('67890'), onChunk);
-
-    assert.strictEqual(chunks.length, 2);
-    assert.strictEqual(chunks[0].toString(), '12345');
-    assert.strictEqual(chunks[1].toString(), '67890');
-    assert.strictEqual(state.buffer.length, 0);
-    assert.strictEqual(state.bodyChunks.length, 0);
-  });
-
-  test('should not call onChunk for empty buffers', () => {
-    let callCount = 0;
-    const onChunk = () => callCount++;
-
-    let state = createFixedLengthBodyState(5);
-    state = decodeFixedLengthBody(state, Buffer.from(''), onChunk);
-    assert.ok(!state.finished);
-    assert.strictEqual(state.bytesReceived, 0);
-    state = decodeFixedLengthBody(state, Buffer.from('12345'), onChunk);
-
-    assert.ok(state.finished);
-    assert.strictEqual(state.bytesReceived, 5);
-    assert.strictEqual(callCount, 1);
-  });
-
-  test('should concat buffers correctly when no onChunk provided', () => {
-    let state = createFixedLengthBodyState(15);
-
-    state = decodeFixedLengthBody(state, Buffer.from('hello'));
-    state = decodeFixedLengthBody(state, Buffer.from(' '));
-    state = decodeFixedLengthBody(state, Buffer.from('world'));
-    state = decodeFixedLengthBody(state, Buffer.from('!!!!other'));
-
-    assert.strictEqual(state.buffer.toString(), 'other');
-    assert.strictEqual(state.bodyChunks.length, 4);
-    assert.strictEqual(Buffer.concat(state.bodyChunks).toString(), 'hello world!!!!');
   });
 
   test('should optimize buffer handling for first chunk', () => {
@@ -280,22 +223,5 @@ describe('integration tests', () => {
     assert.strictEqual(getRemainingBytes(state), 0);
     assert.strictEqual(state.finished, true);
     assert.strictEqual(state.buffer.toString(), 'aa');
-  });
-
-  test('should handle complete workflow with onChunk', () => {
-    const receivedChunks: string[] = [];
-    const onChunk = (chunk: Buffer) => receivedChunks.push(chunk.toString());
-
-    let state = createFixedLengthBodyState(20);
-
-    state = decodeFixedLengthBody(state, Buffer.from('Hello, '), onChunk);
-    state = decodeFixedLengthBody(state, Buffer.from('World! '), onChunk);
-    state = decodeFixedLengthBody(state, Buffer.from('Done!!'), onChunk);
-
-    assert.strictEqual(state.finished, true);
-    assert.strictEqual(receivedChunks.length, 3);
-    assert.deepStrictEqual(receivedChunks, ['Hello, ', 'World! ', 'Done!!']);
-    assert.strictEqual(state.buffer.length, 0);
-    assert.strictEqual(state.bodyChunks.length, 0);
   });
 });

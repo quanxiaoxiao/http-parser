@@ -25,7 +25,6 @@ export function createFixedLengthBodyState(contentLength: number): FixedLengthBo
 export function decodeFixedLengthBody(
   prev: FixedLengthBodyState,
   input: Buffer,
-  onChunk?: (chunk: Buffer) => void,
 ): FixedLengthBodyState {
   if (prev.finished) {
     throw new DecodeHttpError('Content-Length parsing already finished');
@@ -40,19 +39,6 @@ export function decodeFixedLengthBody(
   const overflowBytes = totalBytes - prev.contentLength;
   const validInput = overflowBytes > 0 ? input.subarray(0, -overflowBytes) : input;
   const remainingBuffer = overflowBytes > 0 ? input.subarray(-overflowBytes) : Buffer.alloc(0);
-
-  if (onChunk) {
-    if (input.length > 0) {
-      onChunk(input);
-    }
-    return {
-      buffer: remainingBuffer,
-      contentLength: prev.contentLength,
-      bytesReceived: totalBytes,
-      bodyChunks: [],
-      finished,
-    };
-  }
 
   return {
     buffer: remainingBuffer,
