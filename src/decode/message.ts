@@ -78,7 +78,7 @@ function transition(state: HttpState, next: HttpDecodePhase) {
 
 export function createHttpState(mode: 'request' | 'response'): HttpState {
   return {
-    phase: HttpDecodePhase.STARTLINE,
+    phase: HttpDecodePhase.START_LINE,
     buffer: EMPTY_BUFFER,
     finished: false,
     startLine: null,
@@ -245,7 +245,7 @@ const requestPhaseHandlers = new Map<
   HttpDecodePhase,
   (state: HttpState) => HttpState
     >([
-      [HttpDecodePhase.STARTLINE, handleRequestStartLinePhase],
+      [HttpDecodePhase.START_LINE, handleRequestStartLinePhase],
       [HttpDecodePhase.HEADERS, handleHeadersPhase],
       [HttpDecodePhase.BODY_CHUNKED, handleBodyChunkedPhase],
       [HttpDecodePhase.BODY_CONTENT_LENGTH, handleBodyContentLengthPhase],
@@ -255,7 +255,7 @@ const responsePhaseHandlers = new Map<
   HttpDecodePhase,
   (state: HttpState) => HttpState
     >([
-      [HttpDecodePhase.STARTLINE, handleResponseStartLinePhase],
+      [HttpDecodePhase.START_LINE, handleResponseStartLinePhase],
       [HttpDecodePhase.HEADERS, handleHeadersPhase],
       [HttpDecodePhase.BODY_CHUNKED, handleBodyChunkedPhase],
       [HttpDecodePhase.BODY_CONTENT_LENGTH, handleBodyContentLengthPhase],

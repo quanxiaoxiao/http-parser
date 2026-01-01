@@ -8,7 +8,7 @@ describe('decodeRequest', () => {
   describe('基础功能', () => {
     it('应该创建初始状态', () => {
       const state = createRequestState();
-      assert.strictEqual(state.phase, HttpDecodePhase.STARTLINE);
+      assert.strictEqual(state.phase, HttpDecodePhase.START_LINE);
       assert.strictEqual(state.finished, false);
       assert.strictEqual(state.startLine, null);
       assert.strictEqual(state.headersState, null);
@@ -29,12 +29,12 @@ describe('decodeRequest', () => {
       const state = createRequestState();
       const result = decodeRequest(state, Buffer.alloc(0));
 
-      assert.strictEqual(result.phase, HttpDecodePhase.STARTLINE);
+      assert.strictEqual(result.phase, HttpDecodePhase.START_LINE);
       assert.strictEqual(result.finished, false);
     });
   });
 
-  describe('STARTLINE 阶段', () => {
+  describe('START_LINE 阶段', () => {
     it('应该解析简单的 GET 请求行', () => {
       const state = createRequestState();
       const input = Buffer.from('GET /path HTTP/1.1\r\n');
@@ -58,13 +58,13 @@ describe('decodeRequest', () => {
       assert.strictEqual(result.startLine.path, '/api/users');
     });
 
-    it('不完整的请求行应该保持在 STARTLINE 阶段', () => {
+    it('不完整的请求行应该保持在 START_LINE 阶段', () => {
       const state = createRequestState();
       const input = Buffer.from('GET /path');
 
       const result = decodeRequest(state, input);
 
-      assert.strictEqual(result.phase, HttpDecodePhase.STARTLINE);
+      assert.strictEqual(result.phase, HttpDecodePhase.START_LINE);
       assert.strictEqual(result.finished, false);
     });
   });
@@ -310,7 +310,7 @@ describe('HTTP Request Parser', () => {
     it('应该创建初始状态', () => {
       const state = createRequestState();
 
-      assert.strictEqual(state.phase, HttpDecodePhase.STARTLINE);
+      assert.strictEqual(state.phase, HttpDecodePhase.START_LINE);
       assert.strictEqual(state.finished, false);
       assert.strictEqual(state.startLine, null);
       assert.strictEqual(state.headersState, null);
@@ -358,7 +358,7 @@ describe('HTTP Request Parser', () => {
 
       const result = decodeRequest(state, input);
 
-      assert.strictEqual(result.phase, HttpDecodePhase.STARTLINE);
+      assert.strictEqual(result.phase, HttpDecodePhase.START_LINE);
       assert.ok(!result.startLine?.method);
     });
 
@@ -366,7 +366,7 @@ describe('HTTP Request Parser', () => {
       let state = createRequestState();
 
       state = decodeRequest(state, Buffer.from('GET /pa'));
-      assert.strictEqual(state.phase, HttpDecodePhase.STARTLINE);
+      assert.strictEqual(state.phase, HttpDecodePhase.START_LINE);
 
       state = decodeRequest(state, Buffer.from('th HTTP/1.1\r\n'));
       assert.strictEqual(state.phase, HttpDecodePhase.HEADERS);
@@ -582,7 +582,7 @@ describe('HTTP Request Parser', () => {
       const state = createRequestState();
       const result = decodeRequest(state, Buffer.alloc(0));
 
-      assert.strictEqual(result.phase, HttpDecodePhase.STARTLINE);
+      assert.strictEqual(result.phase, HttpDecodePhase.START_LINE);
       assert.strictEqual(result.finished, false);
     });
 
