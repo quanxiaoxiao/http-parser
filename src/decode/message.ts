@@ -16,12 +16,6 @@ const MAX_HEADER_SIZE = 16 * 1024;
 const MAX_START_LINE_SIZE = 16 * 1024;
 const EMPTY_BUFFER = Buffer.alloc(0);
 
-export type TransitionResult =
-  | { type: 'need-more-data' }
-  | { type: 'stay' }
-  | { type: 'transition'; next: HttpDecodePhase }
-  | { type: 'finish' };
-
 export enum HttpDecodePhase {
   START_LINE = 'start-line',
   HEADERS = 'headers',
@@ -29,6 +23,12 @@ export enum HttpDecodePhase {
   BODY_CONTENT_LENGTH = 'body-content-length',
   FINISHED = 'finished',
 }
+
+export type TransitionResult =
+  | { type: 'need-more-data' }
+  | { type: 'stay' }
+  | { type: 'transition'; next: HttpDecodePhase }
+  | { type: 'finish' };
 
 export type HttpDecodeEvent =
   | { type: 'phase-enter'; phase: HttpDecodePhase }
@@ -206,11 +206,14 @@ function handleBodyPhase<T extends ChunkedBodyState | FixedLengthBodyState>(
     state.buffer,
   );
 
-  if (!bodyState.finished) {
+  const delta = bodyState.contentLength != null ? bodyState.receivedBody - (state.bodyState?.receivedBody ?? 0) : bodyState.totalSize - (state.bodyState?.totalSize ?? 0);
+  if (delta) {
     state.events.push({
       type: 'body-chunk',
-      size: bodyState.contentLength != null ? bodyState.receivedBody - (state.bodyState?.receivedBody ?? 0) : bodyState.totalSize - (state.bodyState?.totalSize ?? 0),
+      size: delta,
     });
+  }
+  if (!bodyState.finished) {
     state.buffer = EMPTY_BUFFER;
     state.bodyState = bodyState;
     return state;
@@ -224,8 +227,8 @@ function handleBodyPhase<T extends ChunkedBodyState | FixedLengthBodyState>(
     ...bodyState,
     buffer: EMPTY_BUFFER,
   };
-  state.finished = true;
   state.buffer = bodyState.buffer;
+  transition(state, HttpDecodePhase.FINISHED);
 
   return state;
 }

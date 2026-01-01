@@ -432,7 +432,7 @@ describe('HTTP Request Parser', () => {
       const result = decodeRequest(state, input);
 
       assert.strictEqual(result.finished, true);
-      assert.strictEqual(result.phase, HttpDecodePhase.BODY_CONTENT_LENGTH);
+      assert.strictEqual(result.phase, HttpDecodePhase.FINISHED);
     });
 
     it('应该处理分块接收的请求体', () => {
@@ -503,7 +503,7 @@ describe('HTTP Request Parser', () => {
       const result = decodeRequest(state, input);
 
       assert.strictEqual(result.finished, true);
-      assert.strictEqual(result.phase, HttpDecodePhase.BODY_CHUNKED);
+      assert.strictEqual(result.phase, HttpDecodePhase.FINISHED);
     });
 
     it('应该解析多个 chunks', () => {
@@ -637,7 +637,7 @@ describe('HTTP Request Parser', () => {
 
       const result = decodeRequest(state, input);
 
-      assert.strictEqual(result.phase, HttpDecodePhase.BODY_CHUNKED);
+      assert.strictEqual(result.phase, HttpDecodePhase.FINISHED);
       assert.strictEqual(result.finished, true);
     });
   });
