@@ -86,13 +86,6 @@ export function createResponseState(): HttpResponseState {
   return createHttpState();
 }
 
-function updateState(
-  state: HttpState,
-  updates: Partial<HttpState>,
-): HttpState {
-  return { ...state, ...updates };
-}
-
 function handleStartLinePhase<T extends HttpState>(
   state: T,
   parseLineFn: (line: string) => RequestStartLine | ResponseStartLine,
@@ -117,15 +110,19 @@ function handleStartLinePhase<T extends HttpState>(
   }
 
   const startLine = parseLineFn(lineBuf.toString());
-  hookFn?.(startLine);
-
   const endOfLine = lineBuf.length + CRLF_LENGTH;
+  state.startLine = startLine;
+  state.buffer = state.buffer.subarray(endOfLine);
+  hookFn?.(state.startLine);
 
-  return updateState(state, {
-    buffer: state.buffer.subarray(endOfLine),
-    startLine,
-    phase: HttpDecodePhase.HEADERS,
-  }) as T;
+  state.events.push({
+    type: 'start-line-complete',
+    raw: state.startLine.raw,
+  });
+
+  transition(state, HttpDecodePhase.HEADERS);
+
+  return state;
 }
 
 function handleRequestStartLinePhase(
@@ -186,21 +183,27 @@ function handleHeadersPhase(state: HttpState, hooks?: HttpParserHooks): HttpStat
   }
 
   if (!headersState.finished) {
-    return updateState(state, {
-      buffer: EMPTY_BUFFER,
-      headersState,
-    });
+    state.buffer = EMPTY_BUFFER;
+    state.headersState = headersState;
+    return state;
   }
 
   hooks?.onHeadersComplete?.(headersState.headers);
 
   const nextPhase = determineBodyPhase(headersState.headers);
 
-  return updateState(state, {
-    buffer: headersState.buffer,
-    headersState: { ...headersState, buffer: EMPTY_BUFFER },
-    ...nextPhase,
-  });
+  state.buffer = headersState.buffer;
+  state.headersState = {
+    ...headersState,
+    buffer: EMPTY_BUFFER,
+  };
+  if (nextPhase.phase) {
+    state.phase = nextPhase.phase;
+  }
+  if (nextPhase.finished) {
+    state.finished = nextPhase.finished;
+  }
+  return state;
 }
 
 function handleBodyPhase<T extends ChunkedBodyState | FixedLengthBodyState>(
@@ -215,19 +218,20 @@ function handleBodyPhase<T extends ChunkedBodyState | FixedLengthBodyState>(
   );
 
   if (!bodyState.finished) {
-    return updateState(state, {
-      buffer: Buffer.alloc(0),
-      bodyState,
-    });
+    state.buffer = EMPTY_BUFFER;
+    state.bodyState = bodyState;
+    return state;
   }
 
   hooks?.onBodyComplete?.();
+  state.bodyState = {
+    ...bodyState,
+    buffer: EMPTY_BUFFER,
+  };
+  state.finished = true;
+  state.buffer = bodyState.buffer;
 
-  return updateState(state, {
-    finished: true,
-    bodyState: { ...bodyState, buffer: Buffer.alloc(0) },
-    buffer: bodyState.buffer,
-  });
+  return state;
 }
 
 function handleBodyChunkedPhase(state: HttpState, hooks?: HttpParserHooks): HttpState {
@@ -284,9 +288,10 @@ function genericParse(
     throw new Error(`Decoding encountered error: "${prev.error.message}"`);
   }
 
-  let state: HttpState = input.length > 0
-    ? updateState(prev, { buffer: Buffer.concat([prev.buffer, input]) })
-    : prev;
+  const state = prev;
+  if (input.length > 0) {
+    state.buffer = Buffer.concat([state.buffer, input]);
+  }
 
   state.events = [];
 
@@ -297,7 +302,7 @@ function genericParse(
       throw new DecodeHttpError(`Unknown phase: ${state.phase}`);
     }
     try {
-      state = handler(state, hooks);
+      handler(state, hooks);
     } catch (error) {
       state.error = error as Error;
       hooks?.onError?.(error as Error);
