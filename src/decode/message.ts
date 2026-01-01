@@ -27,11 +27,11 @@ export enum HttpDecodePhase {
 export type HttpDecodeEvent =
   | { type: 'phase-enter'; phase: HttpDecodePhase }
   | { type: 'start-line-complete'; raw: string }
-  | { type: 'header-line'; name: string; value: string }
+  | { type: 'headers-lines'; rawHeaders: string[] }
   | { type: 'headers-complete'; headers: Headers }
   | { type: 'body-chunk'; size: number }
   | { type: 'body-complete'; totalSize: number }
-  | { type: 'request-complete' };
+  | { type: 'message-complete' };
 
 function formatError(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -184,6 +184,10 @@ function handleHeadersPhase(state: HttpState, hooks?: HttpParserHooks): HttpStat
 
   if (!headersState.finished) {
     state.buffer = EMPTY_BUFFER;
+    state.events.push({
+      typ: 'headers-lines',
+      rawHeaders: state.headersState ? headersState.rawHeaders : headersState.rawHeaders.slice(state.headersState.rawHeaders.length),
+    });
     state.headersState = headersState;
     return state;
   }
@@ -221,12 +225,20 @@ function handleBodyPhase<T extends ChunkedBodyState | FixedLengthBodyState>(
   );
 
   if (!bodyState.finished) {
+    state.events.push({
+      type: 'body-chunk',
+      size: 0,
+    });
     state.buffer = EMPTY_BUFFER;
     state.bodyState = bodyState;
     return state;
   }
 
   hooks?.onBodyComplete?.();
+  state.events.push({
+    type: 'body-complete',
+    totalSize: 0,
+  });
   state.bodyState = {
     ...bodyState,
     buffer: EMPTY_BUFFER,
