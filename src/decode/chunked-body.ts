@@ -1,15 +1,15 @@
 import { Buffer } from 'node:buffer';
 
 import { DecodeHttpError } from '../errors.js';
-import { CR, LF } from '../specs.js';
-import { type TrailerHeaders } from '../types.js';
+import { CR, CRLF,LF } from '../specs.js';
+import type { TrailerHeaders } from '../types.js';
 import { decodeHttpLine } from './http-line.js';
 
 export enum ChunkedPhase {
-  SIZE,
-  DATA,
-  CRLF,
-  TRAILER,
+  SIZE = 'size',
+  DATA = 'data',
+  CRLF = 'crlf',
+  TRAILER = 'trailer',
 }
 
 export type ChunkedBodyState = {
@@ -26,6 +26,8 @@ const CRLF_LENGTH = 2;
 const DOUBLE_CRLF_LENGTH = 4;
 const EMPTY_BUFFER = Buffer.alloc(0);
 
+const DOUBLE_CRLF = Buffer.from([CR, LF, CR, LF]);
+
 export function createChunkedBodyState(): ChunkedBodyState {
   return {
     phase: ChunkedPhase.SIZE,
@@ -40,37 +42,24 @@ export function createChunkedBodyState(): ChunkedBodyState {
 
 function indexOfDoubleCRLF(buf: Buffer): number {
   const len = buf.length;
-  if (len < DOUBLE_CRLF_LENGTH) return -1;
-
-  const maxIndex = len - 3;
-  for (let i = 0; i < maxIndex; i++) {
-    if (
-      buf[i] === CR &&
-      buf[i + 1] === LF &&
-      buf[i + 2] === CR &&
-      buf[i + 3] === LF
-    ) {
-      return i;
-    }
+  if (len < DOUBLE_CRLF_LENGTH) {
+    return -1;
   }
-  return -1;
+
+  return buf.indexOf(DOUBLE_CRLF);
 }
 
 function parseChunkSize(line: string): number {
-  const sizeHex = line.split(';', 1)[0]?.trim();
+  const match = line.match(/^([0-9a-fA-F]+)/);
 
-  if (!sizeHex) {
+  if (!match) {
     throw new DecodeHttpError('Empty chunk size line');
   }
 
-  const size = parseInt(sizeHex, 16);
+  const size = parseInt(match[1], 16);
 
-  if (Number.isNaN(size)) {
-    throw new DecodeHttpError(`Invalid hexadecimal chunk size: "${sizeHex}"`);
-  }
-
-  if (size < 0) {
-    throw new DecodeHttpError(`Negative chunk size not allowed: ${size}`);
+  if (!Number.isFinite(size) || size < 0) {
+    throw new DecodeHttpError(`Invalid chunk size: "${match[1]}"`);
   }
 
   return size;
@@ -84,7 +73,7 @@ function parseTrailerHeaders(raw: string): TrailerHeaders {
     return trailers;
   }
 
-  const lines = trimmed.split('\r\n');
+  const lines = trimmed.split(CRLF);
 
   for (const line of lines) {
     if (!line.trim()) {
@@ -123,21 +112,12 @@ function handleSizePhase(state: ChunkedBodyState): ChunkedBodyState {
 
   const line = lineBuf.toString('ascii');
   const consumed = lineBuf.length + CRLF_LENGTH;
-  const newBuffer = state.buffer.subarray(consumed);
   const size = parseChunkSize(line);
-
-  if (size === 0) {
-    return {
-      ...state,
-      buffer: newBuffer,
-      phase: ChunkedPhase.TRAILER,
-    };
-  }
 
   return {
     ...state,
-    buffer: newBuffer,
-    phase: ChunkedPhase.DATA,
+    buffer: state.buffer.subarray(consumed),
+    phase: size === 0 ? ChunkedPhase.TRAILER : ChunkedPhase.DATA,
     currentChunkSize: size,
   };
 }
@@ -151,15 +131,11 @@ function handleDataPhase(
     return state;
   }
 
-  state.totalSize += currentChunkSize;
-
-  const data = buffer.subarray(0, currentChunkSize);
-  const rest = buffer.subarray(currentChunkSize);
-
   return {
     ...state,
-    buffer: rest,
-    bodyChunks: [...state.bodyChunks, data],
+    totalSize: state.totalSize + currentChunkSize,
+    buffer: buffer.subarray(currentChunkSize),
+    bodyChunks: [...state.bodyChunks, buffer.subarray(0, currentChunkSize)],
     currentChunkSize: 0,
     phase: ChunkedPhase.CRLF,
   };
@@ -208,26 +184,22 @@ function handleTrailerPhase(state: ChunkedBodyState): ChunkedBodyState {
   }
 
   const raw = buffer.subarray(0, idx).toString('utf8');
-  const rest = buffer.subarray(idx + DOUBLE_CRLF_LENGTH);
   const trailers = parseTrailerHeaders(raw);
 
   return {
     ...state,
-    buffer: rest,
+    buffer: buffer.subarray(idx + DOUBLE_CRLF_LENGTH),
     trailers: { ...state.trailers, ...trailers },
     finished: true,
   };
 }
 
-const phaseHandlers = new Map<
-ChunkedPhase,
-(state: ChunkedBodyState) => ChunkedBodyState
-  >([
-    [ChunkedPhase.SIZE, handleSizePhase],
-    [ChunkedPhase.DATA, handleDataPhase],
-    [ChunkedPhase.CRLF, handleCRLFPhase],
-    [ChunkedPhase.TRAILER, handleTrailerPhase],
-  ]);
+const phaseHandlers: Record<ChunkedPhase, (state: ChunkedBodyState) => ChunkedBodyState> = {
+  [ChunkedPhase.SIZE]: handleSizePhase,
+  [ChunkedPhase.DATA]: handleDataPhase,
+  [ChunkedPhase.CRLF]: handleCRLFPhase,
+  [ChunkedPhase.TRAILER]: handleTrailerPhase,
+} as const;
 
 export function decodeChunkedBody(
   prev: ChunkedBodyState,
@@ -244,7 +216,7 @@ export function decodeChunkedBody(
 
   while (!state.finished) {
     const prevPhase = state.phase;
-    const handler = phaseHandlers.get(state.phase);
+    const handler = phaseHandlers[state.phase];
     if (!handler) {
       throw new DecodeHttpError(`Unknown phase: ${state.phase}`);
     }
