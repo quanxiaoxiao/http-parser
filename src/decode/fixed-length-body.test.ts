@@ -225,3 +225,97 @@ describe('integration tests', () => {
     assert.strictEqual(state.buffer.toString(), 'aa');
   });
 });
+
+describe('FixedLengthBody Decoder', () => {
+
+  describe('createFixedLengthBodyState', () => {
+    test('应该正确初始化状态', () => {
+      const state = createFixedLengthBodyState(100);
+      assert.equal(state.contentLength, 100);
+      assert.equal(state.bytesReceived, 0);
+      assert.equal(state.finished, false);
+      assert.equal(state.bodyChunks.length, 0);
+    });
+
+    test('当 Content-Length 为 0 时，应立即标记为完成', () => {
+      const state = createFixedLengthBodyState(0);
+      assert.equal(state.finished, true);
+    });
+
+    test('无效的 Content-Length 应抛出错误', () => {
+      assert.throws(() => createFixedLengthBodyState(-1), DecodeHttpError);
+      assert.throws(() => createFixedLengthBodyState(1.5), DecodeHttpError);
+    });
+  });
+
+  describe('decodeFixedLengthBody', () => {
+    test('多次输入应正确累加数据', () => {
+      let state = createFixedLengthBodyState(10);
+
+      state = decodeFixedLengthBody(state, Buffer.from('hello'));
+      assert.equal(state.bytesReceived, 5);
+      assert.equal(state.finished, false);
+
+      state = decodeFixedLengthBody(state, Buffer.from('world'));
+      assert.equal(state.bytesReceived, 10);
+      assert.equal(state.finished, true);
+      assert.deepEqual(Buffer.concat(state.bodyChunks), Buffer.from('helloworld'));
+    });
+
+    test('当输入超出 Content-Length 时，应截断输入并将剩余部分存入 buffer', () => {
+      const state = createFixedLengthBodyState(5);
+      const input = Buffer.from('12345678'); // 超出 3 字节
+
+      const nextState = decodeFixedLengthBody(state, input);
+
+      assert.equal(nextState.finished, true);
+      assert.equal(nextState.bytesReceived, 8);
+      // 验证 bodyChunks 只包含前 5 个字节
+      assert.deepEqual(Buffer.concat(nextState.bodyChunks), Buffer.from('12345'));
+      // 验证剩余的 3 个字节进入了 buffer
+      assert.deepEqual(nextState.buffer, Buffer.from('678'));
+    });
+
+    test('在已完成的状态下继续解码应抛出错误', () => {
+      const state = createFixedLengthBodyState(5);
+      const nextState = decodeFixedLengthBody(state, Buffer.from('12345'));
+
+      assert.throws(() => {
+        decodeFixedLengthBody(nextState, Buffer.from('extra'));
+      }, {
+        name: 'DecodeHttpError',
+        message: 'Content-Length parsing already finished',
+      });
+    });
+
+    test('输入空 Buffer 时不应改变状态', () => {
+      const state = createFixedLengthBodyState(10);
+      const nextState = decodeFixedLengthBody(state, Buffer.alloc(0));
+      assert.equal(nextState, state);
+    });
+  });
+
+  describe('Helper Functions', () => {
+    test('getProgress 应该正确计算进度', () => {
+      const state = createFixedLengthBodyState(100);
+      assert.equal(getProgress(state), 0);
+
+      const nextState = decodeFixedLengthBody(state, Buffer.alloc(50));
+      assert.equal(getProgress(nextState), 0.5);
+
+      const finalState = decodeFixedLengthBody(nextState, Buffer.alloc(60));
+      assert.equal(getProgress(finalState), 1); // 不应超过 1
+    });
+
+    test('getRemainingBytes 应该正确返回剩余字节数', () => {
+      const state = createFixedLengthBodyState(100);
+      assert.equal(getRemainingBytes(state), 100);
+
+      const nextState = decodeFixedLengthBody(state, Buffer.alloc(30));
+      assert.equal(getRemainingBytes(nextState), 70);
+
+      const finalState = decodeFixedLengthBody(nextState, Buffer.alloc(80));
+      assert.equal(getRemainingBytes(finalState), 0); // 不应为负数
+    });
+  });
+});
