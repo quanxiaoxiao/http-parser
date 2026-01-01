@@ -8,7 +8,7 @@ import { decodeHttpLine } from './http-line.js';
 export enum ChunkedPhase {
   SIZE = 'size',
   DATA = 'data',
-  CRLF = 'crlf',
+  CRLF = 'crlf', // eslint-disable-line
   TRAILER = 'trailer',
 }
 
