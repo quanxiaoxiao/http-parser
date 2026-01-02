@@ -100,7 +100,6 @@ export function createResponseState(): HttpResponseState {
 function handleStartLinePhase<T extends HttpState>(
   state: T,
   parseLineFn: (line: string) => RequestStartLine | ResponseStartLine,
-  hookFn: ((startLine: ResponseStartLine | ResponseStartLine) => void) | undefined,
 ): T {
   let lineBuf: Buffer | null;
   try {
@@ -119,7 +118,6 @@ function handleStartLinePhase<T extends HttpState>(
   const endOfLine = lineBuf.length + CRLF_LENGTH;
   state.startLine = startLine;
   state.buffer = state.buffer.subarray(endOfLine);
-  hookFn?.(state.startLine);
 
   state.events.push({
     type: 'start-line-complete',
