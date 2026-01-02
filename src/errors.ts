@@ -1,4 +1,4 @@
-import { HttpDecodePhase } from './specs.js';
+// import { HttpDecodePhase } from './specs.js';
 
 export enum HttpDecodeErrorCode {
   // general
@@ -62,19 +62,19 @@ export class DecodeHttpError extends createCustomError(
 
 export class HttpDecodeError extends Error {
   readonly code: HttpDecodeErrorCode;
-  readonly phase: HttpDecodePhase;
+  // readonly phase: HttpDecodePhase;
   readonly fatal: boolean;
 
   constructor(options: {
     code: HttpDecodeErrorCode;
-    phase: HttpDecodePhase;
+    // phase: HttpDecodePhase;
     message: string;
     fatal?: boolean;
     cause?: unknown;
   }) {
     super(options.message);
     this.code = options.code;
-    this.phase = options.phase;
+    // this.phase = options.phase;
     this.fatal = options.fatal ?? true;
     if (options.cause) {
       this.cause = options.cause;

@@ -1,13 +1,9 @@
 import { Buffer } from 'node:buffer';
 
-import { DecodeHttpError } from '../errors.js';
+import { HttpDecodeError, HttpDecodeErrorCode } from '../errors.js';
 import { CR, LF } from '../specs.js';
 
 const MAX_LINE_SIZE = 16 * 1024;
-
-function throwDecodeHttpError(message: string): never {
-  throw new DecodeHttpError(`Decode Http Error: ${message}`);
-}
 
 function validateParameters(buf: Buffer, start: number, limit: number): void {
   if (!Number.isInteger(start) || start < 0) {
@@ -42,14 +38,24 @@ function findLineEnd(
   for (let i = start + 1; i < searchEnd; i++) {
     if (buf[i] === LF) {
       if (buf[i - 1] !== CR) {
-        throwDecodeHttpError('LF must be preceded by CR (expected CRLF)');
+        throw new HttpDecodeError({
+          code: HttpDecodeErrorCode.BARE_LF,
+        });
       }
       return buf.subarray(start, i - 1);
+    }
+    if (buf[i] === CR && i + 1 < searchEnd && buf[i + 1] !== LF) {
+      throw new HttpDecodeError({
+        code: HttpDecodeErrorCode.BARE_CR,
+      });
     }
   }
 
   if (len - start > limit) {
-    throwDecodeHttpError(`line length exceeds limit of ${limit} bytes`);
+    throw new HttpDecodeError({
+      code: HttpDecodeErrorCode.MESSAGE_TOO_LARGE,
+      message: `line length exceeds limit of ${limit} bytes`,
+    });
   }
 
   return null;
@@ -69,7 +75,9 @@ export function decodeHttpLine(
   }
 
   if (buf[start] === LF) {
-    throwDecodeHttpError('line cannot start with LF');
+    throw new HttpDecodeError({
+      code: HttpDecodeErrorCode.BARE_LF,
+    });
   }
 
   if (len === 1) {
