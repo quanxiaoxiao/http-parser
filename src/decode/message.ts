@@ -97,10 +97,8 @@ export function createResponseState(): HttpResponseState {
   return createHttpState('response');
 }
 
-function handleStartLinePhase<T extends HttpState>(
-  state: T,
-  parseLineFn: (line: string) => RequestStartLine | ResponseStartLine,
-): T {
+function handleStartLinePhase<T extends HttpState>(state: T): T {
+  const parseLineFn = state.mode === 'request' ? decodeRequestStartLine : decodeResponseStartLine;
   let lineBuf: Buffer | null;
   try {
     lineBuf = decodeHttpLine(state.buffer, 0, MAX_START_LINE_SIZE);
@@ -127,24 +125,6 @@ function handleStartLinePhase<T extends HttpState>(
   transition(state, HttpDecodePhase.HEADERS);
 
   return state;
-}
-
-function handleRequestStartLinePhase(
-  state: HttpRequestState,
-): HttpRequestState {
-  return handleStartLinePhase(
-    state,
-    decodeRequestStartLine,
-  );
-}
-
-function handleResponseStartLinePhase(
-  state: HttpResponseState,
-): HttpResponseState {
-  return handleStartLinePhase(
-    state,
-    decodeResponseStartLine,
-  );
 }
 
 function handleHeadersPhase(state: HttpState): HttpState {
@@ -239,21 +219,11 @@ function handleBodyContentLengthPhase(state: HttpState): HttpState {
   return handleBodyPhase(state, decodeFixedLengthBody);
 }
 
-const requestPhaseHandlers = new Map<
+const phaseHandlers = new Map<
   HttpDecodePhase,
   (state: HttpState) => HttpState
     >([
-      [HttpDecodePhase.START_LINE, handleRequestStartLinePhase],
-      [HttpDecodePhase.HEADERS, handleHeadersPhase],
-      [HttpDecodePhase.BODY_CHUNKED, handleBodyChunkedPhase],
-      [HttpDecodePhase.BODY_CONTENT_LENGTH, handleBodyContentLengthPhase],
-    ]);
-
-const responsePhaseHandlers = new Map<
-  HttpDecodePhase,
-  (state: HttpState) => HttpState
-    >([
-      [HttpDecodePhase.START_LINE, handleResponseStartLinePhase],
+      [HttpDecodePhase.START_LINE, handleStartLinePhase],
       [HttpDecodePhase.HEADERS, handleHeadersPhase],
       [HttpDecodePhase.BODY_CHUNKED, handleBodyChunkedPhase],
       [HttpDecodePhase.BODY_CONTENT_LENGTH, handleBodyContentLengthPhase],
@@ -262,7 +232,6 @@ const responsePhaseHandlers = new Map<
 function genericParse(
   prev: HttpState,
   input: Buffer,
-  phaseHandlers: Map<HttpDecodePhase, (state: HttpState) => HttpState>,
 ): HttpState {
   if (prev.finished) {
     throw new DecodeHttpError('Decoding already finished');
@@ -312,7 +281,6 @@ export function decodeRequest(
   return genericParse(
     prevState,
     input,
-    requestPhaseHandlers,
   );
 }
 
@@ -324,6 +292,5 @@ export function decodeResponse(
   return genericParse(
     prevState,
     input,
-    responsePhaseHandlers,
   );
 }
