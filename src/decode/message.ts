@@ -49,6 +49,15 @@ function addEvent(state: HttpState, event: HttpDecodeEvent): void {
   state.events.push(event);
 }
 
+function cloneState(prev: HttpState): HttpState {
+  return {
+    ...prev,
+    events: [],
+    headersState: prev.headersState,
+    bodyState: prev.bodyState,
+  };
+}
+
 export interface HttpState {
   mode: HttpDecodeMode,
   phase: HttpDecodePhase;
@@ -278,14 +287,10 @@ function decodeHttp(
     throw new Error(`Decoding encountered error: "${prev.error.message}"`);
   }
 
-  const state = {
-    ...prev,
-  };
+  const state = cloneState(prev);
   if (input.length > 0) {
     state.buffer = Buffer.concat([state.buffer, input]);
   }
-
-  state.events = [];
 
   try {
     runStateMachine(state);

@@ -3,7 +3,7 @@ import { DecodeHttpError } from '../errors.js';
 export type FixedLengthBodyState = {
   buffer: Buffer;
   contentLength: number;
-  bytesReceived: number;
+  receivedBody: number;
   bodyChunks: Buffer[];
   finished: boolean;
 };
@@ -16,7 +16,7 @@ export function createFixedLengthBodyState(contentLength: number): FixedLengthBo
   return {
     buffer: Buffer.alloc(0),
     contentLength,
-    bytesReceived: 0,
+    receivedBody: 0,
     bodyChunks: [],
     finished: contentLength === 0,
   };
@@ -34,7 +34,7 @@ export function decodeFixedLengthBody(
     return prev;
   }
 
-  const totalBytes = prev.bytesReceived + input.length;
+  const totalBytes = prev.receivedBody + input.length;
   const finished = totalBytes >= prev.contentLength;
   const overflowBytes = totalBytes - prev.contentLength;
   const validInput = overflowBytes > 0 ? input.subarray(0, -overflowBytes) : input;
@@ -43,7 +43,7 @@ export function decodeFixedLengthBody(
   return {
     buffer: remainingBuffer,
     contentLength: prev.contentLength,
-    bytesReceived: totalBytes,
+    receivedBody: totalBytes,
     bodyChunks: [...prev.bodyChunks, validInput],
     finished,
   };
@@ -53,9 +53,9 @@ export function getProgress(state: FixedLengthBodyState): number {
   if (state.contentLength === 0) {
     return 1;
   }
-  return Math.min(state.bytesReceived / state.contentLength, 1);
+  return Math.min(state.receivedBody / state.contentLength, 1);
 }
 
 export function getRemainingBytes(state: FixedLengthBodyState): number {
-  return Math.max(state.contentLength - state.bytesReceived, 0);
+  return Math.max(state.contentLength - state.receivedBody, 0);
 }
