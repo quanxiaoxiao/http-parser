@@ -103,8 +103,10 @@ export function createResponseState(): HttpResponseState {
   return createHttpState('response') as HttpResponseState;
 }
 
-function handleStartLinePhase<T extends HttpState>(state: T): T {
-  const parseLineFn = state.mode === 'request' ? decodeRequestStartLine : decodeResponseStartLine;
+function handleStartLinePhase(state: HttpState): HttpState {
+  const parseLineFn = state.mode === 'request'
+    ? decodeRequestStartLine
+    : decodeResponseStartLine;
   let lineBuf: Buffer | null;
   try {
     lineBuf = decodeHttpLine(state.buffer, 0, MAX_START_LINE_SIZE);
@@ -119,9 +121,8 @@ function handleStartLinePhase<T extends HttpState>(state: T): T {
   }
 
   const startLine = parseLineFn(lineBuf.toString());
-  const endOfLine = lineBuf.length + CRLF_LENGTH;
   state.startLine = startLine;
-  state.buffer = state.buffer.subarray(endOfLine);
+  state.buffer = state.buffer.subarray(lineBuf.length + CRLF_LENGTH);
 
   state.events.push({
     type: 'start-line-complete',
@@ -131,6 +132,26 @@ function handleStartLinePhase<T extends HttpState>(state: T): T {
   transition(state, HttpDecodePhase.HEADERS);
 
   return state;
+}
+
+function determineBodyPhase(state: HttpState, headersState: HeadersState): void {
+  const { headers } = headersState;
+
+  if (isChunked(headers)) {
+    state.bodyState = createChunkedBodyState();
+    transition(state, HttpDecodePhase.BODY_CHUNKED);
+    return;
+  }
+
+  const contentLengthValue = getHeaderValue(headers, 'content-length')?.[0];
+  const contentLength = contentLengthValue ? parseInteger(contentLengthValue) : 0;
+
+  if (contentLength > 0) {
+    state.bodyState = createFixedLengthBodyState(contentLength);
+    transition(state, HttpDecodePhase.BODY_CONTENT_LENGTH);
+  } else {
+    transition(state, HttpDecodePhase.FINISHED);
+  }
 }
 
 function handleHeadersPhase(state: HttpState): HttpState {
@@ -158,20 +179,7 @@ function handleHeadersPhase(state: HttpState): HttpState {
     headers: state.headersState.headers,
   });
 
-  const headers = headersState.headers;
-  if (isChunked(headers)) {
-    state.bodyState = createChunkedBodyState();
-    transition(state, HttpDecodePhase.BODY_CHUNKED);
-  } else {
-    const clValue = getHeaderValue(headers, 'content-length')?.[0];
-    const cl = clValue ? parseInteger(clValue) : 0;
-    if (cl && cl > 0) {
-      state.bodyState = createFixedLengthBodyState(cl);
-      transition(state, HttpDecodePhase.BODY_CONTENT_LENGTH);
-    } else {
-      transition(state, HttpDecodePhase.FINISHED);
-    }
-  }
+  determineBodyPhase(state, headersState);
 
   state.buffer = headersState.buffer;
   state.headersState = {
