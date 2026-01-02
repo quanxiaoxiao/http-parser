@@ -14,6 +14,7 @@ export enum HttpDecodeErrorCode {
 
   // Start line
   INVALID_START_LINE = 'INVALID_START_LINE',
+  INVALID_STATUS_CODE = 'INVALID_STATUS_CODE',
   URI_TOO_LONG = 'URI_TOO_LONG',
   UNSUPPORTED_HTTP_VERSION = 'UNSUPPORTED_HTTP_VERSION',
 
@@ -73,6 +74,7 @@ export class HttpDecodeError extends Error {
     cause?: unknown;
   }) {
     super(options.message);
+    this.name = this.constructor.name;
     this.code = options.code;
     // this.phase = options.phase;
     this.fatal = options.fatal ?? true;

@@ -1,4 +1,4 @@
-import { DecodeHttpError } from '../errors.js';
+import { HttpDecodeError, HttpDecodeErrorCode } from '../errors.js';
 import parseInteger from '../parseInteger.js';
 import { STATUS_CODES } from '../status-codes.js';
 import type { HttpMethod, HttpVersion, RequestStartLine, ResponseStartLine } from '../types.js';
@@ -27,22 +27,26 @@ function createErrorPreview(str: string, maxLength: number = ERROR_PREVIEW_LENGT
 function validateHttpVersion(versionStr: string): HttpVersion {
   const version = HTTP_VERSION_MAP[versionStr?.toUpperCase()];
   if (version === undefined) {
-    throw new DecodeHttpError(`Unsupported HTTP version: ${versionStr}`);
+    throw new HttpDecodeError({
+      code: HttpDecodeErrorCode.UNSUPPORTED_HTTP_VERSION,
+      message: `Unsupported HTTP version: ${versionStr}`,
+    });
   }
   return version as HttpVersion;
 }
 
 export function decodeRequestStartLine(str: string): RequestStartLine {
   if (!str || typeof str !== 'string') {
-    throw new DecodeHttpError('Invalid input: request line must be a non-empty string');
+    throw new TypeError('Invalid input: request line must be a non-empty string');
   }
 
   const trimmedStr = str.trim();
   const matches = trimmedStr.match(REQUEST_STARTLINE_REG);
   if (!matches) {
-    throw new DecodeHttpError(
-      `Failed to parse HTTP request line: "${createErrorPreview(trimmedStr)}"`,
-    );
+    throw new HttpDecodeError({
+      code: HttpDecodeErrorCode.INVALID_START_LINE,
+      message: `Failed to parse HTTP request line: "${createErrorPreview(trimmedStr)}"`,
+    });
   }
 
   const [, method, path, versionStr] = matches;
@@ -57,15 +61,18 @@ export function decodeRequestStartLine(str: string): RequestStartLine {
 };
 
 export function decodeResponseStartLine(str: string): ResponseStartLine {
-  if (!str?.trim()) {
-    throw new DecodeHttpError('Invalid input: response line must be a non-empty string');
+  if (!str || typeof str !== 'string') {
+    throw new TypeError('Invalid input: response line must be a non-empty string');
   }
 
   const trimmedStr = str.trim();
   const matches = trimmedStr.match(RESPONSE_STARTLINE_REG);
 
   if (!matches) {
-    throw new DecodeHttpError(`Failed to parse HTTP response line: "${createErrorPreview(trimmedStr)}"`);
+    throw new HttpDecodeError({
+      code: HttpDecodeErrorCode.INVALID_START_LINE,
+      message: `Failed to parse HTTP response line: "${createErrorPreview(trimmedStr)}"`,
+    });
   }
 
   const [, versionStr, statusCodeStr, statusText] = matches;
@@ -74,7 +81,10 @@ export function decodeResponseStartLine(str: string): ResponseStartLine {
   const statusCode = parseInteger(statusCodeStr as string);
 
   if (statusCode == null || statusCode < MIN_STATUS_CODE || statusCode > MAX_STATUS_CODE) {
-    throw new DecodeHttpError(`Invalid HTTP status code: ${statusCode} (must be ${MIN_STATUS_CODE}-${MAX_STATUS_CODE})`);
+    throw new HttpDecodeError({
+      code: HttpDecodeErrorCode.INVALID_STATUS_CODE,
+      message: `Invalid HTTP status code: ${statusCode} (must be ${MIN_STATUS_CODE}-${MAX_STATUS_CODE})`,
+    });
   }
 
   const finalStatusMessage = statusText?.trim() || STATUS_CODES[statusCode] || 'Unknown';

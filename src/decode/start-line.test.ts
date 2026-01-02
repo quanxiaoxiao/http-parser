@@ -1,7 +1,7 @@
 import * as assert from 'node:assert';
 import { describe, it } from 'node:test';
 
-import { DecodeHttpError } from '../errors.js';
+import { HttpDecodeError } from '../errors.js';
 import { decodeRequestStartLine, decodeResponseStartLine } from './start-line.js';
 
 describe('decodeRequestStartLine', () => {
@@ -137,56 +137,56 @@ describe('decodeRequestStartLine', () => {
     it('应该在输入为空字符串时抛出错误', () => {
       assert.throws(
         () => decodeRequestStartLine(''),
-        DecodeHttpError,
+        TypeError,
       );
     });
 
     it('应该在输入为 null 时抛出错误', () => {
       assert.throws(
         () => decodeRequestStartLine(null as any), // eslint-disable-line
-        DecodeHttpError,
+        TypeError,
       );
     });
 
     it('应该在输入为 undefined 时抛出错误', () => {
       assert.throws(
         () => decodeRequestStartLine(undefined as any), // eslint-disable-line
-        DecodeHttpError,
+        TypeError,
       );
     });
 
     it('应该在输入不是字符串时抛出错误', () => {
       assert.throws(
         () => decodeRequestStartLine(123 as any), // eslint-disable-line
-        DecodeHttpError,
+        TypeError,
       );
     });
 
     it('应该在缺少 HTTP 方法时抛出错误', () => {
       assert.throws(
         () => decodeRequestStartLine('/api/users HTTP/1.1'),
-        DecodeHttpError,
+        HttpDecodeError,
       );
     });
 
     it('应该在缺少路径时抛出错误', () => {
       assert.throws(
         () => decodeRequestStartLine('GET HTTP/1.1'),
-        DecodeHttpError,
+        HttpDecodeError,
       );
     });
 
     it('应该在缺少 HTTP 版本时抛出错误', () => {
       assert.throws(
         () => decodeRequestStartLine('GET /api/users'),
-        DecodeHttpError,
+        HttpDecodeError,
       );
     });
 
     it('应该在 HTTP 版本格式错误时抛出错误', () => {
       assert.throws(
         () => decodeRequestStartLine('GET /api/users HTTP/2.0'),
-        DecodeHttpError,
+        HttpDecodeError,
       );
     });
 
@@ -203,21 +203,21 @@ describe('decodeRequestStartLine', () => {
     it('应该在路径包含空格时抛出错误', () => {
       assert.throws(
         () => decodeRequestStartLine('GET /api/users test HTTP/1.1'),
-        DecodeHttpError,
+        HttpDecodeError,
       );
     });
 
     it('应该在格式完全错误时抛出错误', () => {
       assert.throws(
         () => decodeRequestStartLine('this is not a valid request line'),
-        DecodeHttpError,
+        HttpDecodeError,
       );
     });
 
     it('应该在只有空格时抛出错误', () => {
       assert.throws(
         () => decodeRequestStartLine('   '),
-        DecodeHttpError,
+        HttpDecodeError,
       );
     });
   });
@@ -246,7 +246,7 @@ describe('decodeRequestStartLine', () => {
         decodeRequestStartLine('invalid request line');
         assert.fail('应该抛出错误');
       } catch (error) {
-        assert.ok(error instanceof DecodeHttpError);
+        assert.ok(error instanceof HttpDecodeError);
         assert.ok(error.message.includes('invalid request line'));
       }
     });
@@ -257,7 +257,7 @@ describe('decodeRequestStartLine', () => {
         decodeRequestStartLine(longInput);
         assert.fail('应该抛出错误');
       } catch (error) {
-        assert.ok(error instanceof DecodeHttpError);
+        assert.ok(error instanceof HttpDecodeError);
         assert.ok(error.message.length < 200);
       }
     });
@@ -360,8 +360,8 @@ describe('decodeResponseStartLine', () => {
       assert.throws(
         () => decodeResponseStartLine(''),
         {
-          name: 'DecodeHttpError',
-          message: /Invalid input: response line must be a non-empty string/,
+          name: 'TypeError',
+          message: 'Invalid input: response line must be a non-empty string',
         },
       );
     });
@@ -370,8 +370,8 @@ describe('decodeResponseStartLine', () => {
       assert.throws(
         () => decodeResponseStartLine('   '),
         {
-          name: 'DecodeHttpError',
-          message: /Invalid input: response line must be a non-empty string/,
+          name: 'HttpDecodeError',
+          message: /Failed to parse HTTP response line/,
         },
       );
     });
@@ -380,7 +380,7 @@ describe('decodeResponseStartLine', () => {
       assert.throws(
         () => decodeResponseStartLine(null),
         {
-          name: 'DecodeHttpError',
+          name: 'TypeError',
           message: /Invalid input: response line must be a non-empty string/,
         },
       );
@@ -390,7 +390,7 @@ describe('decodeResponseStartLine', () => {
       assert.throws(
         () => decodeResponseStartLine(undefined),
         {
-          name: 'DecodeHttpError',
+          name: 'TypeError',
           message: /Invalid input: response line must be a non-empty string/,
         },
       );
@@ -402,7 +402,7 @@ describe('decodeResponseStartLine', () => {
       assert.throws(
         () => decodeResponseStartLine('Invalid Response Line'),
         {
-          name: 'DecodeHttpError',
+          name: 'HttpDecodeError',
           message: /Failed to parse HTTP response line/,
         },
       );
@@ -412,7 +412,7 @@ describe('decodeResponseStartLine', () => {
       assert.throws(
         () => decodeResponseStartLine('HTTP/1.1'),
         {
-          name: 'DecodeHttpError',
+          name: 'HttpDecodeError',
           message: /Failed to parse HTTP response line/,
         },
       );
@@ -422,7 +422,7 @@ describe('decodeResponseStartLine', () => {
       assert.throws(
         () => decodeResponseStartLine('HTTP/2.0 200 OK'),
         {
-          name: 'DecodeHttpError',
+          name: 'HttpDecodeError',
           message: /Failed to parse HTTP response line/,
         },
       );
@@ -444,7 +444,7 @@ describe('decodeResponseStartLine', () => {
       assert.throws(
         () => decodeResponseStartLine('HTTP/1.1 99 Below Min'),
         {
-          name: 'DecodeHttpError',
+          name: 'HttpDecodeError',
         },
       );
     });
@@ -453,7 +453,7 @@ describe('decodeResponseStartLine', () => {
       assert.throws(
         () => decodeResponseStartLine('HTTP/1.1 600 Above Max'),
         {
-          name: 'DecodeHttpError',
+          name: 'HttpDecodeError',
           message: /Invalid HTTP status code.*must be 100-599/,
         },
       );
@@ -463,7 +463,7 @@ describe('decodeResponseStartLine', () => {
       assert.throws(
         () => decodeResponseStartLine('HTTP/1.1 ABC Invalid'),
         {
-          name: 'DecodeHttpError',
+          name: 'HttpDecodeError',
         },
       );
     });
@@ -472,7 +472,7 @@ describe('decodeResponseStartLine', () => {
       assert.throws(
         () => decodeResponseStartLine('HTTP/1.1 200.5 Invalid'),
         {
-          name: 'DecodeHttpError',
+          name: 'HttpDecodeError',
         },
       );
     });

@@ -35,6 +35,8 @@ export const CR = 0x0d;
 export const LF = 0x0a;
 export const CRLF = '\r\n';
 
+export const MAX_START_LINE_SIZE = 16 * 1024;
+
 export enum HttpDecodePhase {
   START_LINE,
   HEADERS,
