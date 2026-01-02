@@ -207,9 +207,9 @@ function handleBodyPhase<T extends ChunkedBodyState | FixedLengthBodyState>(
   );
 
   const previousSize = state.bodyState
-    ? ('receivedBody' in state.bodyState ? state.bodyState.receivedBody : state.bodyState.totalSize)
+    ? (state.bodyState.type === 'fixed' ? state.bodyState.receivedBody : state.bodyState.totalSize)
     : 0;
-  const currentSize = 'receivedBody' in bodyState
+  const currentSize = state.bodyState.type === 'fixed'
     ? bodyState.receivedBody
     : bodyState.totalSize;
   const delta = currentSize - previousSize;

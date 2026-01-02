@@ -44,6 +44,7 @@ export function decodeFixedLengthBody(
   const remainingBuffer = overflowBytes > 0 ? input.subarray(-overflowBytes) : Buffer.alloc(0);
 
   return {
+    ...prev,
     buffer: remainingBuffer,
     contentLength: prev.contentLength,
     receivedBody: totalBytes,
