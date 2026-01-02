@@ -229,7 +229,7 @@ const phaseHandlers = new Map<
       [HttpDecodePhase.BODY_CONTENT_LENGTH, handleBodyContentLengthPhase],
     ]);
 
-function genericParse(
+function decodeHttp(
   prev: HttpState,
   input: Buffer,
 ): HttpState {
@@ -278,7 +278,7 @@ export function decodeRequest(
   input: Buffer,
 ): HttpRequestState {
   const prevState = prev ?? createRequestState();
-  return genericParse(
+  return decodeHttp(
     prevState,
     input,
   );
@@ -289,7 +289,7 @@ export function decodeResponse(
   input: Buffer,
 ): HttpResponseState {
   const prevState = prev ?? createResponseState();
-  return genericParse(
+  return decodeHttp(
     prevState,
     input,
   );
