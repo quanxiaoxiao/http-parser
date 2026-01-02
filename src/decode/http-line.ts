@@ -40,6 +40,7 @@ function findLineEnd(
       if (buf[i - 1] !== CR) {
         throw new HttpDecodeError({
           code: HttpDecodeErrorCode.BARE_LF,
+          message: 'LF without preceding CR',
         });
       }
       return buf.subarray(start, i - 1);
@@ -47,6 +48,7 @@ function findLineEnd(
     if (buf[i] === CR && i + 1 < searchEnd && buf[i + 1] !== LF) {
       throw new HttpDecodeError({
         code: HttpDecodeErrorCode.BARE_CR,
+        message: 'CR without following LF',
       });
     }
   }
@@ -77,6 +79,7 @@ export function decodeHttpLine(
   if (buf[start] === LF) {
     throw new HttpDecodeError({
       code: HttpDecodeErrorCode.BARE_LF,
+      message: 'Line starts with bare LF',
     });
   }
 
