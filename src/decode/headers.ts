@@ -14,10 +14,10 @@ export function decodeHeaderLine(headerString: string): [string, string] {
 }
 
 export interface HeadersState {
-  buffer: Buffer;
+  buffer: Buffer | null;
   headers: Headers;
   finished: boolean;
-  bytesReceived: number;
+  receivedHeaders: number;
   rawHeaders: Array<[name: string, value: string]>;
 }
 
@@ -28,7 +28,7 @@ export function createHeadersState(): HeadersState {
     buffer: Buffer.alloc(0),
     headers: {},
     rawHeaders: [],
-    bytesReceived: 0,
+    receivedHeaders: 0,
     finished: false,
   };
 }
@@ -47,7 +47,6 @@ function addHeader(headers: Headers, name: string, value: string): void {
 export function decodeHeaders(
   prev: HeadersState,
   input: Buffer,
-  onHeader?: (field: string, value: string, headers: Headers) => void,
 ): HeadersState {
   if (prev.finished) {
     throw new DecodeHttpError('Headers parsing already finished');
@@ -59,7 +58,7 @@ export function decodeHeaders(
 
   const headers = { ...prev.headers };
   const rawHeaders = [...prev.rawHeaders];
-  let bytesReceived = prev.bytesReceived;
+  let receivedHeaders = prev.receivedHeaders;
   let offset = 0;
   let finished = false;
 
@@ -73,28 +72,25 @@ export function decodeHeaders(
     offset += lineLength;
 
     if (line.length === 0) {
-      bytesReceived += line.length;
+      receivedHeaders += line.length;
       finished = true;
       break;
     }
 
-    bytesReceived += lineLength;
+    receivedHeaders += lineLength;
 
     const [name, value] = decodeHeaderLine(line.toString());
     rawHeaders.push(name, value);
     const lowerName = name.trim().toLowerCase();
     const headerValue = value.trim();
     addHeader(headers, lowerName, headerValue);
-    if (onHeader) {
-      onHeader(lowerName, headerValue, headers);
-    }
   }
 
   return {
     buffer: buffer.subarray(offset),
     headers,
     rawHeaders,
-    bytesReceived,
+    receivedHeaders,
     finished,
   };
 }
