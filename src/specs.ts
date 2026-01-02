@@ -33,9 +33,10 @@ export const LF = 0x0a;
 export const CRLF = '\r\n';
 
 export enum HttpDecodePhase {
-  START_LINE = 'start-line',
-  HEADERS = 'headers',
-  BODY_CHUNKED = 'body-chunked',
-  BODY_CONTENT_LENGTH = 'body-content-length',
-  FINISHED = 'finished',
+  START_LINE,
+  HEADERS,
+  BODY_CHUNKED,
+  DISCARDING,
+  BODY_CONTENT_LENGTH,
+  FINISHED,
 }

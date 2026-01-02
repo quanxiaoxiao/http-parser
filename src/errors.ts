@@ -1,5 +1,11 @@
 import { HttpDecodePhase } from './specs.js';
 
+export enum HttpDecodeErrorSeverity {
+  INFO, // 不是真正错误（如 need-more-data 误用）
+  RECOVERABLE, // 放弃当前 message，可继续连接
+  FATAL, // 必须关闭连接
+}
+
 export enum HttpDecodeErrorCode {
   // general
   INVALID_SYNTAX = 'INVALID_SYNTAX',
