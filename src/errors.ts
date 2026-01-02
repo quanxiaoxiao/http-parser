@@ -1,7 +1,24 @@
-export interface CustomErrorOptions {
-  code: string;
-  message?: string;
-  cause?: Error;
+export enum HttpDecodeErrorCode {
+  // general
+  INVALID_SYNTAX = 'INVALID_SYNTAX',
+  MESSAGE_TOO_LARGE = 'MESSAGE_TOO_LARGE',
+  UNSUPPORTED_FEATURE = 'UNSUPPORTED_FEATURE',
+
+  // Start line
+  INVALID_START_LINE = 'INVALID_START_LINE',
+  URI_TOO_LONG = 'URI_TOO_LONG',
+  UNSUPPORTED_HTTP_VERSION = 'UNSUPPORTED_HTTP_VERSION',
+
+  // Headers
+  INVALID_HEADER = 'INVALID_HEADER',
+  HEADER_TOO_LARGE = 'HEADER_TOO_LARGE',
+
+  // Body
+  INVALID_CONTENT_LENGTH = 'INVALID_CONTENT_LENGTH',
+  INVALID_CHUNKED_ENCODING = 'INVALID_CHUNKED_ENCODING',
+
+  // Internal
+  INTERNAL_ERROR = 'INTERNAL_ERROR',
 }
 
 function createCustomError(code: string, defaultMessage: string) {

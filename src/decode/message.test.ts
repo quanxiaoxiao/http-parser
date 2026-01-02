@@ -2,12 +2,12 @@ import * as assert from 'node:assert';
 import { Buffer } from 'node:buffer';
 import { describe, test } from 'node:test';
 
+import { HttpDecodePhase } from '../specs.js';
 import {
   createRequestState,
   createResponseState,
   decodeRequest,
   decodeResponse,
-  HttpDecodePhase,
   type HttpRequestState,
   type HttpResponseState,
 } from './message.js';
