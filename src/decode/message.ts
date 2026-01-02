@@ -246,10 +246,8 @@ function handleBodyPhase<T extends ChunkedBodyState | FixedLengthBodyState>(
 }
 
 function runStateMachine(state: HttpState): void {
-  let lastPhase: HttpDecodePhase;
-
-  do {
-    lastPhase = state.phase;
+  while (!state.finished) {
+    const previousPhase = state.phase;
     switch (state.phase) {
     case HttpDecodePhase.START_LINE:
       handleStartLinePhase(state);
@@ -268,7 +266,9 @@ function runStateMachine(state: HttpState): void {
     default:
       throw new Error(`Unknown phase: ${state.phase}`);
     }
-  } while (state.phase !== lastPhase && !state.finished);
+
+    if (state.phase === previousPhase) break;
+  }
 }
 
 function decodeHttp(
