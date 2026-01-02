@@ -198,8 +198,14 @@ function handleBodyPhase<T extends ChunkedBodyState | FixedLengthBodyState>(
     state.buffer,
   );
 
-  const delta = bodyState.contentLength != null ? bodyState.receivedBody - (state.bodyState?.receivedBody ?? 0) : bodyState.totalSize - (state.bodyState?.totalSize ?? 0);
-  if (delta) {
+  const previousSize = state.bodyState
+    ? ('receivedBody' in state.bodyState ? state.bodyState.receivedBody : state.bodyState.totalSize)
+    : 0;
+  const currentSize = 'receivedBody' in bodyState
+    ? bodyState.receivedBody
+    : bodyState.totalSize;
+  const delta = currentSize - previousSize;
+  if (delta > 0) {
     state.events.push({
       type: 'body-chunk',
       size: delta,
