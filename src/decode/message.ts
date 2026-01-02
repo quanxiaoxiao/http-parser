@@ -45,6 +45,10 @@ function formatError(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+function addEvent(state: HttpState, event: HttpDecodeEvent): void {
+  state.events.push(event);
+}
+
 export interface HttpState {
   mode: HttpDecodeMode,
   phase: HttpDecodePhase;
@@ -72,13 +76,15 @@ function transition(state: HttpState, next: HttpDecodePhase): void {
     return;
   }
   state.phase = next;
-  state.events.push({
+  addEvent(state, {
     type: 'phase-enter',
     phase: next,
   });
   if (next === HttpDecodePhase.FINISHED) {
     state.finished = true;
-    state.events.push({ type: 'message-complete' });
+    addEvent(state, {
+      type: 'message-complete',
+    });
   }
 }
 
@@ -124,7 +130,7 @@ function handleStartLinePhase(state: HttpState): HttpState {
   state.startLine = startLine;
   state.buffer = state.buffer.subarray(lineBuf.length + CRLF_LENGTH);
 
-  state.events.push({
+  addEvent(state, {
     type: 'start-line-complete',
     raw: state.startLine.raw,
   });
@@ -166,7 +172,10 @@ function handleHeadersPhase(state: HttpState): HttpState {
 
   const newLines = headersState.rawHeaders.slice(state.headersState.rawHeaders.length);
   if (newLines.length > 0) {
-    state.events.push({ type: 'headers-lines', rawHeaders: newLines });
+    addEvent(state, {
+      type: 'headers-lines',
+      rawHeaders: newLines,
+    });
   }
   state.headersState = headersState;
 
@@ -174,7 +183,7 @@ function handleHeadersPhase(state: HttpState): HttpState {
     state.buffer = EMPTY_BUFFER;
     return state;
   }
-  state.events.push({
+  addEvent(state, {
     type: 'headers-complete',
     headers: state.headersState.headers,
   });
@@ -206,7 +215,7 @@ function handleBodyPhase<T extends ChunkedBodyState | FixedLengthBodyState>(
     : bodyState.totalSize;
   const delta = currentSize - previousSize;
   if (delta > 0) {
-    state.events.push({
+    addEvent(state, {
       type: 'body-chunk',
       size: delta,
     });
@@ -217,10 +226,15 @@ function handleBodyPhase<T extends ChunkedBodyState | FixedLengthBodyState>(
     return state;
   }
 
-  state.events.push({
+  const totalSize = 'contentLength' in bodyState
+    ? bodyState.contentLength
+    : bodyState.totalSize;
+
+  addEvent(state, {
     type: 'body-complete',
-    totalSize: bodyState.contentLength != null ? bodyState.contentLength : bodyState.totalSize,
+    totalSize,
   });
+
   state.bodyState = {
     ...bodyState,
     buffer: EMPTY_BUFFER,
