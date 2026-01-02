@@ -2,7 +2,11 @@ import * as assert from 'node:assert';
 import { Buffer } from 'node:buffer';
 import { describe, it } from 'node:test';
 
+import { HttpDecodeError, HttpDecodeErrorCode } from '../errors.js';
 import { decodeHttpLine } from './http-line.js';
+
+const CR = 0x0d;
+const LF = 0x0a;
 
 describe('decodeHttpLine', () => {
   describe('参数验证', () => {
@@ -324,6 +328,254 @@ describe('decodeHttpLine', () => {
       }
 
       assert.strictEqual(count, 100);
+    });
+  });
+});
+
+describe('decodeHttpLine', () => {
+  describe('参数验证', () => {
+    it('应该拒绝负数的 start', () => {
+      const buf = Buffer.from('test\r\n');
+      assert.throws(
+        () => decodeHttpLine(buf, -1),
+        { name: 'TypeError', message: 'start must be a non-negative integer' }
+      );
+    });
+
+    it('应该拒绝非整数的 start', () => {
+      const buf = Buffer.from('test\r\n');
+      assert.throws(
+        () => decodeHttpLine(buf, 1.5),
+        { name: 'TypeError', message: 'start must be a non-negative integer' }
+      );
+    });
+
+    it('应该拒绝非正数的 limit', () => {
+      const buf = Buffer.from('test\r\n');
+      assert.throws(
+        () => decodeHttpLine(buf, 0, 0),
+        { name: 'TypeError', message: 'limit must be a positive integer' }
+      );
+    });
+
+    it('应该拒绝超出范围的 start', () => {
+      const buf = Buffer.from('test');
+      assert.throws(
+        () => decodeHttpLine(buf, 10),
+        { name: 'RangeError', message: /start \(10\) exceeds buffer length/ }
+      );
+    });
+  });
+
+  describe('边界情况', () => {
+    it('应该对空 buffer 返回 null', () => {
+      const buf = Buffer.alloc(0);
+      const result = decodeHttpLine(buf);
+      assert.strictEqual(result, null);
+    });
+
+    it('应该对单字节 buffer 返回 null', () => {
+      const buf = Buffer.from('a');
+      const result = decodeHttpLine(buf);
+      assert.strictEqual(result, null);
+    });
+
+    it('应该对不完整的行返回 null', () => {
+      const buf = Buffer.from('incomplete line');
+      const result = decodeHttpLine(buf);
+      assert.strictEqual(result, null);
+    });
+
+    it('应该对只有 CR 的 buffer 返回 null', () => {
+      const buf = Buffer.from('test\r');
+      const result = decodeHttpLine(buf);
+      assert.strictEqual(result, null);
+    });
+  });
+
+  describe('正常解码', () => {
+    it('应该解码简单的 CRLF 结尾的行', () => {
+      const buf = Buffer.from('Hello World\r\n');
+      const result = decodeHttpLine(buf);
+      assert.ok(result);
+      assert.strictEqual(result.toString(), 'Hello World');
+    });
+
+    it('应该解码空行', () => {
+      const buf = Buffer.from('\r\n');
+      const result = decodeHttpLine(buf);
+      assert.ok(result);
+      assert.strictEqual(result.length, 0);
+    });
+
+    it('应该从指定位置开始解码', () => {
+      const buf = Buffer.from('skip\r\nHello\r\n');
+      const result = decodeHttpLine(buf, 6);
+      assert.ok(result);
+      assert.strictEqual(result.toString(), 'Hello');
+    });
+
+    it('应该解码包含特殊字符的行', () => {
+      const buf = Buffer.from('GET /path?query=value HTTP/1.1\r\n');
+      const result = decodeHttpLine(buf);
+      assert.ok(result);
+      assert.strictEqual(result.toString(), 'GET /path?query=value HTTP/1.1');
+    });
+
+    it('应该处理 buffer 中有多行的情况', () => {
+      const buf = Buffer.from('first line\r\nsecond line\r\n');
+      const result = decodeHttpLine(buf);
+      assert.ok(result);
+      assert.strictEqual(result.toString(), 'first line');
+    });
+  });
+
+  describe('错误检测 - Bare LF', () => {
+    it('应该拒绝以 LF 开头的 buffer', () => {
+      const buf = Buffer.from('\ntest');
+      assert.throws(
+        () => decodeHttpLine(buf),
+        (err: HttpDecodeError) => {
+          return err.code === HttpDecodeErrorCode.BARE_LF;
+        }
+      );
+    });
+
+    it('应该拒绝包含 bare LF 的行', () => {
+      const buf = Buffer.from('test\nmore');
+      assert.throws(
+        () => decodeHttpLine(buf),
+        (err: HttpDecodeError) => {
+          return err.code === HttpDecodeErrorCode.BARE_LF;
+        }
+      );
+    });
+
+    it('应该拒绝中间的 bare LF', () => {
+      const buf = Buffer.from('Hello\nWorld\r\n');
+      assert.throws(
+        () => decodeHttpLine(buf),
+        (err: HttpDecodeError) => {
+          return err.code === HttpDecodeErrorCode.BARE_LF;
+        }
+      );
+    });
+  });
+
+  describe('错误检测 - Bare CR', () => {
+    it('应该拒绝 CR 后没有 LF 的情况', () => {
+      const buf = Buffer.from('test\rmore');
+      assert.throws(
+        () => decodeHttpLine(buf),
+        (err: HttpDecodeError) => {
+          return err.code === HttpDecodeErrorCode.BARE_CR;
+        }
+      );
+    });
+
+    it('应该拒绝 CR 后跟其他字符的情况', () => {
+      const buf = Buffer.from('Hello\rWorld');
+      assert.throws(
+        () => decodeHttpLine(buf),
+        (err: HttpDecodeError) => {
+          return err.code === HttpDecodeErrorCode.BARE_CR;
+        }
+      );
+    });
+  });
+
+  describe('大小限制', () => {
+    it('应该接受在限制内的行', () => {
+      const buf = Buffer.from('a'.repeat(100) + '\r\n');
+      const result = decodeHttpLine(buf, 0, 200);
+      assert.ok(result);
+      assert.strictEqual(result.length, 100);
+    });
+
+    it('应该拒绝超过限制的行', () => {
+      const buf = Buffer.from('a'.repeat(1000) + '\r\n');
+      assert.throws(
+        () => decodeHttpLine(buf, 0, 100),
+        (err: HttpDecodeError) => {
+          return err.code === HttpDecodeErrorCode.MESSAGE_TOO_LARGE &&
+                 err.message.includes('exceeds limit of 100 bytes');
+        }
+      );
+    });
+
+    it('应该使用默认的 16KB 限制', () => {
+      const buf = Buffer.from('a'.repeat(20000) + '\r\n');
+      assert.throws(
+        () => decodeHttpLine(buf),
+        (err: HttpDecodeError) => {
+          return err.code === HttpDecodeErrorCode.MESSAGE_TOO_LARGE;
+        }
+      );
+    });
+
+    it('应该对不完整但超限的行抛出错误', () => {
+      const buf = Buffer.from('a'.repeat(200));
+      assert.throws(
+        () => decodeHttpLine(buf, 0, 100),
+        (err: HttpDecodeError) => {
+          return err.code === HttpDecodeErrorCode.MESSAGE_TOO_LARGE;
+        }
+      );
+    });
+  });
+
+  describe('复杂场景', () => {
+    it('应该处理 HTTP 请求行', () => {
+      const buf = Buffer.from('GET /api/users HTTP/1.1\r\nHost: example.com\r\n');
+      const result = decodeHttpLine(buf);
+      assert.ok(result);
+      assert.strictEqual(result.toString(), 'GET /api/users HTTP/1.1');
+    });
+
+    it('应该处理 HTTP 响应状态行', () => {
+      const buf = Buffer.from('HTTP/1.1 200 OK\r\n');
+      const result = decodeHttpLine(buf);
+      assert.ok(result);
+      assert.strictEqual(result.toString(), 'HTTP/1.1 200 OK');
+    });
+
+    it('应该处理包含空格的 header', () => {
+      const buf = Buffer.from('Content-Type: application/json\r\n');
+      const result = decodeHttpLine(buf);
+      assert.ok(result);
+      assert.strictEqual(result.toString(), 'Content-Type: application/json');
+    });
+
+    it('应该从中间位置正确解码', () => {
+      const buf = Buffer.from('Line1\r\nLine2\r\nLine3\r\n');
+      
+      const line1 = decodeHttpLine(buf, 0);
+      assert.ok(line1);
+      assert.strictEqual(line1.toString(), 'Line1');
+      
+      const line2 = decodeHttpLine(buf, 7);
+      assert.ok(line2);
+      assert.strictEqual(line2.toString(), 'Line2');
+      
+      const line3 = decodeHttpLine(buf, 14);
+      assert.ok(line3);
+      assert.strictEqual(line3.toString(), 'Line3');
+    });
+  });
+
+  describe('性能和边界', () => {
+    it('应该处理最小的有效行', () => {
+      const buf = Buffer.from('a\r\n');
+      const result = decodeHttpLine(buf);
+      assert.ok(result);
+      assert.strictEqual(result.toString(), 'a');
+    });
+
+    it('应该处理二进制数据', () => {
+      const buf = Buffer.from([0x48, 0x65, 0x6c, 0x6c, 0x6f, CR, LF]);
+      const result = decodeHttpLine(buf);
+      assert.ok(result);
+      assert.strictEqual(result.toString(), 'Hello');
     });
   });
 });
