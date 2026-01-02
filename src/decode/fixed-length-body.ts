@@ -1,7 +1,7 @@
 import { DecodeHttpError } from '../errors.js';
 
 export type FixedLengthBodyState = {
-  buffer: Buffer;
+  buffer: Buffer | null;
   contentLength: number;
   receivedBody: number;
   bodyChunks: Buffer[];

@@ -14,7 +14,7 @@ export enum ChunkedPhase {
 
 export type ChunkedBodyState = {
   phase: ChunkedPhase;
-  buffer: Buffer;
+  buffer: Buffer | null;
   totalSize: number;
   currentChunkSize: number;
   bodyChunks: Buffer[];
