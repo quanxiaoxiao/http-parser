@@ -1,11 +1,5 @@
 import { HttpDecodePhase } from './specs.js';
 
-export enum HttpDecodeErrorSeverity {
-  INFO, // 不是真正错误（如 need-more-data 误用）
-  RECOVERABLE, // 放弃当前 message，可继续连接
-  FATAL, // 必须关闭连接
-}
-
 export enum HttpDecodeErrorCode {
   // general
   INVALID_SYNTAX = 'INVALID_SYNTAX',
@@ -16,6 +10,7 @@ export enum HttpDecodeErrorCode {
   INVALID_LINE_ENDING = 'INVALID_LINE_ENDING',
   UNEXPECTED_LF = 'UNEXPECTED_LF',
   BARE_CR = 'BARE_CR',
+  BARE_LF = 'BARE_LF',
 
   // Start line
   INVALID_START_LINE = 'INVALID_START_LINE',
@@ -29,6 +24,7 @@ export enum HttpDecodeErrorCode {
   // Body
   INVALID_CONTENT_LENGTH = 'INVALID_CONTENT_LENGTH',
   INVALID_CHUNKED_ENCODING = 'INVALID_CHUNKED_ENCODING',
+  INVALID_CHUNKED_SIZE_LINE_ENDING = 'INVALID_CHUNK_SIZE_LINE_ENDING',
 
   // Internal
   INTERNAL_ERROR = 'INTERNAL_ERROR',
