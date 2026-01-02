@@ -1,3 +1,5 @@
+import { HttpDecodePhase } from './specs.js';
+
 export enum HttpDecodeErrorCode {
   // general
   INVALID_SYNTAX = 'INVALID_SYNTAX',
@@ -50,3 +52,50 @@ export class DecodeHttpError extends createCustomError(
   'ERR_DECODE_HTTP',
   'Decode Http Error',
 ) {};
+
+export class HttpDecodeError extends Error {
+  readonly code: HttpDecodeErrorCode;
+  readonly phase: HttpDecodePhase;
+  readonly fatal: boolean;
+
+  constructor(options: {
+    code: HttpDecodeErrorCode;
+    phase: HttpDecodePhase;
+    message: string;
+    fatal?: boolean;
+    cause?: unknown;
+  }) {
+    super(options.message);
+    this.code = options.code;
+    this.phase = options.phase;
+    this.fatal = options.fatal ?? true;
+    if (options.cause) {
+      this.cause = options.cause;
+    }
+  }
+}
+
+export function mapDecodeErrorToStatus(
+  error: HttpDecodeError,
+): number {
+  switch (error.code) {
+  case HttpDecodeErrorCode.HEADER_TOO_LARGE:
+  case HttpDecodeErrorCode.MESSAGE_TOO_LARGE:
+    return 431; // or 413
+
+  case HttpDecodeErrorCode.INVALID_START_LINE:
+  case HttpDecodeErrorCode.INVALID_HEADER:
+  case HttpDecodeErrorCode.INVALID_CONTENT_LENGTH:
+  case HttpDecodeErrorCode.INVALID_CHUNKED_ENCODING:
+    return 400;
+
+  case HttpDecodeErrorCode.UNSUPPORTED_HTTP_VERSION:
+    return 505;
+
+  case HttpDecodeErrorCode.UNSUPPORTED_FEATURE:
+    return 501;
+
+  default:
+    return 400;
+  }
+}
