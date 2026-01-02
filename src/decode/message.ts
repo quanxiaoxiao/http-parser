@@ -24,6 +24,8 @@ export enum HttpDecodePhase {
   FINISHED = 'finished',
 }
 
+type HttpDecodeMode = 'request' | 'response';
+
 export type TransitionResult =
   | { type: 'need-more-data' }
   | { type: 'stay' }
@@ -44,6 +46,7 @@ function formatError(error: unknown): string {
 }
 
 export interface HttpState {
+  mode: HttpDecodeMode,
   phase: HttpDecodePhase;
   buffer: Buffer;
   finished: boolean;
@@ -55,28 +58,31 @@ export interface HttpState {
 }
 
 export interface HttpRequestState extends HttpState {
+  mode: 'request',
   startLine: RequestStartLine | null;
 }
 
 export interface HttpResponseState extends HttpState {
+  mode: 'response',
   startLine: ResponseStartLine | null;
 }
 
-function transition(state: HttpState, next: HttpDecodePhase) {
-  if (state.phase !== next) {
-    state.phase = next;
-    state.events.push({
-      type: 'phase-enter',
-      phase: next,
-    });
-    if (next === HttpDecodePhase.FINISHED) {
-      state.finished = true;
-      state.events.push({ type: 'message-complete' });
-    }
+function transition(state: HttpState, next: HttpDecodePhase): void {
+  if (state.phase === next) {
+    return;
+  }
+  state.phase = next;
+  state.events.push({
+    type: 'phase-enter',
+    phase: next,
+  });
+  if (next === HttpDecodePhase.FINISHED) {
+    state.finished = true;
+    state.events.push({ type: 'message-complete' });
   }
 }
 
-export function createHttpState(mode: 'request' | 'response'): HttpState {
+export function createHttpState(mode: HttpDecodeMode): HttpState {
   return {
     phase: HttpDecodePhase.START_LINE,
     buffer: EMPTY_BUFFER,
@@ -90,11 +96,11 @@ export function createHttpState(mode: 'request' | 'response'): HttpState {
 };
 
 export function createRequestState(): HttpRequestState {
-  return createHttpState('request');
+  return createHttpState('request') as HttpRequestState;
 }
 
 export function createResponseState(): HttpResponseState {
-  return createHttpState('response');
+  return createHttpState('response') as HttpResponseState;
 }
 
 function handleStartLinePhase<T extends HttpState>(state: T): T {
