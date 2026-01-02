@@ -1,6 +1,8 @@
 import { DecodeHttpError } from '../errors.js';
+import type { BodyType } from '../types.js';
 
 export type FixedLengthBodyState = {
+  type: BodyType;
   buffer: Buffer | null;
   contentLength: number;
   receivedBody: number;
@@ -14,6 +16,7 @@ export function createFixedLengthBodyState(contentLength: number): FixedLengthBo
   }
 
   return {
+    type: 'fixed',
     buffer: Buffer.alloc(0),
     contentLength,
     receivedBody: 0,

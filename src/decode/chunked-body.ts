@@ -2,7 +2,7 @@ import { Buffer } from 'node:buffer';
 
 import { DecodeHttpError } from '../errors.js';
 import { CR, CRLF, LF } from '../specs.js';
-import type { TrailerHeaders } from '../types.js';
+import type { BodyType, TrailerHeaders } from '../types.js';
 import { decodeHttpLine } from './http-line.js';
 
 export enum ChunkedPhase {
@@ -13,6 +13,7 @@ export enum ChunkedPhase {
 }
 
 export type ChunkedBodyState = {
+  type: BodyType;
   phase: ChunkedPhase;
   buffer: Buffer | null;
   totalSize: number;
@@ -30,6 +31,7 @@ const DOUBLE_CRLF = Buffer.from([CR, LF, CR, LF]);
 
 export function createChunkedBodyState(): ChunkedBodyState {
   return {
+    type: 'chunked',
     phase: ChunkedPhase.SIZE,
     buffer: EMPTY_BUFFER,
     currentChunkSize: 0,
