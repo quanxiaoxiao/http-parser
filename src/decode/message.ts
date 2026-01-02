@@ -211,23 +211,31 @@ function handleBodyPhase<T extends ChunkedBodyState | FixedLengthBodyState>(
   return state;
 }
 
-function handleBodyChunkedPhase(state: HttpState): HttpState {
-  return handleBodyPhase(state, decodeChunkedBody);
-}
+function runStateMachine(state: HttpState): void {
+  let lastPhase: HttpDecodePhase;
 
-function handleBodyContentLengthPhase(state: HttpState): HttpState {
-  return handleBodyPhase(state, decodeFixedLengthBody);
+  do {
+    lastPhase = state.phase;
+    switch (state.phase) {
+    case HttpDecodePhase.START_LINE:
+      handleStartLinePhase(state);
+      break;
+    case HttpDecodePhase.HEADERS:
+      handleHeadersPhase(state);
+      break;
+    case HttpDecodePhase.BODY_CHUNKED:
+      handleBodyPhase(state, decodeChunkedBody);
+      break;
+    case HttpDecodePhase.BODY_CONTENT_LENGTH:
+      handleBodyPhase(state, decodeFixedLengthBody);
+      break;
+    case HttpDecodePhase.FINISHED:
+      return;
+    default:
+      throw new Error(`Unknown phase: ${state.phase}`);
+    }
+  } while (state.phase !== lastPhase && !state.finished);
 }
-
-const phaseHandlers = new Map<
-  HttpDecodePhase,
-  (state: HttpState) => HttpState
-    >([
-      [HttpDecodePhase.START_LINE, handleStartLinePhase],
-      [HttpDecodePhase.HEADERS, handleHeadersPhase],
-      [HttpDecodePhase.BODY_CHUNKED, handleBodyChunkedPhase],
-      [HttpDecodePhase.BODY_CONTENT_LENGTH, handleBodyContentLengthPhase],
-    ]);
 
 function decodeHttp(
   prev: HttpState,
@@ -241,33 +249,19 @@ function decodeHttp(
     throw new Error(`Decoding encountered error: "${prev.error.message}"`);
   }
 
-  const state = prev;
+  const state = {
+    ...prev,
+  };
   if (input.length > 0) {
     state.buffer = Buffer.concat([state.buffer, input]);
   }
 
   state.events = [];
 
-  while (!state.finished) {
-    const prevPhase = state.phase;
-    const handler = phaseHandlers.get(state.phase);
-    if (!handler) {
-      throw new DecodeHttpError(`Unknown phase: ${state.phase}`);
-    }
-    try {
-      handler(state);
-    } catch (error) {
-      state.error = error as Error;
-      break;
-    }
-
-    if (state.phase === prevPhase) {
-      break;
-    }
-  }
-
-  if (state.error) {
-    return state;
+  try {
+    runStateMachine(state);
+  } catch (error) {
+    state.error = error as Error;
   }
 
   return state;
