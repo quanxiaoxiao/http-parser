@@ -28,6 +28,9 @@ export const STANDARD_HEADERS = [
   ...BOTH_HEADERS,
 ] as const;
 
+export const HttpMethods = ['GET', 'PUT', 'DELETE', 'POST',
+  'PATCH', 'HEAD', 'OPTIONS', 'CONNECT', 'TRACE'] as const;
+
 export const CR = 0x0d;
 export const LF = 0x0a;
 export const CRLF = '\r\n';
@@ -40,3 +43,7 @@ export enum HttpDecodePhase {
   BODY_CONTENT_LENGTH,
   FINISHED,
 }
+
+export const MAX_CHUNK_SIZE = 8 * 1024 * 1024;
+export const MAX_CHUNK_COUNT = 10_000;
+export const MAX_CHUNK_DURATION = 30_000;
