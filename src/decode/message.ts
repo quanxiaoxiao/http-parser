@@ -109,7 +109,7 @@ export function createResponseState(): HttpResponseState {
   return createHttpState('response') as HttpResponseState;
 }
 
-function handleStartLinePhase(state: HttpState): HttpState {
+function handleStartLinePhase(state: HttpState): void {
   const parseLineFn = state.mode === 'request'
     ? decodeRequestStartLine
     : decodeResponseStartLine;
@@ -123,7 +123,7 @@ function handleStartLinePhase(state: HttpState): HttpState {
   }
 
   if (!lineBuf) {
-    return state;
+    return;
   }
 
   const startLine = parseLineFn(lineBuf.toString());
@@ -136,8 +136,6 @@ function handleStartLinePhase(state: HttpState): HttpState {
   });
 
   transition(state, HttpDecodePhase.HEADERS);
-
-  return state;
 }
 
 function determineBodyPhase(state: HttpState, headersState: HeadersState): void {
@@ -160,7 +158,7 @@ function determineBodyPhase(state: HttpState, headersState: HeadersState): void 
   }
 }
 
-function handleHeadersPhase(state: HttpState): HttpState {
+function handleHeadersPhase(state: HttpState): void {
   if (!state.headersState) {
     state.headersState = createHeadersState();
   }
@@ -181,7 +179,7 @@ function handleHeadersPhase(state: HttpState): HttpState {
 
   if (!headersState.finished) {
     state.buffer = EMPTY_BUFFER;
-    return state;
+    return;
   }
   addEvent(state, {
     type: 'headers-complete',
@@ -195,13 +193,12 @@ function handleHeadersPhase(state: HttpState): HttpState {
     ...headersState,
     buffer: EMPTY_BUFFER,
   };
-  return state;
 }
 
 function handleBodyPhase<T extends ChunkedBodyState | FixedLengthBodyState>(
   state: HttpState,
   parser: (bodyState: T, buffer: Buffer) => T,
-): HttpState {
+): void {
   const bodyState = parser(
     state.bodyState as T,
     state.buffer,
@@ -223,7 +220,7 @@ function handleBodyPhase<T extends ChunkedBodyState | FixedLengthBodyState>(
   if (!bodyState.finished) {
     state.buffer = EMPTY_BUFFER;
     state.bodyState = bodyState;
-    return state;
+    return;
   }
 
   const totalSize = 'contentLength' in bodyState
@@ -241,8 +238,6 @@ function handleBodyPhase<T extends ChunkedBodyState | FixedLengthBodyState>(
   };
   state.buffer = bodyState.buffer;
   transition(state, HttpDecodePhase.FINISHED);
-
-  return state;
 }
 
 function runStateMachine(state: HttpState): void {
