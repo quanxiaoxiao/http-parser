@@ -11,12 +11,6 @@ export function decodeHeaderLine(headerString: string): [string, string] {
       message: 'HTTP Header missing ":" separator',
     });
   }
-  if (separatorIndex === 0) {
-    throw new HttpDecodeError({
-      code: HttpDecodeErrorCode.INVALID_HEADER,
-      message: 'HTTP Header name is empty',
-    });
-  }
   const name = headerString.slice(0, separatorIndex);
   const value = headerString.slice(separatorIndex + 1);
 
@@ -28,6 +22,7 @@ export interface HeadersState {
   headers: Headers;
   finished: boolean;
   receivedBytes: number;
+  receivedCount: number;
   rawHeaders: string[];
   limit: HeaderLimits,
 }
@@ -41,6 +36,7 @@ export function createHeadersState(limit: HeaderLimits = DEFAULT_HEADER_LIMITS):
     limit,
     rawHeaders: [],
     receivedBytes: 0,
+    receivedCount: 0,
     finished: false,
   };
 }
@@ -72,6 +68,7 @@ export function decodeHeaders(
   const rawHeaders = [...prev.rawHeaders];
   let receivedBytes = prev.receivedBytes;
   let offset = 0;
+  let receivedCount = prev.receivedCount;
 
   while (offset < buffer.length) {
     let line;
@@ -103,6 +100,7 @@ export function decodeHeaders(
       return {
         ...prev,
         buffer: buffer.subarray(offset),
+        receivedCount,
         headers,
         rawHeaders,
         receivedBytes,
@@ -110,18 +108,33 @@ export function decodeHeaders(
       };
     }
 
+    receivedCount ++;
     receivedBytes += lineLength;
+
+    if (receivedCount > prev.limit.maxHeaderCount) {
+      throw new HttpDecodeError({
+        code: HttpDecodeErrorCode.HEADER_TOO_MANY,
+        message: 'Too many HTTP headers',
+      });
+    }
 
     const [name, value] = decodeHeaderLine(line.toString());
     rawHeaders.push(name, value);
-    const lowerName = name.trim().toLowerCase();
+    const headerName = name.trim().toLowerCase();
     const headerValue = value.trim();
-    addHeader(headers, lowerName, headerValue);
+    if (headerName.length === 0 || /\s/.test(headerName)) {
+      throw new HttpDecodeError({
+        code: HttpDecodeErrorCode.INVALID_HEADER,
+        message: 'Invalid HTTP header name',
+      });
+    }
+    addHeader(headers, headerName, headerValue);
   }
 
   return {
     ...prev,
     buffer: buffer.subarray(offset),
+    receivedCount,
     headers,
     rawHeaders,
     receivedBytes,
