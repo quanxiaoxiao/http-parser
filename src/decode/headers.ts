@@ -27,7 +27,7 @@ export interface HeadersState {
   buffer: Buffer | null;
   headers: Headers;
   finished: boolean;
-  receivedHeaders: number;
+  receivedBytes: number;
   rawHeaders: string[];
   limit: HeaderLimits,
 }
@@ -40,7 +40,7 @@ export function createHeadersState(limit: HeaderLimits = DEFAULT_HEADER_LIMITS):
     headers: {},
     limit,
     rawHeaders: [],
-    receivedHeaders: 0,
+    receivedBytes: 0,
     finished: false,
   };
 }
@@ -70,7 +70,7 @@ export function decodeHeaders(
 
   const headers = { ...prev.headers };
   const rawHeaders = [...prev.rawHeaders];
-  let receivedHeaders = prev.receivedHeaders;
+  let receivedBytes = prev.receivedBytes;
   let offset = 0;
 
   while (offset < buffer.length) {
@@ -105,12 +105,12 @@ export function decodeHeaders(
         buffer: buffer.subarray(offset),
         headers,
         rawHeaders,
-        receivedHeaders,
+        receivedBytes,
         finished: true,
       };
     }
 
-    receivedHeaders += lineLength;
+    receivedBytes += lineLength;
 
     const [name, value] = decodeHeaderLine(line.toString());
     rawHeaders.push(name, value);
@@ -124,7 +124,7 @@ export function decodeHeaders(
     buffer: buffer.subarray(offset),
     headers,
     rawHeaders,
-    receivedHeaders,
+    receivedBytes,
     finished: false,
   };
 }

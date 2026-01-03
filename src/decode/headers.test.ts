@@ -11,7 +11,7 @@ describe('createHeadersState', () => {
     assert.strictEqual(state.buffer.length, 0);
     assert.deepStrictEqual(state.headers, {});
     assert.deepStrictEqual(state.rawHeaders, []);
-    assert.strictEqual(state.receivedHeaders, 0);
+    assert.strictEqual(state.receivedBytes, 0);
     assert.strictEqual(state.finished, false);
   });
 });
@@ -25,7 +25,7 @@ describe('decodeHeaders', () => {
 
       assert.strictEqual(result.headers['host'], 'example.com');
       assert.deepStrictEqual(result.rawHeaders, ['Host', ' example.com']);
-      assert.strictEqual(result.receivedHeaders, 19);
+      assert.strictEqual(result.receivedBytes, 19);
       assert.strictEqual(result.finished, false);
     });
 
@@ -51,7 +51,7 @@ describe('decodeHeaders', () => {
 
       assert.strictEqual(result.headers['host'], 'example.com');
       assert.strictEqual(result.finished, true);
-      assert.strictEqual(result.receivedHeaders, input.length - 2);
+      assert.strictEqual(result.receivedBytes, input.length - 2);
       assert.strictEqual(result.buffer.length, 0);
     });
 
@@ -62,7 +62,7 @@ describe('decodeHeaders', () => {
 
       assert.strictEqual(result.finished, false);
       assert.deepStrictEqual(result.headers, {});
-      assert.strictEqual(result.receivedHeaders, 0);
+      assert.strictEqual(result.receivedBytes, 0);
     });
   });
 
@@ -125,7 +125,7 @@ describe('decodeHeaders', () => {
       const result = decodeHeaders(state, input);
 
       assert.strictEqual(result.buffer.toString(), 'Host: exam');
-      assert.strictEqual(result.receivedHeaders, 0);
+      assert.strictEqual(result.receivedBytes, 0);
       assert.strictEqual(result.finished, false);
       assert.deepStrictEqual(result.headers, {});
     });
@@ -135,13 +135,13 @@ describe('decodeHeaders', () => {
       state = decodeHeaders(state, Buffer.from('Host: exa'));
 
       assert.strictEqual(state.buffer.toString(), 'Host: exa');
-      assert.strictEqual(state.receivedHeaders, 0);
+      assert.strictEqual(state.receivedBytes, 0);
 
       state = decodeHeaders(state, Buffer.from('mple.com\r\n'));
 
       assert.strictEqual(state.headers['host'], 'example.com');
       assert.strictEqual(state.buffer.length, 0);
-      assert.strictEqual(state.receivedHeaders, 19);
+      assert.strictEqual(state.receivedBytes, 19);
     });
 
     it('should continue parsing from previous buffer', () => {
@@ -243,7 +243,7 @@ describe('decodeHeaders', () => {
       const input = Buffer.from('Content-Type: application/json\r\n\r\n');
       const result = decodeHeaders(state, input);
 
-      assert.strictEqual(result.receivedHeaders, input.length - 2); // 32 + 2 (CRLF)
+      assert.strictEqual(result.receivedBytes, input.length - 2); // 32 + 2 (CRLF)
     });
 
     it('should handle long header values', () => {
@@ -253,14 +253,14 @@ describe('decodeHeaders', () => {
       const result = decodeHeaders(state, input);
 
       assert.strictEqual(result.headers['x-long-header'], longValue);
-      assert.strictEqual(result.receivedHeaders, 1017); // 15 + 1000 + 2
+      assert.strictEqual(result.receivedBytes, 1017); // 15 + 1000 + 2
     });
 
     it('should preserve previous headers state', () => {
       const state = createHeadersState();
       state.headers = { host: 'example.com' };
       state.rawHeaders = ['Host', 'example.com'];
-      state.receivedHeaders = 19;
+      state.receivedBytes = 19;
 
       const input = Buffer.from('Accept: */*\r\n');
       const result = decodeHeaders(state, input);
@@ -273,7 +273,7 @@ describe('decodeHeaders', () => {
         'Accept',
         ' */*',
       ]);
-      assert.strictEqual(result.receivedHeaders, 32); // 19 + 13
+      assert.strictEqual(result.receivedBytes, 32); // 19 + 13
     });
   });
 
