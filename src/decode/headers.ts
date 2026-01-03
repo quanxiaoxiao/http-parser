@@ -26,6 +26,7 @@ export interface HeadersState {
   finished: boolean;
   receivedHeaders: number;
   rawHeaders: string[];
+  limit: HeaderLimits,
 }
 
 const CRLF_LENGTH = 2;
@@ -70,7 +71,24 @@ export function decodeHeaders(
   let offset = 0;
 
   while (offset < buffer.length) {
-    const line = decodeHttpLine(buffer.subarray(offset));
+    let line;
+    try {
+      line = decodeHttpLine(buffer.subarray(offset), 0, prev.limit.maxHeaderLineBytes);
+    } catch (error) {
+      if (error instanceof HttpDecodeError) {
+        if (error.code === HttpDecodeErrorCode.LINE_TOO_LARGE) {
+          throw new HttpDecodeError({
+            code: HttpDecodeErrorCode.HEADER_LINE_TOO_LARGE,
+            message: 'HTTP header line too large',
+          });
+        }
+        throw new HttpDecodeError({
+          code: HttpDecodeErrorCode.INVALID_HEADER,
+          message: error.message,
+        });
+      }
+      throw error;
+    }
     if (!line) {
       break;
     }
