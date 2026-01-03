@@ -80,6 +80,7 @@ export function decodeHeaders(
 
     if (line.length === 0) {
       return {
+        ...prev,
         buffer: buffer.subarray(offset),
         headers,
         rawHeaders,
@@ -98,6 +99,7 @@ export function decodeHeaders(
   }
 
   return {
+    ...prev,
     buffer: buffer.subarray(offset),
     headers,
     rawHeaders,
