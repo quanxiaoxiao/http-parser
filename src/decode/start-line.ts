@@ -4,7 +4,7 @@ import { DEFAULT_START_LINE_LIMITS } from '../specs.js';
 import { STATUS_CODES } from '../status-codes.js';
 import type { HttpMethod, HttpVersion, RequestStartLine, ResponseStartLine,StartLineLimits } from '../types.js';
 
-const REQUEST_STARTLINE_REG = /^(\w+)\s+([^\s]+)\s+(HTTP\/1\.[01])$/i;
+const REQUEST_STARTLINE_REG = /^(\w+)\s+(\S+)\s+(HTTP\/1\.[01])$/i;
 const RESPONSE_STARTLINE_REG = /^(HTTP\/1\.[01])\s+(\d{3})(?:\s+(.*))?$/i;
 
 const HTTP_VERSION_1_0 = 1.0;
@@ -25,6 +25,12 @@ function createErrorPreview(str: string, maxLength: number = ERROR_PREVIEW_LENGT
     : str;
 }
 
+function validateInput(str: string, type: 'request' | 'response'): string {
+  if (!str || typeof str !== 'string') {
+    throw new TypeError(`Invalid input: ${type} line must be a non-empty string`);
+  }
+}
+
 function validateHttpVersion(versionStr: string): HttpVersion {
   const version = HTTP_VERSION_MAP[versionStr?.toUpperCase()];
   if (version === undefined) {
@@ -36,13 +42,14 @@ function validateHttpVersion(versionStr: string): HttpVersion {
   return version as HttpVersion;
 }
 
-export function decodeRequestStartLine(str: string, limit: StartLineLimits = DEFAULT_START_LINE_LIMITS): RequestStartLine {
-  if (!str || typeof str !== 'string') {
-    throw new TypeError('Invalid input: request line must be a non-empty string');
-  }
-
+export function decodeRequestStartLine(
+  str: string,
+  limit: StartLineLimits = DEFAULT_START_LINE_LIMITS,
+): RequestStartLine {
+  validateInput(str, 'request');
   const trimmedStr = str.trim();
   const matches = trimmedStr.match(REQUEST_STARTLINE_REG);
+
   if (!matches) {
     throw new HttpDecodeError({
       code: HttpDecodeErrorCode.INVALID_START_LINE,
@@ -69,9 +76,7 @@ export function decodeRequestStartLine(str: string, limit: StartLineLimits = DEF
 };
 
 export function decodeResponseStartLine(str: string, limit: StartLineLimits = DEFAULT_START_LINE_LIMITS): ResponseStartLine {
-  if (!str || typeof str !== 'string') {
-    throw new TypeError('Invalid input: response line must be a non-empty string');
-  }
+  validateInput(str, 'response');
 
   const trimmedStr = str.trim();
   const matches = trimmedStr.match(RESPONSE_STARTLINE_REG);
