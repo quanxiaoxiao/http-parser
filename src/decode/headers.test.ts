@@ -51,7 +51,7 @@ describe('decodeHeaders', () => {
 
       assert.strictEqual(result.headers['host'], 'example.com');
       assert.strictEqual(result.finished, true);
-      assert.strictEqual(result.receivedHeaders, 19);
+      assert.strictEqual(result.receivedHeaders, input.length - 2);
       assert.strictEqual(result.buffer.length, 0);
     });
 
@@ -243,7 +243,7 @@ describe('decodeHeaders', () => {
       const input = Buffer.from('Content-Type: application/json\r\n\r\n');
       const result = decodeHeaders(state, input);
 
-      assert.strictEqual(result.receivedHeaders, 32); // 30 + 2 (CRLF)
+      assert.strictEqual(result.receivedHeaders, input.length - 2); // 32 + 2 (CRLF)
     });
 
     it('should handle long header values', () => {

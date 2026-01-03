@@ -21,7 +21,7 @@ export interface HeadersState {
   headers: Headers;
   finished: boolean;
   receivedHeaders: number;
-  rawHeaders: Array<[name: string, value: string]>;
+  rawHeaders: string[];
 }
 
 const CRLF_LENGTH = 2;
@@ -75,7 +75,6 @@ export function decodeHeaders(
     offset += lineLength;
 
     if (line.length === 0) {
-      receivedHeaders += line.length;
       finished = true;
       break;
     }
