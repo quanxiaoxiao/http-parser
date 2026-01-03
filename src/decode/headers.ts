@@ -1,5 +1,6 @@
 import { HttpDecodeError, HttpDecodeErrorCode } from '../errors.js';
-import { type Headers } from '../types.js';
+import { DEFAULT_HEADER_LIMITS } from '../specs.js';
+import type { HeaderLimits, Headers } from '../types.js';
 import { decodeHttpLine } from './http-line.js';
 
 export function decodeHeaderLine(headerString: string): [string, string] {
@@ -29,10 +30,11 @@ export interface HeadersState {
 
 const CRLF_LENGTH = 2;
 
-export function createHeadersState(): HeadersState {
+export function createHeadersState(limit: HeaderLimits = DEFAULT_HEADER_LIMITS): HeadersState {
   return {
     buffer: Buffer.alloc(0),
     headers: {},
+    limit,
     rawHeaders: [],
     receivedHeaders: 0,
     finished: false,

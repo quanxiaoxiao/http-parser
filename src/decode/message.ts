@@ -170,7 +170,7 @@ function determineBodyPhase(state: HttpState, headersState: HeadersState): void 
 
 function handleHeadersPhase(state: HttpState): void {
   if (!state.headersState) {
-    state.headersState = createHeadersState();
+    state.headersState = createHeadersState(DEFAULT_HEADER_LIMITS);
   }
   const headersState = decodeHeaders(state.headersState!, state.buffer);
 
