@@ -360,3 +360,281 @@ HTTP Semantic Core
 - Embeddable
 - Security-friendly
 ```
+---
+
+# HTTP Semantic Core
+
+> **Spec-driven, DFA-based, observable HTTP parsing kernel**
+
+HTTP Semantic Core is **not** a web server, framework, or proxy.
+It is a **protocol-level semantic engine** designed to parse HTTP byte streams into **explicit, inspectable protocol states**, with strong guarantees around correctness, limits, and error classification.
+
+This project exists for people who need **control, observability, and correctness** over HTTP parsing — not just something that “works”.
+
+---
+
+## Why this exists (when nginx / envoy already do HTTP)
+
+Tools like **nginx**, **envoy**, and **haproxy** are:
+
+* battle-tested
+* extremely fast
+* production hardened
+
+But they are also:
+
+* executable binaries, not libraries
+* tightly coupled to their runtime and configuration model
+* opaque during parsing (black-box behavior)
+* unsuitable as **embedded semantic components**
+
+HTTP Semantic Core solves a *different problem*:
+
+> **Turn HTTP from an implicit side-effect into an explicit, programmable protocol object.**
+
+---
+
+## What this project is
+
+HTTP Semantic Core is:
+
+* 📜 **RFC-aligned** (7230 / 9110 driven)
+* 🔁 **Deterministic finite-state machine (DFA)** based
+* 🧩 **Embeddable** in servers, proxies, agents, test harnesses
+* 🔬 **Observable** at every parsing stage
+* 🛡️ **Security-oriented** (limits, fuzzing, error classification)
+
+It parses HTTP as:
+
+```
+byte stream → parsing states → semantic events → structured output
+```
+
+Not as string splitting.
+
+---
+
+## What this project is NOT
+
+To set expectations clearly:
+
+❌ Not a replacement for nginx / envoy
+❌ Not an HTTP framework
+❌ Not a web server
+❌ Not focused on maximum throughput benchmarks
+
+If you want a server, use nginx.
+If you want a framework, use existing ecosystems.
+
+---
+
+## Core design principles
+
+### 1. Spec-driven, not behavior-driven
+
+Parsing behavior is derived from RFC semantics, not historical quirks.
+Ambiguous cases are:
+
+* explicitly classified
+* consistently handled
+* documented
+
+---
+
+### 2. Explicit state machines
+
+Parsing is modeled as deterministic state transitions:
+
+* start-line
+* headers
+* body (content-length / chunked)
+* terminal states
+
+This enables:
+
+* reproducibility
+* fuzz testing
+* state tracing
+* formal reasoning
+
+---
+
+### 3. Observable by design
+
+Every parsing stage can be observed:
+
+* bytes consumed
+* state transitions
+* error boundaries
+* partial completion
+
+This makes the library suitable for:
+
+* debugging malformed traffic
+* teaching protocol internals
+* security analysis
+
+---
+
+### 4. Strict limits as first-class concepts
+
+All resource limits are explicit and configurable:
+
+* header count
+* header bytes
+* line length
+* name/value size
+
+This prevents accidental DoS exposure and makes security posture visible.
+
+---
+
+### 5. Clear error taxonomy
+
+Errors are classified, not thrown ad-hoc:
+
+* fatal vs recoverable
+* semantic vs structural
+* spec violation vs policy violation
+
+This allows callers to decide:
+
+* drop connection
+* reject request
+* log and continue
+
+---
+
+## Typical use cases
+
+### 🔐 Security & protocol research
+
+* reproduce parsing CVEs
+* inject malformed traffic
+* fuzz edge cases (CR/LF, oversized headers)
+* observe parser behavior at byte granularity
+
+---
+
+### 🧪 Testing & validation tools
+
+* protocol compliance testing
+* regression tests for HTTP behavior
+* golden reference for other implementations
+
+---
+
+### 🧩 Embedded protocol parsing
+
+* sidecars
+* agents
+* gateways
+* custom transports
+
+Where pulling in nginx or a full server is impractical.
+
+---
+
+### 🎓 Teaching & learning
+
+* explain HTTP beyond string parsing
+* visualize protocol state machines
+* demonstrate RFC ambiguities concretely
+
+---
+
+## Example: header parsing as a semantic process
+
+```ts
+state = createHeadersState(limits)
+
+state = decodeHeaders(state, bufferChunk)
+
+if (state.finished) {
+  // headers complete
+  inspect(state.headers)
+}
+```
+
+The caller controls:
+
+* how input is chunked
+* when parsing advances
+* how errors are handled
+
+---
+
+## Why not reuse existing HTTP libraries?
+
+Most existing HTTP parsers:
+
+* are tightly coupled to servers
+* hide parsing decisions internally
+* prioritize convenience over explicit semantics
+
+HTTP Semantic Core prioritizes **clarity and correctness over convenience**.
+
+---
+
+## Project philosophy
+
+> **Protocols are not strings.**
+
+They are:
+
+* state machines
+* resource-bounded systems
+* security boundaries
+
+This project treats HTTP accordingly.
+
+---
+
+## Intended audience
+
+This project is for:
+
+* systems engineers
+* security researchers
+* protocol implementers
+* educators
+* advanced learners
+
+It is intentionally *not* optimized for beginners.
+
+---
+
+## Status & scope
+
+* Focused on HTTP/1.x semantics
+* No TLS
+* No socket management
+* No request routing
+
+Those belong elsewhere.
+
+---
+
+## License & openness
+
+This project is intended to be:
+
+* readable
+* auditable
+* adaptable
+
+It favors clarity over cleverness.
+
+---
+
+## Final note
+
+If nginx is a *machine*,
+
+**HTTP Semantic Core is a *microscope*.**
+
+You don’t deploy microscopes to production —
+
+but you rely on them to understand what’s really happening.
+
+
