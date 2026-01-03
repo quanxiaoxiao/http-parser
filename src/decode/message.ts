@@ -4,7 +4,7 @@ import { HttpDecodeError, HttpDecodeErrorCode } from '../errors.js';
 import { isChunked } from '../headers/header-predicates.js';
 import { getHeaderValue } from '../headers/headers.js';
 import parseInteger from '../parseInteger.js';
-import { DEFAULT_START_LINE_LIMITS, HttpDecodePhase } from '../specs.js';
+import { DEFAULT_HEADER_LIMITS, DEFAULT_START_LINE_LIMITS, HttpDecodePhase } from '../specs.js';
 import type { Headers, RequestStartLine, ResponseStartLine } from '../types.js';
 import { type ChunkedBodyState, createChunkedBodyState, decodeChunkedBody } from './chunked-body.js';
 import { createFixedLengthBodyState, decodeFixedLengthBody,type FixedLengthBodyState } from './fixed-length-body.js';
@@ -13,7 +13,6 @@ import { decodeHttpLine } from './http-line.js';
 import { decodeRequestStartLine, decodeResponseStartLine } from './start-line.js';
 
 const CRLF_LENGTH = 2;
-const MAX_HEADER_SIZE = 16 * 1024;
 const EMPTY_BUFFER = Buffer.alloc(0);
 
 type HttpDecodeMode = 'request' | 'response';
@@ -175,10 +174,10 @@ function handleHeadersPhase(state: HttpState): void {
   }
   const headersState = decodeHeaders(state.headersState!, state.buffer);
 
-  if (headersState.bytesReceived > MAX_HEADER_SIZE) {
+  if (headersState.bytesReceived > DEFAULT_HEADER_LIMITS.maxHeaderBytes) {
     throw new HttpDecodeError({
       code: HttpDecodeErrorCode.HEADER_TOO_LARGE,
-      message: `Headers too large: ${headersState.bytesReceived} bytes exceeds limit of ${MAX_HEADER_SIZE}`,
+      message: `Headers too large: ${headersState.bytesReceived} bytes exceeds limit of ${DEFAULT_HEADER_LIMITS.maxHeaderBytes}`,
     });
   }
 
