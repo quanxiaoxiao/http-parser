@@ -1,10 +1,10 @@
 import { Buffer } from 'node:buffer';
 
-import { DecodeHttpError, HttpDecodeError, HttpDecodeErrorCode } from '../errors.js';
+import { HttpDecodeError, HttpDecodeErrorCode } from '../errors.js';
 import { isChunked } from '../headers/header-predicates.js';
 import { getHeaderValue } from '../headers/headers.js';
 import parseInteger from '../parseInteger.js';
-import { DEFAULT_START_LINE_LIMITS,HttpDecodePhase } from '../specs.js';
+import { DEFAULT_START_LINE_LIMITS, HttpDecodePhase } from '../specs.js';
 import type { Headers, RequestStartLine, ResponseStartLine } from '../types.js';
 import { type ChunkedBodyState, createChunkedBodyState, decodeChunkedBody } from './chunked-body.js';
 import { createFixedLengthBodyState, decodeFixedLengthBody,type FixedLengthBodyState } from './fixed-length-body.js';
@@ -50,6 +50,23 @@ function cloneState(prev: HttpState): HttpState {
   };
 }
 
+function transition(state: HttpState, next: HttpDecodePhase): void {
+  if (state.phase === next) {
+    return;
+  }
+  state.phase = next;
+  addEvent(state, {
+    type: 'phase-enter',
+    phase: next,
+  });
+  if (next === HttpDecodePhase.FINISHED) {
+    state.finished = true;
+    addEvent(state, {
+      type: 'message-complete',
+    });
+  }
+}
+
 export interface HttpState {
   mode: HttpDecodeMode,
   phase: HttpDecodePhase;
@@ -70,23 +87,6 @@ export interface HttpRequestState extends HttpState {
 export interface HttpResponseState extends HttpState {
   mode: 'response',
   startLine: ResponseStartLine | null;
-}
-
-function transition(state: HttpState, next: HttpDecodePhase): void {
-  if (state.phase === next) {
-    return;
-  }
-  state.phase = next;
-  addEvent(state, {
-    type: 'phase-enter',
-    phase: next,
-  });
-  if (next === HttpDecodePhase.FINISHED) {
-    state.finished = true;
-    addEvent(state, {
-      type: 'message-complete',
-    });
-  }
 }
 
 export function createHttpState(mode: HttpDecodeMode): HttpState {
@@ -129,7 +129,7 @@ function handleStartLinePhase(state: HttpState): void {
     }
     throw new HttpDecodeError({
       code: HttpDecodeErrorCode.INTERNAL_ERROR,
-      message: `HTTP parse failed at phase "startline". Reason: ${formatError(error)}`,
+      message: `HTTP parse failed at phase "start-line". Reason: ${formatError(error)}`,
     });
   }
 
@@ -176,7 +176,10 @@ function handleHeadersPhase(state: HttpState): void {
   const headersState = decodeHeaders(state.headersState!, state.buffer);
 
   if (headersState.bytesReceived > MAX_HEADER_SIZE) {
-    throw new DecodeHttpError(`Headers too large: ${headersState.bytesReceived} bytes exceeds limit of ${MAX_HEADER_SIZE}`);
+    throw new HttpDecodeError({
+      code: HttpDecodeErrorCode.HEADER_TOO_LARGE,
+      message: `Headers too large: ${headersState.bytesReceived} bytes exceeds limit of ${MAX_HEADER_SIZE}`,
+    });
   }
 
   const newLines = headersState.rawHeaders.slice(state.headersState.rawHeaders.length);
@@ -282,7 +285,7 @@ function decodeHttp(
   input: Buffer,
 ): HttpState {
   if (prev.finished) {
-    throw new DecodeHttpError('Decoding already finished');
+    throw new Error('Decoding already finished');
   }
 
   if (prev.error) {
@@ -297,14 +300,12 @@ function decodeHttp(
   try {
     runStateMachine(state);
   } catch (error) {
-    if (error instanceof HttpDecodeError) {
-      state.error = error as HttpDecodeError;
-    } else {
-      state.error = new HttpDecodeError({
+    state.error = error instanceof HttpDecodeError
+      ? error
+      : new HttpDecodeError({
         code: HttpDecodeErrorCode.INTERNAL_ERROR,
-        message: error.message,
+        message: error instanceof Error ? error.message : String(error),
       });
-    }
   }
 
   return state;
@@ -315,10 +316,7 @@ export function decodeRequest(
   input: Buffer,
 ): HttpRequestState {
   const prevState = prev ?? createRequestState();
-  return decodeHttp(
-    prevState,
-    input,
-  );
+  return decodeHttp(prevState, input) as HttpRequestState;
 }
 
 export function decodeResponse(
@@ -326,8 +324,5 @@ export function decodeResponse(
   input: Buffer,
 ): HttpResponseState {
   const prevState = prev ?? createResponseState();
-  return decodeHttp(
-    prevState,
-    input,
-  );
+  return decodeHttp(prevState, input) as HttpResponseState;
 }
