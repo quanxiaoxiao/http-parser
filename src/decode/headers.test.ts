@@ -1,7 +1,7 @@
 import * as assert from 'node:assert';
 import { describe, it } from 'node:test';
 
-import { DecodeHttpError } from '../errors.js';
+import { HttpDecodeError } from '../errors.js';
 import { createHeadersState, decodeHeaderLine, decodeHeaders } from './headers.js';
 
 describe('createHeadersState', () => {
@@ -409,19 +409,19 @@ describe('decodeHeaderLine', () => {
         desc: '缺少冒号',
         input: 'InvalidHeader',
         errorCheck: (error: Error) =>
-          error instanceof DecodeHttpError &&
+          error instanceof HttpDecodeError &&
           error.message.includes('missing') &&
           error.message.includes('InvalidHeader'),
       },
       {
         desc: '空字符串',
         input: '',
-        errorCheck: (error: Error) => error instanceof DecodeHttpError,
+        errorCheck: (error: Error) => error instanceof HttpDecodeError,
       },
     ];
 
     errorCases.forEach(({ desc, input, errorCheck }) => {
-      it(`应该在${desc}时抛出 DecodeHttpError`, () => {
+      it(`应该在${desc}时抛出 HttpDecodeError`, () => {
         assert.throws(() => decodeHeaderLine(input), errorCheck);
       });
     });

@@ -1,11 +1,14 @@
-import { DecodeHttpError } from '../errors.js';
+import { HttpDecodeError, HttpDecodeErrorCode } from '../errors.js';
 import { type Headers } from '../types.js';
 import { decodeHttpLine } from './http-line.js';
 
 export function decodeHeaderLine(headerString: string): [string, string] {
   const separatorIndex = headerString.indexOf(':');
   if (separatorIndex === -1) {
-    throw new DecodeHttpError(`HTTP Header missing ':' separator in "${headerString}"`);
+    throw new HttpDecodeError({
+      code: HttpDecodeErrorCode.INVALID_HEADER,
+      message: `HTTP Header missing ':' separator in "${headerString}"`,
+    });
   }
   const name = headerString.slice(0, separatorIndex);
   const value = headerString.slice(separatorIndex + 1);
