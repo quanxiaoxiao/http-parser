@@ -4,6 +4,9 @@ import { decodeHttpLine } from './http-line.js';
 
 export function decodeHeaderLine(headerString: string): [string, string] {
   const separatorIndex = headerString.indexOf(':');
+  if (separatorIndex === 0) {
+    // xxx
+  }
   if (separatorIndex === -1) {
     throw new HttpDecodeError({
       code: HttpDecodeErrorCode.INVALID_HEADER,
@@ -63,7 +66,6 @@ export function decodeHeaders(
   const rawHeaders = [...prev.rawHeaders];
   let receivedHeaders = prev.receivedHeaders;
   let offset = 0;
-  let finished = false;
 
   while (offset < buffer.length) {
     const line = decodeHttpLine(buffer.subarray(offset));
@@ -75,8 +77,13 @@ export function decodeHeaders(
     offset += lineLength;
 
     if (line.length === 0) {
-      finished = true;
-      break;
+      return {
+        buffer: buffer.subarray(offset),
+        headers,
+        rawHeaders,
+        receivedHeaders,
+        finished: true,
+      };
     }
 
     receivedHeaders += lineLength;
@@ -93,6 +100,6 @@ export function decodeHeaders(
     headers,
     rawHeaders,
     receivedHeaders,
-    finished,
+    finished: false,
   };
 }

@@ -351,3 +351,12 @@ HEADER_LINE_END    12        0.05        4000      0.9
 BODY_CHUNK_DATA    3         0.70        230000    12.2
 MESSAGE_DONE       1         0.01        9000      0.1
 ```
+
+```
+HTTP Semantic Core
+- Spec-driven
+- DFA-based
+- Observable
+- Embeddable
+- Security-friendly
+```
