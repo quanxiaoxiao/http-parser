@@ -55,7 +55,7 @@ function findLineEnd(
 
   if (len - start > limit) {
     throw new HttpDecodeError({
-      code: HttpDecodeErrorCode.MESSAGE_TOO_LARGE,
+      code: HttpDecodeErrorCode.LINE_TOO_LARGE,
       message: `line length exceeds limit of ${limit} bytes`,
     });
   }

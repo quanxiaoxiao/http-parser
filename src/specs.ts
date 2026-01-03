@@ -1,3 +1,5 @@
+import type { HeaderLimits, StartLineLimits } from './types.js';
+
 export const REQUEST_ONLY_HEADERS = [
   'host', 'expect', 'if-match', 'if-none-match', 'if-modified-since',
   'if-unmodified-since', 'if-range', 'range', 'max-forwards', 'te',
@@ -35,8 +37,6 @@ export const CR = 0x0d;
 export const LF = 0x0a;
 export const CRLF = '\r\n';
 
-export const MAX_START_LINE_SIZE = 16 * 1024;
-
 export enum HttpDecodePhase {
   START_LINE,
   HEADERS,
@@ -49,3 +49,18 @@ export enum HttpDecodePhase {
 export const MAX_CHUNK_SIZE = 8 * 1024 * 1024;
 export const MAX_CHUNK_COUNT = 10_000;
 export const MAX_CHUNK_DURATION = 30_000;
+
+export const DEFAULT_HEADER_LIMITS: HeaderLimits = {
+  maxHeaderCount: 100,
+  maxHeaderBytes: 32 * 1024,
+  maxHeaderLineBytes: 8 * 1024,
+  maxHeaderNameBytes: 256,
+  maxHeaderValueBytes: 8 * 1024,
+};
+
+export const DEFAULT_START_LINE_LIMITS: StartLineLimits = {
+  maxStartLineBytes: 8 * 1024,
+  maxMethodBytes: 32,
+  maxUriBytes: 4 * 1024,
+  maxReasonPhraseBytes: 512,
+};

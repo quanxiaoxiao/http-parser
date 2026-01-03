@@ -4,7 +4,7 @@ import { DecodeHttpError, HttpDecodeError, HttpDecodeErrorCode  } from '../error
 import { isChunked } from '../headers/header-predicates.js';
 import { getHeaderValue } from '../headers/headers.js';
 import parseInteger from '../parseInteger.js';
-import { HttpDecodePhase, MAX_START_LINE_SIZE } from '../specs.js';
+import { HttpDecodePhase, DEFAULT_START_LINE_LIMITS } from '../specs.js';
 import type { Headers, RequestStartLine, ResponseStartLine } from '../types.js';
 import { type ChunkedBodyState, createChunkedBodyState, decodeChunkedBody } from './chunked-body.js';
 import { createFixedLengthBodyState, decodeFixedLengthBody,type FixedLengthBodyState } from './fixed-length-body.js';
@@ -116,11 +116,21 @@ function handleStartLinePhase(state: HttpState): void {
     : decodeResponseStartLine;
   let lineBuf: Buffer | null;
   try {
-    lineBuf = decodeHttpLine(state.buffer, 0, MAX_START_LINE_SIZE);
+    lineBuf = decodeHttpLine(state.buffer, 0, DEFAULT_START_LINE_LIMITS.maxStartLineBytes);
   } catch (error) {
-    throw new DecodeHttpError(
-      `HTTP parse failed at phase "startline". Reason: ${formatError(error)}`,
-    );
+    if (error instanceof HttpDecodeError) {
+      if (error.code === HttpDecodeErrorCode.LINE_TOO_LARGE) {
+        throw new HttpDecodeError({
+          code: HttpDecodeErrorCode.START_LINE_TOO_LARGE,
+          message: 'HTTP start-line too large',
+        });
+      }
+      throw error;
+    }
+    throw new HttpDecodeError({
+      code: HttpDecodeErrorCode.INTERNAL_ERROR,
+      message: `HTTP parse failed at phase "startline". Reason: ${formatError(error)}`,
+    });
   }
 
   if (!lineBuf) {
@@ -287,7 +297,14 @@ function decodeHttp(
   try {
     runStateMachine(state);
   } catch (error) {
-    state.error = error as Error;
+    if (error instanceof HttpDecodeError) {
+      state.error = error as HttpDecodeError;
+    } else {
+      state.error = new HttpDecodeError({
+        code: HttpDecodeErrorCode.INTERNAL_ERROR,
+        message: error.message,
+      });
+    }
   }
 
   return state;

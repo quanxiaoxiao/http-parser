@@ -60,3 +60,18 @@ export interface HttpParserHooks {
 
   onError?(err: Error): void;
 }
+
+export interface HeaderLimits {
+  maxHeaderCount: number;
+  maxHeaderBytes: number;
+  maxHeaderLineBytes: number;
+  maxHeaderNameBytes: number;
+  maxHeaderValueBytes: number;
+}
+
+export interface StartLineLimits {
+  maxStartLineBytes: number;
+  maxMethodBytes: number;
+  maxUriBytes: number;
+  maxReasonPhraseBytes: number;
+}

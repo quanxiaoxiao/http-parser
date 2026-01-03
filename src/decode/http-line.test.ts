@@ -280,7 +280,7 @@ describe('decodeHttpLine', () => {
         () => decodeHttpLine(buf, 0, 100),
         (err: HttpDecodeError) => {
           return (
-            err.code === HttpDecodeErrorCode.MESSAGE_TOO_LARGE &&
+            err.code === HttpDecodeErrorCode.LINE_TOO_LARGE &&
             err.message.includes('exceeds limit of 100 bytes')
           );
         },
@@ -292,7 +292,7 @@ describe('decodeHttpLine', () => {
       assert.throws(
         () => decodeHttpLine(buf, 0, 100),
         (err: HttpDecodeError) => {
-          return err.code === HttpDecodeErrorCode.MESSAGE_TOO_LARGE;
+          return err.code === HttpDecodeErrorCode.LINE_TOO_LARGE;
         },
       );
     });
@@ -302,7 +302,7 @@ describe('decodeHttpLine', () => {
       assert.throws(
         () => decodeHttpLine(buf),
         (err: HttpDecodeError) => {
-          return err.code === HttpDecodeErrorCode.MESSAGE_TOO_LARGE;
+          return err.code === HttpDecodeErrorCode.LINE_TOO_LARGE;
         },
       );
     });
