@@ -5,13 +5,16 @@ import { decodeHttpLine } from './http-line.js';
 
 export function decodeHeaderLine(headerString: string): [string, string] {
   const separatorIndex = headerString.indexOf(':');
-  if (separatorIndex === 0) {
-    // xxx
-  }
   if (separatorIndex === -1) {
     throw new HttpDecodeError({
       code: HttpDecodeErrorCode.INVALID_HEADER,
-      message: `HTTP Header missing ':' separator in "${headerString}"`,
+      message: 'HTTP Header missing ":" separator',
+    });
+  }
+  if (separatorIndex === 0) {
+    throw new HttpDecodeError({
+      code: HttpDecodeErrorCode.INVALID_HEADER,
+      message: 'HTTP Header name is empty',
     });
   }
   const name = headerString.slice(0, separatorIndex);

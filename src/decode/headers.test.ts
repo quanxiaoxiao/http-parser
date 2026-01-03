@@ -373,11 +373,6 @@ describe('decodeHeaderLine', () => {
   describe('边界情况', () => {
     const edgeCases = [
       {
-        desc: 'name 为空',
-        input: ': value',
-        expected: ['', 'value'],
-      },
-      {
         desc: 'value 为空',
         input: 'Content-Type:',
         expected: ['Content-Type', ''],
@@ -386,11 +381,6 @@ describe('decodeHeaderLine', () => {
         desc: 'value 只有空格',
         input: 'Content-Type:   ',
         expected: ['Content-Type', ''],
-      },
-      {
-        desc: '只有冒号',
-        input: ':',
-        expected: ['', ''],
       },
     ];
 
@@ -410,8 +400,7 @@ describe('decodeHeaderLine', () => {
         input: 'InvalidHeader',
         errorCheck: (error: Error) =>
           error instanceof HttpDecodeError &&
-          error.message.includes('missing') &&
-          error.message.includes('InvalidHeader'),
+          error.message.includes('missing'),
       },
       {
         desc: '空字符串',
