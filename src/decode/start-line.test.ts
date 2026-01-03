@@ -1,7 +1,8 @@
 import * as assert from 'node:assert';
-import { describe, it } from 'node:test';
+import { describe, it,test } from 'node:test';
 
-import { HttpDecodeError } from '../errors.js';
+import { HttpDecodeError, HttpDecodeErrorCode } from '../errors.js';
+import { DEFAULT_START_LINE_LIMITS } from '../specs.js';
 import { decodeRequestStartLine, decodeResponseStartLine } from './start-line.js';
 
 describe('decodeRequestStartLine', () => {
@@ -498,5 +499,304 @@ describe('decodeResponseStartLine', () => {
       const result = decodeResponseStartLine('HTTP/1.1 200 OK');
       assert.strictEqual(result.version, 1.1);
     });
+  });
+});
+
+describe('decodeRequestStartLine', () => {
+  describe('成功解析', () => {
+    test('应该正确解析标准的 GET 请求', () => {
+      const result = decodeRequestStartLine('GET /api/users HTTP/1.1');
+      assert.equal(result.method, 'GET');
+      assert.equal(result.path, '/api/users');
+      assert.equal(result.version, 1.1);
+      assert.equal(result.raw, 'GET /api/users HTTP/1.1');
+    });
+
+    test('应该正确解析 POST 请求', () => {
+      const result = decodeRequestStartLine('POST /api/login HTTP/1.0');
+      assert.equal(result.method, 'POST');
+      assert.equal(result.path, '/api/login');
+      assert.equal(result.version, 1.0);
+    });
+
+    test('应该正确解析带查询参数的 URI', () => {
+      const result = decodeRequestStartLine('GET /search?q=test&page=1 HTTP/1.1');
+      assert.equal(result.method, 'GET');
+      assert.equal(result.path, '/search?q=test&page=1');
+      assert.equal(result.version, 1.1);
+    });
+
+    test('应该正确解析带锚点的 URI', () => {
+      const result = decodeRequestStartLine('GET /page#section HTTP/1.1');
+      assert.equal(result.path, '/page#section');
+    });
+
+    test('应该处理不同的 HTTP 方法（不区分大小写）', () => {
+      const methods = ['get', 'Post', 'PUT', 'delete', 'PATCH'];
+      methods.forEach(method => {
+        const result = decodeRequestStartLine(`${method} /path HTTP/1.1`);
+        assert.equal(result.method, method.toUpperCase());
+      });
+    });
+
+    test('应该处理带前后空格的请求行', () => {
+      const result = decodeRequestStartLine('  GET /path HTTP/1.1  ');
+      assert.equal(result.method, 'GET');
+      assert.equal(result.path, '/path');
+    });
+
+    test('应该处理复杂的 URI 路径', () => {
+      const result = decodeRequestStartLine('GET /api/v1/users/123/profile HTTP/1.1');
+      assert.equal(result.path, '/api/v1/users/123/profile');
+    });
+
+    test('应该处理编码的 URI', () => {
+      const result = decodeRequestStartLine('GET /search?q=%E4%B8%AD%E6%96%87 HTTP/1.1');
+      assert.equal(result.path, '/search?q=%E4%B8%AD%E6%96%87');
+    });
+  });
+
+  describe('错误处理', () => {
+    test('应该拒绝空字符串', () => {
+      assert.throws(
+        () => decodeRequestStartLine(''),
+        TypeError,
+      );
+    });
+
+    test('应该拒绝非字符串输入', () => {
+      assert.throws(
+        () => decodeRequestStartLine(null as any),
+        TypeError,
+      );
+      assert.throws(
+        () => decodeRequestStartLine(undefined as any),
+        TypeError,
+      );
+      assert.throws(
+        () => decodeRequestStartLine(123 as any),
+        TypeError,
+      );
+    });
+
+    test('应该拒绝格式错误的请求行', () => {
+      const invalidLines = [
+        'GET/path HTTP/1.1', // 缺少空格
+        'GET /path', // 缺少版本
+        '/path HTTP/1.1', // 缺少方法
+        'GET  HTTP/1.1', // 缺少路径
+        'GET /path HTTP/2.0', // 不支持的版本
+        'GET /path HTTP/1.2', // 无效版本
+        'GET /path HTTPS/1.1', // 错误的协议
+      ];
+
+      invalidLines.forEach(line => {
+        assert.throws(
+          () => decodeRequestStartLine(line),
+          HttpDecodeError,
+          `应该拒绝: ${line}`,
+        );
+      });
+    });
+
+    test('应该拒绝不支持的 HTTP 版本', () => {
+      assert.throws(
+        () => decodeRequestStartLine('GET /path HTTP/2.0'),
+        (err: any) => {
+          return err instanceof HttpDecodeError;
+        },
+      );
+    });
+
+    test('应该拒绝超长的 URI', () => {
+      const longPath = '/path' + 'a'.repeat(5000);
+      assert.throws(
+        () => decodeRequestStartLine(`GET ${longPath} HTTP/1.1`),
+        (err: any) => {
+          return err instanceof HttpDecodeError &&
+                 err.code === HttpDecodeErrorCode.URI_TOO_LARGE;
+        },
+      );
+    });
+
+    test('应该使用自定义限制', () => {
+      const customLimit = { ...DEFAULT_START_LINE_LIMITS, maxUriBytes: 10 };
+      assert.throws(
+        () => decodeRequestStartLine('GET /very-long-path HTTP/1.1', customLimit),
+        (err: any) => {
+          return err instanceof HttpDecodeError &&
+                 err.code === HttpDecodeErrorCode.URI_TOO_LARGE;
+        },
+      );
+    });
+  });
+});
+
+describe('decodeResponseStartLine', () => {
+  describe('成功解析', () => {
+    test('应该正确解析标准的 200 响应', () => {
+      const result = decodeResponseStartLine('HTTP/1.1 200 OK');
+      assert.equal(result.version, 1.1);
+      assert.equal(result.statusCode, 200);
+      assert.equal(result.statusText, 'OK');
+      assert.equal(result.raw, 'HTTP/1.1 200 OK');
+    });
+
+    test('应该正确解析不同的状态码', () => {
+      const testCases = [
+        { line: 'HTTP/1.1 201 Created', code: 201, text: 'Created' },
+        { line: 'HTTP/1.1 404 Not Found', code: 404, text: 'Not Found' },
+        { line: 'HTTP/1.1 500 Internal Server Error', code: 500, text: 'Internal Server Error' },
+        { line: 'HTTP/1.0 301 Moved Permanently', code: 301, text: 'Moved Permanently' },
+      ];
+
+      testCases.forEach(({ line, code, text }) => {
+        const result = decodeResponseStartLine(line);
+        assert.equal(result.statusCode, code);
+        assert.equal(result.statusText, text);
+      });
+    });
+
+    test('应该处理没有状态文本的响应', () => {
+      const result = decodeResponseStartLine('HTTP/1.1 200');
+      assert.equal(result.statusCode, 200);
+      assert.ok(result.statusText.length > 0); // 应该使用默认文本
+    });
+
+    test('应该处理空状态文本并使用默认值', () => {
+      const result = decodeResponseStartLine('HTTP/1.1 200 ');
+      assert.equal(result.statusCode, 200);
+      assert.ok(result.statusText.length > 0);
+    });
+
+    test('应该处理带前后空格的响应行', () => {
+      const result = decodeResponseStartLine('  HTTP/1.1 200 OK  ');
+      assert.equal(result.statusCode, 200);
+      assert.equal(result.statusText, 'OK');
+    });
+
+    test('应该处理 HTTP/1.0 版本', () => {
+      const result = decodeResponseStartLine('HTTP/1.0 200 OK');
+      assert.equal(result.version, 1.0);
+    });
+
+    test('应该处理自定义状态文本', () => {
+      const result = decodeResponseStartLine('HTTP/1.1 200 Custom Success Message');
+      assert.equal(result.statusText, 'Custom Success Message');
+    });
+
+    test('应该处理各种有效状态码范围', () => {
+      const codes = [100, 101, 200, 204, 301, 400, 404, 500, 503, 599];
+      codes.forEach(code => {
+        const result = decodeResponseStartLine(`HTTP/1.1 ${code} Test`);
+        assert.equal(result.statusCode, code);
+      });
+    });
+  });
+
+  describe('错误处理', () => {
+    test('应该拒绝空字符串', () => {
+      assert.throws(
+        () => decodeResponseStartLine(''),
+        TypeError,
+      );
+    });
+
+    test('应该拒绝非字符串输入', () => {
+      assert.throws(
+        () => decodeResponseStartLine(null as any),
+        TypeError,
+      );
+    });
+
+    test('应该拒绝格式错误的响应行', () => {
+      const invalidLines = [
+        '200 OK', // 缺少版本
+        'HTTP/1.1 OK', // 缺少状态码
+        'HTTP/1.1 200OK', // 缺少空格
+        'HTTP/2.0 200 OK', // 不支持的版本
+        'HTTPS/1.1 200 OK', // 错误的协议
+      ];
+
+      invalidLines.forEach(line => {
+        assert.throws(
+          () => decodeResponseStartLine(line),
+          HttpDecodeError,
+          `应该拒绝: ${line}`,
+        );
+      });
+    });
+
+    test('应该拒绝无效的状态码', () => {
+      const invalidCodes = [
+        'HTTP/1.1 600 Too High', // > 599
+      ];
+
+      invalidCodes.forEach(line => {
+        assert.throws(
+          () => decodeResponseStartLine(line),
+          (err: any) => {
+            return err instanceof HttpDecodeError &&
+                   err.code === HttpDecodeErrorCode.INVALID_STATUS_CODE;
+          },
+        );
+      });
+    });
+
+    test('应该拒绝超长的状态文本', () => {
+      const longText = 'a'.repeat(600);
+      assert.throws(
+        () => decodeResponseStartLine(`HTTP/1.1 200 ${longText}`),
+        (err: any) => {
+          return err instanceof HttpDecodeError &&
+                 err.code === HttpDecodeErrorCode.INVALID_REASON_PHRASE;
+        },
+      );
+    });
+
+    test('应该使用自定义限制', () => {
+      const customLimit = { ...DEFAULT_START_LINE_LIMITS, maxReasonPhraseBytes: 5 };
+      assert.throws(
+        () => decodeResponseStartLine('HTTP/1.1 200 Too Long Text', customLimit),
+        (err: any) => {
+          return err instanceof HttpDecodeError &&
+                 err.code === HttpDecodeErrorCode.INVALID_REASON_PHRASE;
+        },
+      );
+    });
+  });
+});
+
+describe('边界情况测试', () => {
+  test('应该处理最小和最大有效状态码', () => {
+    const min = decodeResponseStartLine('HTTP/1.1 100 Continue');
+    assert.equal(min.statusCode, 100);
+
+    const max = decodeResponseStartLine('HTTP/1.1 599 Custom');
+    assert.equal(max.statusCode, 599);
+  });
+
+  test('应该处理刚好在限制内的 URI', () => {
+    const path = '/path' + 'a'.repeat(DEFAULT_START_LINE_LIMITS.maxUriBytes - 6);
+    const result = decodeRequestStartLine(`GET ${path} HTTP/1.1`);
+    assert.equal(result.path, path);
+  });
+
+  test('应该处理刚好在限制内的状态文本', () => {
+    const text = 'a'.repeat(DEFAULT_START_LINE_LIMITS.maxReasonPhraseBytes);
+    const result = decodeResponseStartLine(`HTTP/1.1 200 ${text}`);
+    assert.equal(result.statusText, text);
+  });
+
+  test('应该保留原始请求行', () => {
+    const original = '  GET /path HTTP/1.1  ';
+    const result = decodeRequestStartLine(original);
+    assert.equal(result.raw, original);
+  });
+
+  test('应该保留原始响应行', () => {
+    const original = '  HTTP/1.1 200 OK  ';
+    const result = decodeResponseStartLine(original);
+    assert.equal(result.raw, original);
   });
 });
