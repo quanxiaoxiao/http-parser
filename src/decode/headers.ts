@@ -121,7 +121,7 @@ export function decodeHeaders(
     const [name, value] = decodeHeaderLine(line.toString());
     rawHeaders.push(name, value);
     const headerName = name.trim().toLowerCase();
-    const headerValue = value.trim();
+    const headerValue = value.replace(/^[ \t]+/, '').replace(/[ \t]+$/, '');
     if (headerName.length === 0 || /\s/.test(headerName)) {
       throw new HttpDecodeError({
         code: HttpDecodeErrorCode.INVALID_HEADER,
