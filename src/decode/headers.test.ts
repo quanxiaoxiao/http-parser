@@ -286,7 +286,7 @@ describe('decodeHeaders', () => {
       assert.throws(
         () => decodeHeaders(state, input),
         {
-          name: 'DecodeHttpError',
+          name: 'Error',
           message: 'Headers parsing already finished',
         },
       );
@@ -301,7 +301,7 @@ describe('decodeHeaders', () => {
       assert.throws(
         () => decodeHeaders(result, Buffer.from('More: data\r\n')),
         {
-          name: 'DecodeHttpError',
+          name: 'Error',
           message: 'Headers parsing already finished',
         },
       );

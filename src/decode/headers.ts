@@ -49,7 +49,7 @@ export function decodeHeaders(
   input: Buffer,
 ): HeadersState {
   if (prev.finished) {
-    throw new DecodeHttpError('Headers parsing already finished');
+    throw new Error('Headers parsing already finished');
   }
 
   const buffer = prev.buffer.length === 0
