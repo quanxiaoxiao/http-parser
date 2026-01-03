@@ -1,7 +1,8 @@
 import { HttpDecodeError, HttpDecodeErrorCode } from '../errors.js';
 import parseInteger from '../parseInteger.js';
+import { DEFAULT_START_LINE_LIMITS } from '../specs.js';
 import { STATUS_CODES } from '../status-codes.js';
-import type { HttpMethod, HttpVersion, RequestStartLine, ResponseStartLine } from '../types.js';
+import type { HttpMethod, HttpVersion, RequestStartLine, ResponseStartLine,StartLineLimits } from '../types.js';
 
 const REQUEST_STARTLINE_REG = /^(\w+)\s+([^\s]+)\s+(HTTP\/1\.[01])$/i;
 const RESPONSE_STARTLINE_REG = /^(HTTP\/1\.[01])\s+(\d{3})(?:\s+(.*))?$/i;
@@ -35,7 +36,7 @@ function validateHttpVersion(versionStr: string): HttpVersion {
   return version as HttpVersion;
 }
 
-export function decodeRequestStartLine(str: string): RequestStartLine {
+export function decodeRequestStartLine(str: string, limit: StartLineLimits = DEFAULT_START_LINE_LIMITS): RequestStartLine {
   if (!str || typeof str !== 'string') {
     throw new TypeError('Invalid input: request line must be a non-empty string');
   }
@@ -52,6 +53,13 @@ export function decodeRequestStartLine(str: string): RequestStartLine {
   const [, method, path, versionStr] = matches;
   const version = validateHttpVersion(versionStr!);
 
+  if (path.length > limit.maxUriBytes) {
+    throw new HttpDecodeError({
+      code: HttpDecodeErrorCode.URI_TOO_LARGE,
+      message: 'HTTP request URI too large',
+    });
+  }
+
   return {
     raw: str,
     method: method!.toUpperCase() as HttpMethod,
@@ -60,7 +68,7 @@ export function decodeRequestStartLine(str: string): RequestStartLine {
   };
 };
 
-export function decodeResponseStartLine(str: string): ResponseStartLine {
+export function decodeResponseStartLine(str: string, limit: StartLineLimits = DEFAULT_START_LINE_LIMITS): ResponseStartLine {
   if (!str || typeof str !== 'string') {
     throw new TypeError('Invalid input: response line must be a non-empty string');
   }
@@ -88,6 +96,13 @@ export function decodeResponseStartLine(str: string): ResponseStartLine {
   }
 
   const finalStatusMessage = statusText?.trim() || STATUS_CODES[statusCode] || 'Unknown';
+
+  if (finalStatusMessage.length > limit.maxReasonPhraseBytes) {
+    throw new HttpDecodeError({
+      code: HttpDecodeErrorCode.INVALID_REASON_PHRASE,
+      message: 'HTTP response status message too large',
+    });
+  }
 
   return {
     raw: str,

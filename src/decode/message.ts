@@ -1,10 +1,10 @@
 import { Buffer } from 'node:buffer';
 
-import { DecodeHttpError, HttpDecodeError, HttpDecodeErrorCode  } from '../errors.js';
+import { DecodeHttpError, HttpDecodeError, HttpDecodeErrorCode } from '../errors.js';
 import { isChunked } from '../headers/header-predicates.js';
 import { getHeaderValue } from '../headers/headers.js';
 import parseInteger from '../parseInteger.js';
-import { HttpDecodePhase, DEFAULT_START_LINE_LIMITS } from '../specs.js';
+import { DEFAULT_START_LINE_LIMITS,HttpDecodePhase } from '../specs.js';
 import type { Headers, RequestStartLine, ResponseStartLine } from '../types.js';
 import { type ChunkedBodyState, createChunkedBodyState, decodeChunkedBody } from './chunked-body.js';
 import { createFixedLengthBodyState, decodeFixedLengthBody,type FixedLengthBodyState } from './fixed-length-body.js';

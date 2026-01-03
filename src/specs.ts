@@ -37,6 +37,8 @@ export const CR = 0x0d;
 export const LF = 0x0a;
 export const CRLF = '\r\n';
 
+export const MAX_LINE_SIZE = 16 * 1024;
+
 export enum HttpDecodePhase {
   START_LINE,
   HEADERS,
@@ -56,11 +58,11 @@ export const DEFAULT_HEADER_LIMITS: HeaderLimits = {
   maxHeaderLineBytes: 8 * 1024,
   maxHeaderNameBytes: 256,
   maxHeaderValueBytes: 8 * 1024,
-};
+} as const;
 
 export const DEFAULT_START_LINE_LIMITS: StartLineLimits = {
   maxStartLineBytes: 8 * 1024,
   maxMethodBytes: 32,
   maxUriBytes: 4 * 1024,
   maxReasonPhraseBytes: 512,
-};
+} as const;

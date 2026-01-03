@@ -1,9 +1,7 @@
 import { Buffer } from 'node:buffer';
 
 import { HttpDecodeError, HttpDecodeErrorCode } from '../errors.js';
-import { CR, LF } from '../specs.js';
-
-const MAX_LINE_SIZE = 16 * 1024;
+import { CR, LF, MAX_LINE_SIZE } from '../specs.js';
 
 function validateParameters(buf: Buffer, start: number, limit: number): void {
   if (!Number.isInteger(start) || start < 0) {
