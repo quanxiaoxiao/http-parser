@@ -3,6 +3,17 @@ import { DEFAULT_HEADER_LIMITS } from '../specs.js';
 import type { HeaderLimits, Headers } from '../types.js';
 import { decodeHttpLine } from './http-line.js';
 
+function normalizeHeaderValue(value: string): string {
+  return value.replace(/^[ \t]+/, '').replace(/[ \t]+$/, '');
+}
+
+export enum HeadersDecodePhase {
+  START = 0,
+  LINE = 1,
+  DONE = 2,
+  ERROR = 3,
+}
+
 export function decodeHeaderLine(headerString: string): [string, string] {
   const separatorIndex = headerString.indexOf(':');
   if (separatorIndex === -1) {
@@ -21,6 +32,7 @@ export interface HeadersState {
   buffer: Buffer | null;
   headers: Headers;
   finished: boolean;
+  phase: HeadersDecodePhase,
   receivedBytes: number;
   receivedCount: number;
   rawHeaders: string[];
@@ -33,6 +45,7 @@ export function createHeadersState(limit: HeaderLimits = DEFAULT_HEADER_LIMITS):
   return {
     buffer: Buffer.alloc(0),
     headers: {},
+    phase: HeadersDecodePhase.START,
     limit,
     rawHeaders: [],
     receivedBytes: 0,
@@ -121,7 +134,7 @@ export function decodeHeaders(
     const [name, value] = decodeHeaderLine(line.toString());
     rawHeaders.push(name, value);
     const headerName = name.trim().toLowerCase();
-    const headerValue = value.replace(/^[ \t]+/, '').replace(/[ \t]+$/, '');
+    const headerValue = normalizeHeaderValue(value);
     if (headerName.length === 0 || /\s/.test(headerName)) {
       throw new HttpDecodeError({
         code: HttpDecodeErrorCode.INVALID_HEADER,
