@@ -49,6 +49,15 @@ export function decodeHeaderLine(headerBuf: Buffer, limit: HeaderLimits): [strin
     });
   }
 
+  const name = headerBuf.subarray(0, colonIndex).toString('ascii');
+
+  if (colonIndex === 0 || /^\s+$/.test(name) || INVALID_HEADER_NAME.test(name.trim())) {
+    throw new HttpDecodeError({
+      code: HttpDecodeErrorCode.INVALID_HEADER,
+      message: 'Invalid HTTP header name',
+    });
+  }
+
   if (colonIndex > limit.maxHeaderNameBytes) {
     throw new HttpDecodeError({
       code: HttpDecodeErrorCode.HEADER_NAME_TOO_LARGE,
@@ -65,7 +74,6 @@ export function decodeHeaderLine(headerBuf: Buffer, limit: HeaderLimits): [strin
     });
   }
 
-  const name = headerBuf.subarray(0, colonIndex).toString('ascii');
   const value = headerBuf.subarray(colonIndex + 1).toString('ascii');
 
   return [name, value];
@@ -166,12 +174,6 @@ export function decodeHeaders(
       state.rawHeaders.push([name, value]);
       const headerName = name.trim().toLowerCase();
       const headerValue = value.trim();
-      if (headerName.length === 0 || INVALID_HEADER_NAME.test(headerName)) {
-        throw new HttpDecodeError({
-          code: HttpDecodeErrorCode.INVALID_HEADER,
-          message: 'Invalid HTTP header name',
-        });
-      }
       addHeader(state, headerName, headerValue);
       state.phase = HeadersDecodePhase.LINE;
       break;
