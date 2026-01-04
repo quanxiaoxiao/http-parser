@@ -55,9 +55,9 @@ export const MAX_CHUNK_DURATION = 30_000;
 export const DEFAULT_HEADER_LIMITS: HeaderLimits = {
   maxHeaderCount: 100,
   maxHeaderBytes: 32 * 1024,
-  maxHeaderLineBytes: 8 * 1024,
   maxHeaderNameBytes: 256,
   maxHeaderValueBytes: 8 * 1024,
+  maxHeaderLineBytes: 8 * 1024 + 256 + 1,
 } as const;
 
 export const DEFAULT_START_LINE_LIMITS: StartLineLimits = {

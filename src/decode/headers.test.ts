@@ -1,7 +1,7 @@
 import * as assert from 'node:assert';
 import { describe, it } from 'node:test';
 
-import { HttpDecodeError } from '../errors.js';
+import { DEFAULT_HEADER_LIMITS } from '../specs.js';
 import { createHeadersState, decodeHeaderLine, decodeHeaders } from './headers.js';
 
 describe('createHeadersState', () => {
@@ -310,109 +310,205 @@ describe('decodeHeaders', () => {
 });
 
 describe('decodeHeaderLine', () => {
-  describe('正常解析', () => {
-    const validCases = [
-      {
-        desc: '标准 HTTP header',
-        input: 'Content-Type: application/json',
-        expected: ['Content-Type', 'application/json'],
-      },
-      {
-        desc: 'header 带前后空格',
-        input: 'Authorization:   Bearer token123  ',
-        expected: ['Authorization', 'Bearer token123'],
-      },
-      {
-        desc: 'header 无额外空格',
-        input: 'Host:example.com',
-        expected: ['Host', 'example.com'],
-      },
-      {
-        desc: 'value 包含多个冒号',
-        input: 'X-Custom: value:with:colons',
-        expected: ['X-Custom', 'value:with:colons'],
-      },
-      {
-        desc: 'value 以冒号开头',
-        input: 'X-Custom: :startWithColon',
-        expected: ['X-Custom', ':startWithColon'],
-      },
-      {
-        desc: '特殊字符（Cookie）',
-        input: 'Set-Cookie: session=abc123; Path=/; HttpOnly',
-        expected: ['Set-Cookie', 'session=abc123; Path=/; HttpOnly'],
-      },
-      {
-        desc: '单字符 name 和 value',
-        input: 'A: B',
-        expected: ['A', 'B'],
-      },
-      {
-        desc: '数字 value',
-        input: 'Content-Length: 12345',
-        expected: ['Content-Length', '12345'],
-      },
-    ];
+  describe('正常情况', () => {
+    it('应该正确解析标准的 HTTP 头部', () => {
+      const headerBuf = Buffer.from('Content-Type:application/json');
+      const [name, value] = decodeHeaderLine(headerBuf, DEFAULT_HEADER_LIMITS);
 
-    validCases.forEach(({ desc, input, expected }) => {
-      it(`应该正确解析${desc}`, () => {
-        const [name, value] = decodeHeaderLine(input);
-        assert.strictEqual(name, expected[0]);
-        assert.strictEqual(value.trim(), expected[1]);
-      });
+      assert.strictEqual(name, 'Content-Type');
+      assert.strictEqual(value, 'application/json');
     });
 
-    it('应该正确处理超长 header 值', () => {
-      const longValue = 'a'.repeat(1000);
-      const [name, value] = decodeHeaderLine(`Content-Length:${longValue}`);
-      assert.strictEqual(name, 'Content-Length');
-      assert.strictEqual(value, longValue);
+    it('应该正确处理带空格的头部值', () => {
+      const headerBuf = Buffer.from('Content-Type: application/json; charset=utf-8');
+      const [name, value] = decodeHeaderLine(headerBuf, DEFAULT_HEADER_LIMITS);
+
+      assert.strictEqual(name, 'Content-Type');
+      assert.strictEqual(value, ' application/json; charset=utf-8');
+    });
+
+    it('应该正确处理头部名称和值前后的空格', () => {
+      const headerBuf = Buffer.from('  User-Agent  :  Mozilla/5.0  ');
+      const [name, value] = decodeHeaderLine(headerBuf, DEFAULT_HEADER_LIMITS);
+
+      assert.strictEqual(name, '  User-Agent  ');
+      assert.strictEqual(value, '  Mozilla/5.0  ');
+    });
+
+    it('应该正确处理空值', () => {
+      const headerBuf = Buffer.from('X-Custom-Header:');
+      const [name, value] = decodeHeaderLine(headerBuf, DEFAULT_HEADER_LIMITS);
+
+      assert.strictEqual(name, 'X-Custom-Header');
+      assert.strictEqual(value, '');
+    });
+
+    it('应该正确处理包含多个冒号的值', () => {
+      const headerBuf = Buffer.from('Authorization:Bearer:token:with:colons');
+      const [name, value] = decodeHeaderLine(headerBuf, DEFAULT_HEADER_LIMITS);
+
+      assert.strictEqual(name, 'Authorization');
+      assert.strictEqual(value, 'Bearer:token:with:colons');
+    });
+
+    it('应该正确处理单字符头部名称', () => {
+      const headerBuf = Buffer.from('X:value');
+      const [name, value] = decodeHeaderLine(headerBuf, DEFAULT_HEADER_LIMITS);
+
+      assert.strictEqual(name, 'X');
+      assert.strictEqual(value, 'value');
     });
   });
 
   describe('边界情况', () => {
-    const edgeCases = [
-      {
-        desc: 'value 为空',
-        input: 'Content-Type:',
-        expected: ['Content-Type', ''],
-      },
-      {
-        desc: 'value 只有空格',
-        input: 'Content-Type:   ',
-        expected: ['Content-Type', ''],
-      },
-    ];
+    it('应该接受最大长度的头部名称', () => {
+      const maxName = 'A'.repeat(DEFAULT_HEADER_LIMITS.maxHeaderNameBytes);
+      const headerBuf = Buffer.from(`${maxName}:value`);
+      const [name, value] = decodeHeaderLine(headerBuf, DEFAULT_HEADER_LIMITS);
 
-    edgeCases.forEach(({ desc, input, expected }) => {
-      it(`应该正确处理${desc}`, () => {
-        const [name, value] = decodeHeaderLine(input);
-        assert.strictEqual(name, expected[0]);
-        assert.strictEqual(value.trim(), expected[1]);
-      });
+      assert.strictEqual(name, maxName);
+      assert.strictEqual(value, 'value');
+    });
+
+    it('应该接受最大长度的头部值', () => {
+      const maxValue = 'V'.repeat(DEFAULT_HEADER_LIMITS.maxHeaderValueBytes);
+      const headerBuf = Buffer.from(`Name:${maxValue}`);
+      const [name, value] = decodeHeaderLine(headerBuf, DEFAULT_HEADER_LIMITS);
+
+      assert.strictEqual(name, 'Name');
+      assert.strictEqual(value, maxValue);
+    });
+
+    it('应该接受最大长度的整行', () => {
+      const nameLen = DEFAULT_HEADER_LIMITS.maxHeaderNameBytes;
+      const valueLen = DEFAULT_HEADER_LIMITS.maxHeaderLineBytes - nameLen - 1;
+      const headerBuf = Buffer.from(`${'N'.repeat(nameLen)}:${'V'.repeat(valueLen)}`);
+      const [name, value] = decodeHeaderLine(headerBuf, DEFAULT_HEADER_LIMITS);
+
+      assert.strictEqual(name.length, nameLen);
+      assert.strictEqual(value.length, valueLen);
     });
   });
 
   describe('错误情况', () => {
-    const errorCases = [
-      {
-        desc: '缺少冒号',
-        input: 'InvalidHeader',
-        errorCheck: (error: Error) =>
-          error instanceof HttpDecodeError &&
-          error.message.includes('missing'),
-      },
-      {
-        desc: '空字符串',
-        input: '',
-        errorCheck: (error: Error) => error instanceof HttpDecodeError,
-      },
-    ];
+    it('应该在缺少冒号时抛出错误', () => {
+      const headerBuf = Buffer.from('InvalidHeaderWithoutColon');
 
-    errorCases.forEach(({ desc, input, errorCheck }) => {
-      it(`应该在${desc}时抛出 HttpDecodeError`, () => {
-        assert.throws(() => decodeHeaderLine(input), errorCheck);
-      });
+      assert.throws(
+        () => decodeHeaderLine(headerBuf, DEFAULT_HEADER_LIMITS),
+        {
+          name: 'HttpDecodeError',
+          code: 'INVALID_HEADER',
+          message: /missing ":" separator/,
+        },
+      );
+    });
+
+    it('应该在头部名称过长时抛出错误', () => {
+      const longName = 'A'.repeat(DEFAULT_HEADER_LIMITS.maxHeaderNameBytes + 1);
+      const headerBuf = Buffer.from(`${longName}:value`);
+
+      assert.throws(
+        () => decodeHeaderLine(headerBuf, DEFAULT_HEADER_LIMITS),
+        {
+          name: 'HttpDecodeError',
+          code: 'HEADER_NAME_TOO_LARGE',
+        },
+      );
+    });
+
+    it('应该在头部值过长时抛出错误', () => {
+      const longValue = 'V'.repeat(DEFAULT_HEADER_LIMITS.maxHeaderValueBytes + 1);
+      const headerBuf = Buffer.from(`Name:${longValue}`);
+
+      assert.throws(
+        () => decodeHeaderLine(headerBuf, DEFAULT_HEADER_LIMITS),
+        {
+          name: 'HttpDecodeError',
+          code: 'HEADER_VALUE_TOO_LARGE',
+        },
+      );
+    });
+
+    it('应该在整行过长时抛出错误', () => {
+      const longLine = 'A'.repeat(DEFAULT_HEADER_LIMITS.maxHeaderLineBytes + 1);
+      const headerBuf = Buffer.from(longLine);
+
+      assert.throws(
+        () => decodeHeaderLine(headerBuf, DEFAULT_HEADER_LIMITS),
+        {
+          name: 'HttpDecodeError',
+          code: 'HEADER_LINE_TOO_LARGE',
+        },
+      );
+    });
+  });
+
+  describe('自定义限制', () => {
+    it('应该遵守自定义的头部名称限制', () => {
+      const customLimits = {
+        ...DEFAULT_HEADER_LIMITS,
+        maxHeaderNameBytes: 10,
+      };
+      const headerBuf = Buffer.from('VeryLongHeaderName:value');
+
+      assert.throws(
+        () => decodeHeaderLine(headerBuf, customLimits),
+        {
+          name: 'HttpDecodeError',
+          code: 'HEADER_NAME_TOO_LARGE',
+        },
+      );
+    });
+
+    it('应该遵守自定义的头部值限制', () => {
+      const customLimits = {
+        ...DEFAULT_HEADER_LIMITS,
+        maxHeaderValueBytes: 5,
+      };
+      const headerBuf = Buffer.from('Name:VeryLongValue');
+
+      assert.throws(
+        () => decodeHeaderLine(headerBuf, customLimits),
+        {
+          name: 'HttpDecodeError',
+          code: 'HEADER_VALUE_TOO_LARGE',
+        },
+      );
+    });
+
+    it('应该遵守自定义的整行限制', () => {
+      const customLimits = {
+        ...DEFAULT_HEADER_LIMITS,
+        maxHeaderLineBytes: 20,
+      };
+      const headerBuf = Buffer.from('Header:ThisValueIsTooLongForTheLimit');
+
+      assert.throws(
+        () => decodeHeaderLine(headerBuf, customLimits),
+        {
+          name: 'HttpDecodeError',
+          code: 'HEADER_LINE_TOO_LARGE',
+        },
+      );
+    });
+  });
+
+  describe('特殊字符处理', () => {
+    it('应该正确处理 ASCII 可打印字符', () => {
+      const headerBuf = Buffer.from('X-Special:!@#$%^&*()_+-=[]{}|;:",.<>?/~`');
+      const [name, value] = decodeHeaderLine(headerBuf, DEFAULT_HEADER_LIMITS);
+
+      assert.strictEqual(name, 'X-Special');
+      assert.strictEqual(value, '!@#$%^&*()_+-=[]{}|;:",.<>?/~`');
+    });
+
+    it('应该正确处理数字', () => {
+      const headerBuf = Buffer.from('Content-Length:12345');
+      const [name, value] = decodeHeaderLine(headerBuf, DEFAULT_HEADER_LIMITS);
+
+      assert.strictEqual(name, 'Content-Length');
+      assert.strictEqual(value, '12345');
     });
   });
 });

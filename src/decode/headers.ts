@@ -16,16 +16,44 @@ enum HeadersDecodePhase {
   ERROR = 3,
 }
 
-export function decodeHeaderLine(headerString: string): [string, string] {
-  const separatorIndex = headerString.indexOf(':');
-  if (separatorIndex === -1) {
+export function decodeHeaderLine(headerBuf: Buffer, limit: HeaderLimits): [string, string] {
+  const COLON = 0x3a;
+  const len = headerBuf.length;
+
+  if (len > limit.maxHeaderLineBytes) {
+    throw new HttpDecodeError({
+      code: HttpDecodeErrorCode.HEADER_LINE_TOO_LARGE,
+      message: `Header line exceeds ${limit.maxHeaderLineBytes} bytes`,
+    });
+  }
+
+  const colonIndex = headerBuf.indexOf(COLON);
+
+  if (colonIndex === -1) {
     throw new HttpDecodeError({
       code: HttpDecodeErrorCode.INVALID_HEADER,
       message: 'HTTP Header missing ":" separator',
     });
   }
-  const name = headerString.slice(0, separatorIndex);
-  const value = headerString.slice(separatorIndex + 1);
+
+  if (colonIndex > limit.maxHeaderNameBytes) {
+    throw new HttpDecodeError({
+      code: HttpDecodeErrorCode.HEADER_NAME_TOO_LARGE,
+      message: `Header name exceeds ${limit.maxHeaderNameBytes} bytes`,
+    });
+  }
+
+  const valueLength = len - colonIndex - 1;
+
+  if (valueLength > limit.maxHeaderValueBytes) {
+    throw new HttpDecodeError({
+      code: HttpDecodeErrorCode.HEADER_VALUE_TOO_LARGE,
+      message: `Header value exceeds ${limit.maxHeaderValueBytes} bytes`,
+    });
+  }
+
+  const name = headerBuf.subarray(0, colonIndex).toString('ascii');
+  const value = headerBuf.subarray(colonIndex + 1).toString('ascii');
 
   return [name, value];
 }
@@ -92,7 +120,7 @@ export function decodeHeaders(
         if (error.code === HttpDecodeErrorCode.LINE_TOO_LARGE) {
           throw new HttpDecodeError({
             code: HttpDecodeErrorCode.HEADER_LINE_TOO_LARGE,
-            message: 'HTTP header line too large',
+            message: `Header line exceeds ${limit.maxHeaderLineBytes} bytes`,
           });
         }
         throw new HttpDecodeError({
@@ -131,7 +159,7 @@ export function decodeHeaders(
       });
     }
 
-    const [name, value] = decodeHeaderLine(line.toString());
+    const [name, value] = decodeHeaderLine(line, prev.limit);
     rawHeaders.push(name, value);
     const headerName = name.trim().toLowerCase();
     const headerValue = normalizeHeaderValue(value);
