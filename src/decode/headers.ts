@@ -10,6 +10,13 @@ const INVALID_HEADER_NAME = /[^!#$%&'*+\-.^_`|~0-9a-z]/i;
 function checkHeaderLimits(state: HeadersState, lineLength: number) {
   state.receivedBytes += lineLength;
 
+  if (state.receivedBytes > state.limit.maxHeaderBytes) {
+    throw new HttpDecodeError({
+      code: HttpDecodeErrorCode.HEADER_TOO_LARGE,
+      message: `Headers too large: ${state.receivedBytes} bytes exceeds limit of ${state.limit.maxHeaderBytes}`,
+    });
+  }
+
   if (state.rawHeaders.length + 1 > state.limit.maxHeaderCount) {
     throw new HttpDecodeError({
       code: HttpDecodeErrorCode.HEADER_TOO_MANY,

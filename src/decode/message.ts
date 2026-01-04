@@ -26,7 +26,7 @@ export type TransitionResult =
 export type HttpDecodeEvent =
   | { type: 'phase-enter'; phase: HttpDecodePhase }
   | { type: 'start-line-complete'; raw: string }
-  | { type: 'headers-lines'; rawHeaders: string[] }
+  | { type: 'headers-lines'; rawHeaders: Array<[name: string, value: string]> }
   | { type: 'headers-complete'; headers: Headers }
   | { type: 'body-chunk'; size: number }
   | { type: 'body-complete'; totalSize: number }
@@ -173,13 +173,6 @@ function handleHeadersPhase(state: HttpState): void {
     state.headersState = createHeadersState(DEFAULT_HEADER_LIMITS);
   }
   const headersState = decodeHeaders(state.headersState!, state.buffer);
-
-  if (headersState.bytesReceived > DEFAULT_HEADER_LIMITS.maxHeaderBytes) {
-    throw new HttpDecodeError({
-      code: HttpDecodeErrorCode.HEADER_TOO_LARGE,
-      message: `Headers too large: ${headersState.bytesReceived} bytes exceeds limit of ${DEFAULT_HEADER_LIMITS.maxHeaderBytes}`,
-    });
-  }
 
   const newLines = headersState.rawHeaders.slice(state.headersState.rawHeaders.length);
   if (newLines.length > 0) {
