@@ -5,8 +5,25 @@ import { decodeHttpLine } from './http-line.js';
 
 const CRLF_LENGTH = 2;
 
+const INVALID_HEADER_NAME = /[^!#$%&'*+\-.^_`|~0-9a-z]/i;
+
 function normalizeHeaderValue(value: string): string {
   return value.replace(/^[ \t]+/, '').replace(/[ \t]+$/, '');
+}
+
+function checkHeaderLimits(
+  state: HeadersState,
+  lineLength: number,
+) {
+  state.receivedCount++;
+  state.receivedBytes += lineLength;
+
+  if (state.receivedCount > state.limit.maxHeaderCount) {
+    throw new HttpDecodeError({
+      code: HttpDecodeErrorCode.HEADER_TOO_MANY,
+      message: `headers exceeds limit of ${state.limit.maxHeaderCount} count`,
+    });
+  }
 }
 
 export enum HeadersDecodePhase {
@@ -159,7 +176,7 @@ export function decodeHeaders(
       rawHeaders.push(name, value);
       const headerName = name.trim().toLowerCase();
       const headerValue = normalizeHeaderValue(value);
-      if (headerName.length === 0 || /\s/.test(headerName)) {
+      if (headerName.length === 0 || INVALID_HEADER_NAME.test(headerName)) {
         throw new HttpDecodeError({
           code: HttpDecodeErrorCode.INVALID_HEADER,
           message: 'Invalid HTTP header name',
