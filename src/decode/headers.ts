@@ -73,12 +73,12 @@ export function createHeadersState(limit: HeaderLimits = DEFAULT_HEADER_LIMITS):
   return {
     buffer: Buffer.alloc(0),
     headers: {},
-    phase: HeadersDecodePhase.START,
-    limit,
     rawHeaders: [],
+    phase: HeadersDecodePhase.START,
     receivedBytes: 0,
     receivedCount: 0,
     finished: false,
+    limit,
   };
 }
 
