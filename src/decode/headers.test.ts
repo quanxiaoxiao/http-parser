@@ -12,7 +12,7 @@ describe('createHeadersState', () => {
     assert.deepStrictEqual(state.headers, {});
     assert.deepStrictEqual(state.rawHeaders, []);
     assert.strictEqual(state.receivedBytes, 0);
-    assert.strictEqual(state.phase, HeadersDecodePhase.START);
+    assert.strictEqual(state.phase, HeadersDecodePhase.LINE);
   });
 });
 
@@ -60,7 +60,7 @@ describe('decodeHeaders', () => {
       const input = Buffer.from('');
       const result = decodeHeaders(state, input);
 
-      assert.strictEqual(result.phase, HeadersDecodePhase.START);
+      assert.strictEqual(result.phase, HeadersDecodePhase.LINE);
       assert.deepStrictEqual(result.headers, {});
       assert.strictEqual(result.receivedBytes, 0);
     });
@@ -127,7 +127,7 @@ describe('decodeHeaders', () => {
       assert.strictEqual(result.buffer.toString(), 'Host: exam');
       assert.strictEqual(result.receivedBytes, 0);
       console.log(result);
-      assert.strictEqual(result.phase, HeadersDecodePhase.START);
+      assert.strictEqual(result.phase, HeadersDecodePhase.LINE);
       assert.deepStrictEqual(result.headers, {});
     });
 
@@ -149,7 +149,7 @@ describe('decodeHeaders', () => {
       let state = createHeadersState();
       state = decodeHeaders(state, Buffer.from('Content-Type: appli'));
 
-      assert.strictEqual(state.phase, HeadersDecodePhase.START);
+      assert.strictEqual(state.phase, HeadersDecodePhase.LINE);
       assert.strictEqual(state.buffer.toString(), 'Content-Type: appli');
 
       state = decodeHeaders(state, Buffer.from('cation/json\r\n\r\n'));

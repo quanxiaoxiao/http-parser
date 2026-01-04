@@ -9,27 +9,9 @@ function normalizeHeaderValue(value: string): string {
   return value.replace(/^[ \t]+/, '').replace(/[ \t]+$/, '');
 }
 
-function mapHeaderLineError(error: unknown): never {
-  if (error instanceof HttpDecodeError) {
-    if (error.code === HttpDecodeErrorCode.LINE_TOO_LARGE) {
-      throw new HttpDecodeError({
-        code: HttpDecodeErrorCode.HEADER_LINE_TOO_LARGE,
-        message: 'HTTP header line too large',
-      });
-    }
-    throw new HttpDecodeError({
-      code: HttpDecodeErrorCode.INVALID_HEADER,
-      message: error.message,
-    });
-  }
-  throw error;
-}
-
 export enum HeadersDecodePhase {
-  START = 'start',
   LINE = 'line',
   DONE = 'done',
-  ERROR = 'error',
 }
 
 export function decodeHeaderLine(headerBuf: Buffer, limit: HeaderLimits): [string, string] {
@@ -89,7 +71,7 @@ export function createHeadersState(limit: HeaderLimits = DEFAULT_HEADER_LIMITS):
     buffer: Buffer.alloc(0),
     headers: {},
     rawHeaders: [],
-    phase: HeadersDecodePhase.START,
+    phase: HeadersDecodePhase.LINE,
     receivedBytes: 0,
     receivedCount: 0,
     limit,
@@ -115,10 +97,6 @@ export function decodeHeaders(
     throw new Error('Headers parsing already finished');
   }
 
-  if (prev.phase === HeadersDecodePhase.ERROR) {
-    throw new Error('');
-  }
-
   const buffer = prev.buffer.length === 0
     ? input
     : Buffer.concat([prev.buffer, input]);
@@ -133,13 +111,24 @@ export function decodeHeaders(
 
   while (offset < buffer.length) {
     switch (phase) {
-    case HeadersDecodePhase.START:
     case HeadersDecodePhase.LINE: {
       let line;
       try {
         line = decodeHttpLine(buffer.subarray(offset), 0, prev.limit.maxHeaderLineBytes);
       } catch (error) {
-        mapHeaderLineError(error);
+        if (error instanceof HttpDecodeError) {
+          if (error.code === HttpDecodeErrorCode.LINE_TOO_LARGE) {
+            throw new HttpDecodeError({
+              code: HttpDecodeErrorCode.HEADER_LINE_TOO_LARGE,
+              message: 'HTTP header line too large',
+            });
+          }
+          throw new HttpDecodeError({
+            code: HttpDecodeErrorCode.INVALID_HEADER,
+            message: error.message,
+          });
+        }
+        throw error;
       }
       if (!line) {
         return {
