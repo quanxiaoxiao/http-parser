@@ -24,7 +24,7 @@ describe('decodeHeaders', () => {
       const result = decodeHeaders(state, input);
 
       assert.strictEqual(result.headers['host'], 'example.com');
-      assert.deepStrictEqual(result.rawHeaders, ['Host', ' example.com']);
+      assert.deepStrictEqual(result.rawHeaders, [['Host', ' example.com']]);
       assert.strictEqual(result.receivedBytes, 19);
       assert.strictEqual(result.phase, HeadersDecodePhase.LINE);
     });
@@ -80,10 +80,8 @@ describe('decodeHeaders', () => {
         'cookie2=value2',
       ]);
       assert.deepStrictEqual(result.rawHeaders, [
-        'Set-Cookie',
-        ' cookie1=value1',
-        'Set-Cookie',
-        ' cookie2=value2',
+        ['Set-Cookie', ' cookie1=value1'],
+        ['Set-Cookie', ' cookie2=value2'],
       ]);
     });
 
@@ -183,7 +181,7 @@ describe('decodeHeaders', () => {
       assert.strictEqual(result.headers['content-length'], '100');
       assert.strictEqual(result.headers['content-encoding'], 'gzip');
       assert.strictEqual(result.headers['Content-Type'], undefined);
-      assert.strictEqual(result.rawHeaders[0], 'Content-Type'); // Raw keeps original case
+      assert.strictEqual(result.rawHeaders[0][0], 'Content-Type'); // Raw keeps original case
     });
 
     it('should handle headers with whitespace in values', () => {
@@ -204,7 +202,7 @@ describe('decodeHeaders', () => {
       const result = decodeHeaders(state, input);
 
       assert.strictEqual(result.headers['x-empty-header'], '');
-      assert.deepStrictEqual(result.rawHeaders, ['X-Empty-Header', ' ']);
+      assert.deepStrictEqual(result.rawHeaders, [['X-Empty-Header', ' ']]);
     });
 
     it('should preserve raw headers order', () => {
@@ -217,9 +215,9 @@ describe('decodeHeaders', () => {
       const result = decodeHeaders(state, input);
 
       assert.deepStrictEqual(result.rawHeaders, [
-        'Content-Type', ' application/json',
-        'Host', ' example.com',
-        'Content-Length', ' 123',
+        ['Content-Type', ' application/json'],
+        ['Host', ' example.com'],
+        ['Content-Length', ' 123'],
       ]);
     });
   });
@@ -260,7 +258,7 @@ describe('decodeHeaders', () => {
     it('should preserve previous headers state', () => {
       const state = createHeadersState();
       state.headers = { host: 'example.com' };
-      state.rawHeaders = ['Host', 'example.com'];
+      state.rawHeaders = [['Host', 'example.com']];
       state.receivedBytes = 19;
 
       const input = Buffer.from('Accept: */*\r\n');
@@ -269,10 +267,8 @@ describe('decodeHeaders', () => {
       assert.strictEqual(result.headers['host'], 'example.com');
       assert.strictEqual(result.headers['accept'], '*/*');
       assert.deepStrictEqual(result.rawHeaders, [
-        'Host',
-        'example.com',
-        'Accept',
-        ' */*',
+        ['Host', 'example.com'],
+        ['Accept', ' */*'],
       ]);
       assert.strictEqual(result.receivedBytes, 32); // 19 + 13
     });

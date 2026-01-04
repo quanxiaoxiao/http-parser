@@ -71,7 +71,7 @@ export interface HeadersState {
   phase: HeadersDecodePhase,
   receivedBytes: number;
   receivedCount: number;
-  rawHeaders: string[];
+  rawHeaders: Array<[name: string, value: string]>;
   limit: HeaderLimits,
 }
 
@@ -159,7 +159,7 @@ export function decodeHeaders(
       checkHeaderLimits(state, lineLength);
 
       const [name, value] = decodeHeaderLine(line, state.limit);
-      state.rawHeaders.push(name, value);
+      state.rawHeaders.push([name, value]);
       const headerName = name.trim().toLowerCase();
       const headerValue = value.trim();
       if (headerName.length === 0 || INVALID_HEADER_NAME.test(headerName)) {
