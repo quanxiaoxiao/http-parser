@@ -8,10 +8,9 @@ const COLON = 0x3a;
 const INVALID_HEADER_NAME = /[^!#$%&'*+\-.^_`|~0-9a-z]/i;
 
 function checkHeaderLimits(state: HeadersState, lineLength: number) {
-  state.receivedCount++;
   state.receivedBytes += lineLength;
 
-  if (state.receivedCount > state.limit.maxHeaderCount) {
+  if (state.rawHeaders.length + 1 > state.limit.maxHeaderCount) {
     throw new HttpDecodeError({
       code: HttpDecodeErrorCode.HEADER_TOO_MANY,
       message: `headers exceeds limit of ${state.limit.maxHeaderCount} count`,
@@ -70,7 +69,6 @@ export interface HeadersState {
   headers: Headers;
   phase: HeadersDecodePhase,
   receivedBytes: number;
-  receivedCount: number;
   rawHeaders: Array<[name: string, value: string]>;
   limit: HeaderLimits,
 }
@@ -82,7 +80,6 @@ export function createHeadersState(limit: HeaderLimits = DEFAULT_HEADER_LIMITS):
     rawHeaders: [],
     phase: HeadersDecodePhase.LINE,
     receivedBytes: 0,
-    receivedCount: 0,
     limit,
   };
 }
