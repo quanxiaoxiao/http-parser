@@ -20,7 +20,7 @@ function checkHeaderLimits(state: HeadersState, lineLength: number) {
   if (state.rawHeaders.length >= state.limit.maxHeaderCount) {
     throw new HttpDecodeError({
       code: HttpDecodeErrorCode.HEADER_TOO_MANY,
-      message: `Headers bytes exceeds limit of ${state.limit.maxHeaderCount} count`,
+      message: `Headers too many: exceeds limit of ${state.limit.maxHeaderCount} count`,
     });
   }
 }
@@ -36,7 +36,7 @@ export function decodeHeaderLine(headerBuf: Buffer, limit: HeaderLimits): [strin
   if (len > limit.maxHeaderLineBytes) {
     throw new HttpDecodeError({
       code: HttpDecodeErrorCode.HEADER_LINE_TOO_LARGE,
-      message: `Header line exceeds ${limit.maxHeaderLineBytes} bytes`,
+      message: `Header line too large: exceeds limit of ${limit.maxHeaderLineBytes} bytes`,
     });
   }
 
@@ -59,7 +59,7 @@ export function decodeHeaderLine(headerBuf: Buffer, limit: HeaderLimits): [strin
   if (colonIndex > limit.maxHeaderNameBytes) {
     throw new HttpDecodeError({
       code: HttpDecodeErrorCode.HEADER_NAME_TOO_LARGE,
-      message: `Header name exceeds ${limit.maxHeaderNameBytes} bytes`,
+      message: `Header name too large: exceeds limit of ${limit.maxHeaderNameBytes} bytes`,
     });
   }
 
@@ -85,7 +85,7 @@ export function decodeHeaderLine(headerBuf: Buffer, limit: HeaderLimits): [strin
   if (valueLength > limit.maxHeaderValueBytes) {
     throw new HttpDecodeError({
       code: HttpDecodeErrorCode.HEADER_VALUE_TOO_LARGE,
-      message: `Header value exceeds ${limit.maxHeaderValueBytes} bytes`,
+      message: `Header value too large: exceeds limit of ${limit.maxHeaderValueBytes} bytes`,
     });
   }
 
@@ -156,7 +156,7 @@ export function decodeHeaders(
           if (error.code === HttpDecodeErrorCode.LINE_TOO_LARGE) {
             throw new HttpDecodeError({
               code: HttpDecodeErrorCode.HEADER_LINE_TOO_LARGE,
-              message: 'HTTP header line too large',
+              message: `HTTP header line too large: exceeds limit of ${state.limit.maxHeaderLineBytes} bytes`,
             });
           }
           throw new HttpDecodeError({
