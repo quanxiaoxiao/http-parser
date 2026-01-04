@@ -4,17 +4,10 @@ import type { HeaderLimits, Headers } from '../types.js';
 import { decodeHttpLine } from './http-line.js';
 
 const CRLF_LENGTH = 2;
-
+const COLON = 0x3a;
 const INVALID_HEADER_NAME = /[^!#$%&'*+\-.^_`|~0-9a-z]/i;
 
-function normalizeHeaderValue(value: string): string {
-  return value.replace(/^[ \t]+/, '').replace(/[ \t]+$/, '');
-}
-
-function checkHeaderLimits(
-  state: HeadersState,
-  lineLength: number,
-) {
+function checkHeaderLimits(state: HeadersState, lineLength: number) {
   state.receivedCount++;
   state.receivedBytes += lineLength;
 
@@ -32,7 +25,6 @@ export enum HeadersDecodePhase {
 }
 
 export function decodeHeaderLine(headerBuf: Buffer, limit: HeaderLimits): [string, string] {
-  const COLON = 0x3a;
   const len = headerBuf.length;
 
   if (len > limit.maxHeaderLineBytes) {
@@ -119,23 +111,23 @@ export function decodeHeaders(
     : Buffer.concat([prev.buffer, input]);
 
   const state = {
+    ...prev,
     buffer,
-    limit: prev.limit,
-    phase: prev.phase,
     headers: { ...prev.headers },
     rawHeaders: [...prev.rawHeaders],
-    receivedCount: prev.receivedCount,
-    receivedBytes: prev.receivedBytes,
   };
 
   let offset = 0;
 
   while (offset < state.buffer.length) {
+    if (state.phase === HeadersDecodePhase.DONE) {
+      break;
+    }
     switch (state.phase) {
     case HeadersDecodePhase.LINE: {
       let line;
       try {
-        line = decodeHttpLine(state.buffer.subarray(offset), 0, prev.limit.maxHeaderLineBytes);
+        line = decodeHttpLine(state.buffer.subarray(offset), 0, state.limit.maxHeaderLineBytes);
       } catch (error) {
         if (error instanceof HttpDecodeError) {
           if (error.code === HttpDecodeErrorCode.LINE_TOO_LARGE) {
@@ -166,10 +158,10 @@ export function decodeHeaders(
 
       checkHeaderLimits(state, lineLength);
 
-      const [name, value] = decodeHeaderLine(line, prev.limit);
+      const [name, value] = decodeHeaderLine(line, state.limit);
       state.rawHeaders.push(name, value);
       const headerName = name.trim().toLowerCase();
-      const headerValue = normalizeHeaderValue(value);
+      const headerValue = value.trim();
       if (headerName.length === 0 || INVALID_HEADER_NAME.test(headerName)) {
         throw new HttpDecodeError({
           code: HttpDecodeErrorCode.INVALID_HEADER,
@@ -185,9 +177,6 @@ export function decodeHeaders(
       return state;
     default:
       throw new Error('Invalid headers parse state');
-    }
-    if (state.phase === HeadersDecodePhase.DONE) {
-      break;
     }
   }
 
