@@ -42,19 +42,10 @@ export function decodeHeaderLine(headerBuf: Buffer, limit: HeaderLimits): [strin
 
   const colonIndex = headerBuf.indexOf(COLON);
 
-  if (colonIndex === -1) {
+  if (colonIndex < 0) {
     throw new HttpDecodeError({
       code: HttpDecodeErrorCode.INVALID_HEADER,
-      message: 'HTTP Header missing ":" separator',
-    });
-  }
-
-  const name = headerBuf.subarray(0, colonIndex).toString('ascii');
-
-  if (colonIndex === 0 || /^\s+$/.test(name) || INVALID_HEADER_NAME.test(name.trim())) {
-    throw new HttpDecodeError({
-      code: HttpDecodeErrorCode.INVALID_HEADER,
-      message: 'Invalid HTTP header name',
+      message: 'Header missing ":" separator',
     });
   }
 
@@ -62,6 +53,22 @@ export function decodeHeaderLine(headerBuf: Buffer, limit: HeaderLimits): [strin
     throw new HttpDecodeError({
       code: HttpDecodeErrorCode.HEADER_NAME_TOO_LARGE,
       message: `Header name exceeds ${limit.maxHeaderNameBytes} bytes`,
+    });
+  }
+
+  const name = headerBuf.subarray(0, colonIndex).toString('ascii');
+
+  if (colonIndex === 0 || /^\s+$/.test(name)) {
+    throw new HttpDecodeError({
+      code: HttpDecodeErrorCode.INVALID_HEADER,
+      message: 'Header name is empty',
+    });
+  }
+
+  if (INVALID_HEADER_NAME.test(name.trim())) {
+    throw new HttpDecodeError({
+      code: HttpDecodeErrorCode.INVALID_HEADER,
+      message: `Invalid characters in header name: ${name}`,
     });
   }
 
@@ -118,13 +125,9 @@ export function decodeHeaders(
     throw new Error('Headers parsing already finished');
   }
 
-  const buffer = prev.buffer.length === 0
-    ? input
-    : Buffer.concat([prev.buffer, input]);
-
   const state = {
     ...prev,
-    buffer,
+    buffer: prev.buffer.length === 0 ? input : Buffer.concat([prev.buffer, input]),
     headers: { ...prev.headers },
     rawHeaders: [...prev.rawHeaders],
   };
@@ -156,7 +159,13 @@ export function decodeHeaders(
         throw error;
       }
       if (!line) {
-        state.buffer = buffer.subarray(offset);
+        if (state.receivedBytes + (state.buffer.length - offset) > state.limit.maxHeaderBytes) {
+          throw new HttpDecodeError({
+            code: HttpDecodeErrorCode.HEADER_TOO_LARGE,
+            message: `Headers too large: ${state.receivedBytes} bytes exceeds limit of ${state.limit.maxHeaderBytes}`,
+          });
+        }
+        state.buffer = state.buffer.subarray(offset);
         return state;
       }
 

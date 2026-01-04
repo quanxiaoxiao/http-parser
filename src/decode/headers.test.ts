@@ -730,7 +730,7 @@ describe('decodeHeaders', () => {
       (err) => {
         return err instanceof HttpDecodeError &&
                err.code === HttpDecodeErrorCode.INVALID_HEADER &&
-               err.message.includes('Invalid HTTP header name');
+               err.message.includes('Invalid characters in header name');
       },
     );
   });
