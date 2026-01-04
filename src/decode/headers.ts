@@ -3,11 +3,13 @@ import { DEFAULT_HEADER_LIMITS } from '../specs.js';
 import type { HeaderLimits, Headers } from '../types.js';
 import { decodeHttpLine } from './http-line.js';
 
+const CRLF_LENGTH = 2;
+
 function normalizeHeaderValue(value: string): string {
   return value.replace(/^[ \t]+/, '').replace(/[ \t]+$/, '');
 }
 
-export enum HeadersDecodePhase {
+enum HeadersDecodePhase {
   START = 0,
   LINE = 1,
   DONE = 2,
@@ -38,8 +40,6 @@ export interface HeadersState {
   rawHeaders: string[];
   limit: HeaderLimits,
 }
-
-const CRLF_LENGTH = 2;
 
 export function createHeadersState(limit: HeaderLimits = DEFAULT_HEADER_LIMITS): HeadersState {
   return {
@@ -127,7 +127,7 @@ export function decodeHeaders(
     if (receivedCount > prev.limit.maxHeaderCount) {
       throw new HttpDecodeError({
         code: HttpDecodeErrorCode.HEADER_TOO_MANY,
-        message: 'Too many HTTP headers',
+        message: `headers exceeds limit of ${prev.limit.maxHeaderCount} count`,
       });
     }
 

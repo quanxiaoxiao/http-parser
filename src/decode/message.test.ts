@@ -391,7 +391,6 @@ describe('HTTP Decoder', () => {
       let state = decodeRequest(null, header);
 
       state = decodeRequest(state, Buffer.from('12345'));
-      console.log(state);
       const chunk1Events = state.events.filter(e => e.type === 'body-chunk');
       assert.strictEqual(chunk1Events.length, 1);
       assert.strictEqual(chunk1Events[0].size, 5);
