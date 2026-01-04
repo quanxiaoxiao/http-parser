@@ -8,7 +8,7 @@ import { DEFAULT_HEADER_LIMITS, DEFAULT_START_LINE_LIMITS, HttpDecodePhase } fro
 import type { Headers, RequestStartLine, ResponseStartLine } from '../types.js';
 import { type ChunkedBodyState, createChunkedBodyState, decodeChunkedBody } from './chunked-body.js';
 import { createFixedLengthBodyState, decodeFixedLengthBody,type FixedLengthBodyState } from './fixed-length-body.js';
-import { createHeadersState, decodeHeaders,type HeadersState } from './headers.js';
+import { createHeadersState, decodeHeaders, type HeadersState,isHeadersFinished } from './headers.js';
 import { decodeHttpLine } from './http-line.js';
 import { decodeRequestStartLine, decodeResponseStartLine } from './start-line.js';
 
@@ -190,10 +190,11 @@ function handleHeadersPhase(state: HttpState): void {
   }
   state.headersState = headersState;
 
-  if (!headersState.finished) {
+  if (!isHeadersFinished(state.headersState)) {
     state.buffer = EMPTY_BUFFER;
     return;
   }
+
   addEvent(state, {
     type: 'headers-complete',
     headers: state.headersState.headers,
