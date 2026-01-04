@@ -1,8 +1,9 @@
 import * as assert from 'node:assert';
 import { describe, it } from 'node:test';
 
+import { HttpDecodeError, HttpDecodeErrorCode } from '../errors.js';
 import { DEFAULT_HEADER_LIMITS } from '../specs.js';
-import { createHeadersState, decodeHeaderLine, decodeHeaders,HeadersDecodePhase } from './headers.js';
+import { createHeadersState, decodeHeaderLine, decodeHeaders,HeadersDecodePhase,isHeadersFinished } from './headers.js';
 
 describe('createHeadersState', () => {
   it('should create initial state with empty values', () => {
@@ -507,5 +508,342 @@ describe('decodeHeaderLine', () => {
       assert.strictEqual(name, 'Content-Length');
       assert.strictEqual(value, '12345');
     });
+  });
+});
+
+describe('decodeHeaderLine', () => {
+  it('应该正确解析简单的头部行', () => {
+    const buffer = Buffer.from('Content-Type: application/json');
+    const limit = {
+      maxHeaderLineBytes: 8192,
+      maxHeaderNameBytes: 256,
+      maxHeaderValueBytes: 8192,
+      maxHeaderBytes: 16384,
+      maxHeaderCount: 100,
+    };
+
+    const [name, value] = decodeHeaderLine(buffer, limit);
+    assert.strictEqual(name, 'Content-Type');
+    assert.strictEqual(value, ' application/json');
+  });
+
+  it('应该正确解析带空格的头部值', () => {
+    const buffer = Buffer.from('Authorization: Bearer token123');
+    const limit = {
+      maxHeaderLineBytes: 8192,
+      maxHeaderNameBytes: 256,
+      maxHeaderValueBytes: 8192,
+      maxHeaderBytes: 16384,
+      maxHeaderCount: 100,
+    };
+
+    const [name, value] = decodeHeaderLine(buffer, limit);
+    assert.strictEqual(name, 'Authorization');
+    assert.strictEqual(value, ' Bearer token123');
+  });
+
+  it('应该在头部行过大时抛出错误', () => {
+    const buffer = Buffer.from('Content-Type: application/json');
+    const limit = {
+      maxHeaderLineBytes: 10,
+      maxHeaderNameBytes: 256,
+      maxHeaderValueBytes: 8192,
+      maxHeaderBytes: 16384,
+      maxHeaderCount: 100,
+    };
+
+    assert.throws(
+      () => decodeHeaderLine(buffer, limit),
+    );
+  });
+
+  it('应该在缺少冒号分隔符时抛出错误', () => {
+    const buffer = Buffer.from('InvalidHeader');
+    const limit = {
+      maxHeaderLineBytes: 8192,
+      maxHeaderNameBytes: 256,
+      maxHeaderValueBytes: 8192,
+      maxHeaderBytes: 16384,
+      maxHeaderCount: 100,
+    };
+
+    assert.throws(
+      () => decodeHeaderLine(buffer, limit),
+      (err) => {
+        return err instanceof HttpDecodeError &&
+               err.code === HttpDecodeErrorCode.INVALID_HEADER &&
+               err.message.includes('missing ":" separator');
+      },
+    );
+  });
+
+  it('应该在头部名称过大时抛出错误', () => {
+    const longName = 'A'.repeat(300);
+    const buffer = Buffer.from(`${longName}: value`);
+    const limit = {
+      maxHeaderLineBytes: 8192,
+      maxHeaderNameBytes: 256,
+      maxHeaderValueBytes: 8192,
+      maxHeaderBytes: 16384,
+      maxHeaderCount: 100,
+    };
+
+    assert.throws(
+      () => decodeHeaderLine(buffer, limit),
+      (err) => {
+        return err instanceof HttpDecodeError &&
+               err.code === HttpDecodeErrorCode.HEADER_NAME_TOO_LARGE;
+      },
+    );
+  });
+
+  it('应该在头部值过大时抛出错误', () => {
+    const longValue = 'V'.repeat(10000);
+    const buffer = Buffer.from(`Name: ${longValue}`);
+    const limit = {
+      maxHeaderLineBytes: 20000,
+      maxHeaderNameBytes: 256,
+      maxHeaderValueBytes: 8192,
+      maxHeaderBytes: 50000,
+      maxHeaderCount: 100,
+    };
+
+    assert.throws(
+      () => decodeHeaderLine(buffer, limit),
+      (err) => {
+        return err instanceof HttpDecodeError &&
+               err.code === HttpDecodeErrorCode.HEADER_VALUE_TOO_LARGE;
+      },
+    );
+  });
+});
+
+describe('createHeadersState', () => {
+  it('应该创建初始状态', () => {
+    const state = createHeadersState();
+
+    assert.strictEqual(state.phase, HeadersDecodePhase.LINE);
+    assert.strictEqual(state.receivedBytes, 0);
+    assert.deepStrictEqual(state.headers, {});
+    assert.deepStrictEqual(state.rawHeaders, []);
+    assert.ok(state.buffer instanceof Buffer);
+    assert.strictEqual(state.buffer.length, 0);
+  });
+
+  it('应该使用自定义限制创建状态', () => {
+    const customLimit = {
+      maxHeaderLineBytes: 4096,
+      maxHeaderNameBytes: 128,
+      maxHeaderValueBytes: 4096,
+      maxHeaderBytes: 8192,
+      maxHeaderCount: 50,
+    };
+
+    const state = createHeadersState(customLimit);
+    assert.deepStrictEqual(state.limit, customLimit);
+  });
+});
+
+describe('decodeHeaders', () => {
+  it('应该解析单个头部', () => {
+    const state = createHeadersState();
+    const input = Buffer.from('Content-Type: application/json\r\n\r\n');
+
+    const result = decodeHeaders(state, input);
+
+    assert.strictEqual(result.phase, HeadersDecodePhase.DONE);
+    assert.strictEqual(result.headers['content-type'], 'application/json');
+    assert.strictEqual(result.rawHeaders.length, 1);
+    assert.deepStrictEqual(result.rawHeaders[0], ['Content-Type', ' application/json']);
+  });
+
+  it('应该解析多个头部', () => {
+    const state = createHeadersState();
+    const input = Buffer.from(
+      'Content-Type: application/json\r\n' +
+      'Authorization: Bearer token\r\n' +
+      'Accept: */*\r\n' +
+      '\r\n',
+    );
+
+    const result = decodeHeaders(state, input);
+
+    assert.strictEqual(result.phase, HeadersDecodePhase.DONE);
+    assert.strictEqual(result.headers['content-type'], 'application/json');
+    assert.strictEqual(result.headers['authorization'], 'Bearer token');
+    assert.strictEqual(result.headers['accept'], '*/*');
+    assert.strictEqual(result.rawHeaders.length, 3);
+  });
+
+  it('应该处理相同名称的多个头部', () => {
+    const state = createHeadersState();
+    const input = Buffer.from(
+      'Set-Cookie: session=abc123\r\n' +
+      'Set-Cookie: user=john\r\n' +
+      '\r\n',
+    );
+
+    const result = decodeHeaders(state, input);
+
+    assert.strictEqual(result.phase, HeadersDecodePhase.DONE);
+    assert.ok(Array.isArray(result.headers['set-cookie']));
+    assert.deepStrictEqual(result.headers['set-cookie'], ['session=abc123', 'user=john']);
+  });
+
+  it('应该处理分块输入', () => {
+    let state = createHeadersState();
+
+    // 第一块
+    const input1 = Buffer.from('Content-Type: application/');
+    state = decodeHeaders(state, input1);
+    assert.strictEqual(state.phase, HeadersDecodePhase.LINE);
+
+    // 第二块
+    const input2 = Buffer.from('json\r\nAuthorization: Bearer ');
+    state = decodeHeaders(state, input2);
+    assert.strictEqual(state.phase, HeadersDecodePhase.LINE);
+
+    // 第三块
+    const input3 = Buffer.from('token\r\n\r\n');
+    state = decodeHeaders(state, input3);
+    assert.strictEqual(state.phase, HeadersDecodePhase.DONE);
+
+    assert.strictEqual(state.headers['content-type'], 'application/json');
+    assert.strictEqual(state.headers['authorization'], 'Bearer token');
+  });
+
+  it('应该去除头部名称和值的空格', () => {
+    const state = createHeadersState();
+    const input = Buffer.from('  Content-Type  :   application/json  \r\n\r\n');
+
+    const result = decodeHeaders(state, input);
+
+    assert.strictEqual(result.headers['content-type'], 'application/json');
+  });
+
+  it('应该在头部名称无效时抛出错误', () => {
+    const state = createHeadersState();
+    const input = Buffer.from('Invalid Header: value\r\n\r\n');
+
+    assert.throws(
+      () => decodeHeaders(state, input),
+      (err) => {
+        return err instanceof HttpDecodeError &&
+               err.code === HttpDecodeErrorCode.INVALID_HEADER &&
+               err.message.includes('Invalid HTTP header name');
+      },
+    );
+  });
+
+  it('应该在头部名称为空时抛出错误', () => {
+    const state = createHeadersState();
+    const input = Buffer.from('  : value\r\n\r\n');
+
+    assert.throws(
+      () => decodeHeaders(state, input),
+      (err) => {
+        return err instanceof HttpDecodeError &&
+               err.code === HttpDecodeErrorCode.INVALID_HEADER;
+      },
+    );
+  });
+
+  it('应该在头部数量超过限制时抛出错误', () => {
+    const customLimit = {
+      maxHeaderLineBytes: 8192,
+      maxHeaderNameBytes: 256,
+      maxHeaderValueBytes: 8192,
+      maxHeaderBytes: 16384,
+      maxHeaderCount: 2,
+    };
+    const state = createHeadersState(customLimit);
+    const input = Buffer.from(
+      'Header1: value1\r\n' +
+      'Header2: value2\r\n' +
+      'Header3: value3\r\n' +
+      '\r\n',
+    );
+
+    assert.throws(
+      () => decodeHeaders(state, input),
+      (err) => {
+        return err instanceof HttpDecodeError &&
+               err.code === HttpDecodeErrorCode.HEADER_TOO_MANY;
+      },
+    );
+  });
+
+  it('应该在已完成后再次调用时抛出错误', () => {
+    const state = createHeadersState();
+    const input = Buffer.from('Content-Type: application/json\r\n\r\n');
+
+    const result = decodeHeaders(state, input);
+    assert.strictEqual(result.phase, HeadersDecodePhase.DONE);
+
+    assert.throws(
+      () => decodeHeaders(result, Buffer.from('More: data\r\n')),
+      /Headers parsing already finished/,
+    );
+  });
+
+  it('应该正确处理空头部（只有CRLF）', () => {
+    const state = createHeadersState();
+    const input = Buffer.from('\r\n');
+
+    const result = decodeHeaders(state, input);
+
+    assert.strictEqual(result.phase, HeadersDecodePhase.DONE);
+    assert.deepStrictEqual(result.headers, {});
+    assert.strictEqual(result.rawHeaders.length, 0);
+  });
+});
+
+describe('isHeadersFinished', () => {
+  it('应该在未完成时返回false', () => {
+    const state = createHeadersState();
+    assert.strictEqual(isHeadersFinished(state), false);
+  });
+
+  it('应该在完成时返回true', () => {
+    const state = createHeadersState();
+    const input = Buffer.from('\r\n');
+    const result = decodeHeaders(state, input);
+
+    assert.strictEqual(isHeadersFinished(result), true);
+  });
+});
+
+describe('边界情况测试', () => {
+  it('应该处理包含特殊字符的有效头部名称', () => {
+    const state = createHeadersState();
+    const input = Buffer.from('X-Custom-Header_123: value\r\n\r\n');
+
+    const result = decodeHeaders(state, input);
+
+    assert.strictEqual(result.headers['x-custom-header_123'], 'value');
+  });
+
+  it('应该处理空值的头部', () => {
+    const state = createHeadersState();
+    const input = Buffer.from('Empty-Value:\r\n\r\n');
+
+    const result = decodeHeaders(state, input);
+
+    assert.strictEqual(result.headers['empty-value'], '');
+  });
+
+  it('应该处理三个相同名称的头部', () => {
+    const state = createHeadersState();
+    const input = Buffer.from(
+      'X-Custom: first\r\n' +
+      'X-Custom: second\r\n' +
+      'X-Custom: third\r\n' +
+      '\r\n',
+    );
+
+    const result = decodeHeaders(state, input);
+
+    assert.ok(Array.isArray(result.headers['x-custom']));
+    assert.deepStrictEqual(result.headers['x-custom'], ['first', 'second', 'third']);
   });
 });
