@@ -26,7 +26,7 @@ export type TransitionResult =
 export type HttpDecodeEvent =
   | { type: 'phase-enter'; phase: HttpDecodePhase }
   | { type: 'start-line-complete'; raw: string }
-  | { type: 'headers-lines'; rawHeaders: Array<[name: string, value: string]> }
+  | { type: 'headers-lines'; headersRaw: string[] }
   | { type: 'headers-complete'; headers: Headers }
   | { type: 'body-chunk'; size: number }
   | { type: 'body-complete'; totalSize: number }
@@ -174,7 +174,7 @@ function handleHeadersPhase(state: HttpState): void {
   }
   const headersState = decodeHeaders(state.headersState!, state.buffer);
 
-  const newLines = headersState.headersRaw.slice(state.headersState.headersRaw.length);
+  const newLines: string[] = headersState.headersRaw.slice(state.headersState.headersRaw.length);
   if (newLines.length > 0) {
     addEvent(state, {
       type: 'headers-lines',
