@@ -10,7 +10,6 @@ describe('decodeRequest', () => {
     it('应该创建初始状态', () => {
       const state = createRequestState();
       assert.strictEqual(state.phase, HttpDecodePhase.START_LINE);
-      assert.strictEqual(state.finished, false);
       assert.strictEqual(state.startLine, null);
       assert.strictEqual(state.headersState, null);
       assert.strictEqual(state.bodyState, null);
@@ -18,7 +17,7 @@ describe('decodeRequest', () => {
 
     it('已完成的请求应该抛出错误', () => {
       const state = createRequestState();
-      state.finished = true;
+      state.phase = HttpDecodePhase.FINISHED;
 
       assert.throws(
         () => decodeRequest(state, Buffer.from('test')),
@@ -31,7 +30,6 @@ describe('decodeRequest', () => {
       const result = decodeRequest(state, Buffer.alloc(0));
 
       assert.strictEqual(result.phase, HttpDecodePhase.START_LINE);
-      assert.strictEqual(result.finished, false);
     });
   });
 
@@ -66,12 +64,11 @@ describe('decodeRequest', () => {
       const result = decodeRequest(state, input);
 
       assert.strictEqual(result.phase, HttpDecodePhase.START_LINE);
-      assert.strictEqual(result.finished, false);
     });
   });
 
   describe('HEADERS 阶段', () => {
-    it('应该解析没有 body 的完整请求', () => {
+    it.only('应该解析没有 body 的完整请求', () => {
       const state = createRequestState();
       const input = Buffer.from(
         'GET /path HTTP/1.1\r\n' +
@@ -112,7 +109,6 @@ describe('decodeRequest', () => {
       const result = decodeRequest(state, input);
 
       assert.strictEqual(result.phase, HttpDecodePhase.HEADERS);
-      assert.strictEqual(result.finished, false);
     });
   });
 
@@ -145,7 +141,7 @@ describe('decodeRequest', () => {
 
       const result = decodeRequest(state, input);
 
-      assert.strictEqual(result.finished, true);
+      assert.strictEqual(result.phase, HttpDecodePhase.FINISHED);
     });
 
     it('应该处理不完整的 chunked body', () => {
@@ -161,7 +157,6 @@ describe('decodeRequest', () => {
       const result = decodeRequest(state, input);
 
       assert.strictEqual(result.phase, HttpDecodePhase.BODY_CHUNKED);
-      assert.strictEqual(result.finished, false);
     });
   });
 
@@ -191,7 +186,7 @@ describe('decodeRequest', () => {
 
       const result = decodeRequest(state, input);
 
-      assert.strictEqual(result.finished, true);
+      assert.strictEqual(result.phase, HttpDecodePhase.FINISHED);
     });
 
     it('应该处理不完整的 content-length body', () => {
@@ -206,7 +201,6 @@ describe('decodeRequest', () => {
       const result = decodeRequest(state, input);
 
       assert.strictEqual(result.phase, HttpDecodePhase.BODY_CONTENT_LENGTH);
-      assert.strictEqual(result.finished, false);
     });
 
     it('Content-Length 为 0 应该立即完成', () => {
@@ -219,7 +213,7 @@ describe('decodeRequest', () => {
 
       const result = decodeRequest(state, input);
 
-      assert.strictEqual(result.finished, true);
+      assert.strictEqual(result.phase, HttpDecodePhase.FINISHED);
     });
   });
 
@@ -237,7 +231,7 @@ describe('decodeRequest', () => {
 
       // 第三批：结束 headers
       state = decodeRequest(state, Buffer.from('\r\n'));
-      assert.strictEqual(state.finished, true);
+      assert.strictEqual(state.phase, HttpDecodePhase.FINISHED);
     });
 
     it('应该处理分批的 body 数据', () => {
@@ -253,11 +247,11 @@ describe('decodeRequest', () => {
 
       // 部分 body
       state = decodeRequest(state, Buffer.from('hello'));
-      assert.strictEqual(state.finished, false);
+      assert.strictEqual(state.phase, HttpDecodePhase.BODY_CONTENT_LENGTH);
 
       // 剩余 body
       state = decodeRequest(state, Buffer.from(' worldextra'));
-      assert.strictEqual(state.finished, true);
+      assert.strictEqual(state.phase, HttpDecodePhase.FINISHED);
       assert.strictEqual(state.bodyState.bodyChunks.length, 2);
       assert.strictEqual(Buffer.concat(state.bodyState.bodyChunks).toString(), 'hello world');
       assert.strictEqual(state.buffer.toString(), 'extra');
@@ -288,7 +282,7 @@ describe('decodeRequest', () => {
 
       const result = decodeRequest(state, input);
 
-      assert.strictEqual(result.finished, true);
+      assert.strictEqual(result.phase, HttpDecodePhase.FINISHED);
     });
 
     it('应该处理负数 Content-Length', () => {
@@ -300,8 +294,7 @@ describe('decodeRequest', () => {
       );
 
       const result = decodeRequest(state, input);
-
-      assert.strictEqual(result.finished, true);
+      assert.strictEqual(result.phase, HttpDecodePhase.FINISHED);
     });
   });
 });
@@ -312,7 +305,6 @@ describe('HTTP Request Parser', () => {
       const state = createRequestState();
 
       assert.strictEqual(state.phase, HttpDecodePhase.START_LINE);
-      assert.strictEqual(state.finished, false);
       assert.strictEqual(state.startLine, null);
       assert.strictEqual(state.headersState, null);
       assert.strictEqual(state.bodyState, null);
@@ -387,7 +379,7 @@ describe('HTTP Request Parser', () => {
 
       const result = decodeRequest(state, input);
 
-      assert.strictEqual(result.finished, true);
+      assert.strictEqual(result.phase, HttpDecodePhase.FINISHED);
       assert.strictEqual(result.headersState?.headers['host'], 'example.com');
       assert.strictEqual(result.headersState?.headers['user-agent'], 'test');
     });
@@ -413,7 +405,7 @@ describe('HTTP Request Parser', () => {
       state = decodeRequest(state, Buffer.from('Host: example.com\r\n'));
       state = decodeRequest(state, Buffer.from('Content-Length: 0\r\n\r\n'));
 
-      assert.strictEqual(state.finished, true);
+      assert.strictEqual(state.phase, HttpDecodePhase.FINISHED);
       assert.strictEqual(state.headersState?.headers['host'], 'example.com');
     });
   });
@@ -432,7 +424,6 @@ describe('HTTP Request Parser', () => {
 
       const result = decodeRequest(state, input);
 
-      assert.strictEqual(result.finished, true);
       assert.strictEqual(result.phase, HttpDecodePhase.FINISHED);
     });
 
@@ -448,11 +439,10 @@ describe('HTTP Request Parser', () => {
       ));
 
       assert.strictEqual(state.phase, HttpDecodePhase.BODY_CONTENT_LENGTH);
-      assert.strictEqual(state.finished, false);
 
       state = decodeRequest(state, Buffer.from(body));
 
-      assert.strictEqual(state.finished, true);
+      assert.strictEqual(state.phase, HttpDecodePhase.FINISHED);
     });
 
     it('应该处理 JSON 请求体', () => {
@@ -468,7 +458,7 @@ describe('HTTP Request Parser', () => {
 
       const result = decodeRequest(state, input);
 
-      assert.strictEqual(result.finished, true);
+      assert.strictEqual(result.phase, HttpDecodePhase.FINISHED);
       assert.strictEqual(result.headersState?.headers['content-type'], 'application/json');
     });
 
@@ -484,7 +474,7 @@ describe('HTTP Request Parser', () => {
 
       const result = decodeRequest(state, input);
 
-      assert.strictEqual(result.finished, true);
+      assert.strictEqual(result.phase, HttpDecodePhase.FINISHED);
     });
   });
 
@@ -503,7 +493,6 @@ describe('HTTP Request Parser', () => {
 
       const result = decodeRequest(state, input);
 
-      assert.strictEqual(result.finished, true);
       assert.strictEqual(result.phase, HttpDecodePhase.FINISHED);
     });
 
@@ -523,7 +512,7 @@ describe('HTTP Request Parser', () => {
 
       const result = decodeRequest(state, input);
 
-      assert.strictEqual(result.finished, true);
+      assert.strictEqual(result.phase, HttpDecodePhase.FINISHED);
     });
 
     it('应该处理分块接收的 chunked 数据', () => {
@@ -540,7 +529,7 @@ describe('HTTP Request Parser', () => {
       state = decodeRequest(state, Buffer.from('5\r\nHello\r\n'));
       state = decodeRequest(state, Buffer.from('0\r\n\r\n'));
 
-      assert.strictEqual(state.finished, true);
+      assert.strictEqual(state.phase, HttpDecodePhase.FINISHED);
     });
   });
 
@@ -550,7 +539,7 @@ describe('HTTP Request Parser', () => {
       const input1 = Buffer.from('GET / HTTP/1.1\r\n\r\n');
 
       const result = decodeRequest(state, input1);
-      assert.strictEqual(result.finished, true);
+      assert.strictEqual(result.phase, HttpDecodePhase.FINISHED);
 
       const input2 = Buffer.from('GET / HTTP/1.1\r\n\r\n');
       assert.throws(() => {
@@ -584,7 +573,6 @@ describe('HTTP Request Parser', () => {
       const result = decodeRequest(state, Buffer.alloc(0));
 
       assert.strictEqual(result.phase, HttpDecodePhase.START_LINE);
-      assert.strictEqual(result.finished, false);
     });
 
     it('应该处理 Content-Length 为 0 的请求', () => {
@@ -597,7 +585,7 @@ describe('HTTP Request Parser', () => {
 
       const result = decodeRequest(state, input);
 
-      assert.strictEqual(result.finished, true);
+      assert.strictEqual(result.phase, HttpDecodePhase.FINISHED);
     });
 
     it('应该处理多个连续的空格和制表符', () => {

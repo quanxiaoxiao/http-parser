@@ -1,3 +1,28 @@
+```markdown
+# Parser Extension Constitution
+1. 安全 > 正确性 > 兼容性 > 可用性
+2. 拒绝未知优于猜测意图
+3. 新增 recoverable error 必须减少攻击面，而不是增加
+4. 所有宽容行为必须是可观测的
+5. 默认行为必须是最保守的
+```
+
+```
+RAW INPUT
+  ↓
+PARSE (严格)
+  ↓
+NORMALIZE (明确标记)
+  ↓
+POLICY (决定 accept / reject)
+```
+
+- **Parse 层**：永远不 recover
+- **Normalize 层**：可以 recover，但必须打 tag
+- **Policy 层**：唯一允许“好心”的地方
+
+
+
 ## 1. Request / Response 总体结构
 
 ### 1.1 Request

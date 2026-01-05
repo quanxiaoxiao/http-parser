@@ -277,7 +277,7 @@ function decodeHttp(
   prev: HttpState,
   input: Buffer,
 ): HttpState {
-  if (prev.finished) {
+  if (prev.phase === HttpDecodePhase.FINISHED) {
     throw new Error('Decoding already finished');
   }
 
