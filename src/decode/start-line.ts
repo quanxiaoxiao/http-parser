@@ -63,7 +63,7 @@ export function decodeRequestStartLine(
   if (path.length > limit.maxUriBytes) {
     throw new HttpDecodeError({
       code: HttpDecodeErrorCode.URI_TOO_LARGE,
-      message: 'HTTP request URI too large',
+      message: `Start line URI too large: exceeds limit of ${limit.maxUriBytes} bytes`,
     });
   }
 
