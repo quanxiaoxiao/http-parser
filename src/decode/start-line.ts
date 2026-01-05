@@ -36,7 +36,7 @@ function validateHttpVersion(versionStr: string): HttpVersion {
   if (version === undefined) {
     throw new HttpDecodeError({
       code: HttpDecodeErrorCode.UNSUPPORTED_HTTP_VERSION,
-      message: `Unsupported HTTP version: ${versionStr}`,
+      message: `Start line unsupported HTTP version: ${versionStr}`,
     });
   }
   return version as HttpVersion;
