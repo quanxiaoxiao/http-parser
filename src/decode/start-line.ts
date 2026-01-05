@@ -53,7 +53,7 @@ export function decodeRequestStartLine(
   if (!matches) {
     throw new HttpDecodeError({
       code: HttpDecodeErrorCode.INVALID_START_LINE,
-      message: `Failed to parse HTTP request line: "${createErrorPreview(trimmedStr)}"`,
+      message: `Request start line parse fail: "${createErrorPreview(trimmedStr)}"`,
     });
   }
 
@@ -63,7 +63,7 @@ export function decodeRequestStartLine(
   if (path.length > limit.maxUriBytes) {
     throw new HttpDecodeError({
       code: HttpDecodeErrorCode.URI_TOO_LARGE,
-      message: `Start line URI too large: exceeds limit of ${limit.maxUriBytes} bytes`,
+      message: `Request start line URI too large: exceeds limit of ${limit.maxUriBytes} bytes`,
     });
   }
 
@@ -84,7 +84,7 @@ export function decodeResponseStartLine(str: string, limit: StartLineLimits = DE
   if (!matches) {
     throw new HttpDecodeError({
       code: HttpDecodeErrorCode.INVALID_START_LINE,
-      message: `Failed to parse HTTP response line: "${createErrorPreview(trimmedStr)}"`,
+      message: `Response start line parse fail: "${createErrorPreview(trimmedStr)}"`,
     });
   }
 
@@ -96,7 +96,7 @@ export function decodeResponseStartLine(str: string, limit: StartLineLimits = DE
   if (statusCode == null || statusCode < MIN_STATUS_CODE || statusCode > MAX_STATUS_CODE) {
     throw new HttpDecodeError({
       code: HttpDecodeErrorCode.INVALID_STATUS_CODE,
-      message: `Invalid HTTP status code: ${statusCode} (must be ${MIN_STATUS_CODE}-${MAX_STATUS_CODE})`,
+      message: `Response start line invalid status code: ${statusCode} (must be ${MIN_STATUS_CODE}-${MAX_STATUS_CODE})`,
     });
   }
 
@@ -104,8 +104,8 @@ export function decodeResponseStartLine(str: string, limit: StartLineLimits = DE
 
   if (finalStatusMessage.length > limit.maxReasonPhraseBytes) {
     throw new HttpDecodeError({
-      code: HttpDecodeErrorCode.INVALID_REASON_PHRASE,
-      message: 'HTTP response status message too large',
+      code: HttpDecodeErrorCode.REASON_PHARSE_TOO_LARGE,
+      message: `Response start line rease phase too large: exceeds limit of ${limit.maxReasonPhraseBytes} bytes`,
     });
   }
 

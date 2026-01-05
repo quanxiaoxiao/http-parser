@@ -478,7 +478,7 @@ describe('decodeResponseStartLine', () => {
         () => decodeResponseStartLine(`HTTP/1.1 200 ${longText}`),
         (err: any) => {
           return err instanceof HttpDecodeError &&
-                 err.code === HttpDecodeErrorCode.INVALID_REASON_PHRASE;
+                 err.code === HttpDecodeErrorCode.REASON_PHARSE_TOO_LARGE;
         },
       );
     });
@@ -489,7 +489,7 @@ describe('decodeResponseStartLine', () => {
         () => decodeResponseStartLine('HTTP/1.1 200 Too Long Text', customLimit),
         (err: any) => {
           return err instanceof HttpDecodeError &&
-                 err.code === HttpDecodeErrorCode.INVALID_REASON_PHRASE;
+                 err.code === HttpDecodeErrorCode.REASON_PHARSE_TOO_LARGE;
         },
       );
     });
