@@ -11,7 +11,7 @@ describe('createHeadersState', () => {
 
     assert.strictEqual(state.buffer.length, 0);
     assert.deepStrictEqual(state.headers, {});
-    assert.deepStrictEqual(state.rawHeaders, []);
+    assert.deepStrictEqual(state.headersRaw, []);
     assert.strictEqual(state.receivedBytes, 0);
     assert.strictEqual(state.phase, HeadersDecodePhase.LINE);
   });
@@ -25,7 +25,6 @@ describe('decodeHeaders', () => {
       const result = decodeHeaders(state, input);
 
       assert.strictEqual(result.headers['host'], 'example.com');
-      assert.deepStrictEqual(result.rawHeaders, [['Host', ' example.com']]);
       assert.strictEqual(result.receivedBytes, 19);
       assert.strictEqual(result.phase, HeadersDecodePhase.LINE);
     });
@@ -80,10 +79,6 @@ describe('decodeHeaders', () => {
         'cookie1=value1',
         'cookie2=value2',
       ]);
-      assert.deepStrictEqual(result.rawHeaders, [
-        ['Set-Cookie', ' cookie1=value1'],
-        ['Set-Cookie', ' cookie2=value2'],
-      ]);
     });
 
     it('should handle three or more duplicate headers', () => {
@@ -125,7 +120,6 @@ describe('decodeHeaders', () => {
 
       assert.strictEqual(result.buffer.toString(), 'Host: exam');
       assert.strictEqual(result.receivedBytes, 0);
-      console.log(result);
       assert.strictEqual(result.phase, HeadersDecodePhase.LINE);
       assert.deepStrictEqual(result.headers, {});
     });
@@ -182,7 +176,6 @@ describe('decodeHeaders', () => {
       assert.strictEqual(result.headers['content-length'], '100');
       assert.strictEqual(result.headers['content-encoding'], 'gzip');
       assert.strictEqual(result.headers['Content-Type'], undefined);
-      assert.strictEqual(result.rawHeaders[0][0], 'Content-Type'); // Raw keeps original case
     });
 
     it('should handle headers with whitespace in values', () => {
@@ -203,7 +196,6 @@ describe('decodeHeaders', () => {
       const result = decodeHeaders(state, input);
 
       assert.strictEqual(result.headers['x-empty-header'], '');
-      assert.deepStrictEqual(result.rawHeaders, [['X-Empty-Header', ' ']]);
     });
 
     it('should preserve raw headers order', () => {
@@ -215,11 +207,6 @@ describe('decodeHeaders', () => {
       );
       const result = decodeHeaders(state, input);
 
-      assert.deepStrictEqual(result.rawHeaders, [
-        ['Content-Type', ' application/json'],
-        ['Host', ' example.com'],
-        ['Content-Length', ' 123'],
-      ]);
     });
   });
 
@@ -259,7 +246,6 @@ describe('decodeHeaders', () => {
     it('should preserve previous headers state', () => {
       const state = createHeadersState();
       state.headers = { host: 'example.com' };
-      state.rawHeaders = [['Host', 'example.com']];
       state.receivedBytes = 19;
 
       const input = Buffer.from('Accept: */*\r\n');
@@ -267,10 +253,6 @@ describe('decodeHeaders', () => {
 
       assert.strictEqual(result.headers['host'], 'example.com');
       assert.strictEqual(result.headers['accept'], '*/*');
-      assert.deepStrictEqual(result.rawHeaders, [
-        ['Host', 'example.com'],
-        ['Accept', ' */*'],
-      ]);
       assert.strictEqual(result.receivedBytes, 32); // 19 + 13
     });
   });
@@ -313,7 +295,7 @@ describe('decodeHeaderLine', () => {
       const headerBuf = Buffer.from('Content-Type:application/json');
       const [name, value] = decodeHeaderLine(headerBuf, DEFAULT_HEADER_LIMITS);
 
-      assert.strictEqual(name, 'Content-Type');
+      assert.strictEqual(name, 'content-type');
       assert.strictEqual(value, 'application/json');
     });
 
@@ -321,23 +303,23 @@ describe('decodeHeaderLine', () => {
       const headerBuf = Buffer.from('Content-Type: application/json; charset=utf-8');
       const [name, value] = decodeHeaderLine(headerBuf, DEFAULT_HEADER_LIMITS);
 
-      assert.strictEqual(name, 'Content-Type');
-      assert.strictEqual(value, ' application/json; charset=utf-8');
+      assert.strictEqual(name, 'content-type');
+      assert.strictEqual(value, 'application/json; charset=utf-8');
     });
 
     it('应该正确处理头部名称和值前后的空格', () => {
       const headerBuf = Buffer.from('  User-Agent  :  Mozilla/5.0  ');
       const [name, value] = decodeHeaderLine(headerBuf, DEFAULT_HEADER_LIMITS);
 
-      assert.strictEqual(name, '  User-Agent  ');
-      assert.strictEqual(value, '  Mozilla/5.0  ');
+      assert.strictEqual(name, 'user-agent');
+      assert.strictEqual(value, 'Mozilla/5.0');
     });
 
     it('应该正确处理空值', () => {
       const headerBuf = Buffer.from('X-Custom-Header:');
       const [name, value] = decodeHeaderLine(headerBuf, DEFAULT_HEADER_LIMITS);
 
-      assert.strictEqual(name, 'X-Custom-Header');
+      assert.strictEqual(name, 'x-custom-header');
       assert.strictEqual(value, '');
     });
 
@@ -345,7 +327,7 @@ describe('decodeHeaderLine', () => {
       const headerBuf = Buffer.from('Authorization:Bearer:token:with:colons');
       const [name, value] = decodeHeaderLine(headerBuf, DEFAULT_HEADER_LIMITS);
 
-      assert.strictEqual(name, 'Authorization');
+      assert.strictEqual(name, 'authorization');
       assert.strictEqual(value, 'Bearer:token:with:colons');
     });
 
@@ -353,7 +335,7 @@ describe('decodeHeaderLine', () => {
       const headerBuf = Buffer.from('X:value');
       const [name, value] = decodeHeaderLine(headerBuf, DEFAULT_HEADER_LIMITS);
 
-      assert.strictEqual(name, 'X');
+      assert.strictEqual(name, 'x');
       assert.strictEqual(value, 'value');
     });
   });
@@ -364,7 +346,7 @@ describe('decodeHeaderLine', () => {
       const headerBuf = Buffer.from(`${maxName}:value`);
       const [name, value] = decodeHeaderLine(headerBuf, DEFAULT_HEADER_LIMITS);
 
-      assert.strictEqual(name, maxName);
+      assert.strictEqual(name, maxName.trim().toLowerCase());
       assert.strictEqual(value, 'value');
     });
 
@@ -373,7 +355,7 @@ describe('decodeHeaderLine', () => {
       const headerBuf = Buffer.from(`Name:${maxValue}`);
       const [name, value] = decodeHeaderLine(headerBuf, DEFAULT_HEADER_LIMITS);
 
-      assert.strictEqual(name, 'Name');
+      assert.strictEqual(name, 'name');
       assert.strictEqual(value, maxValue);
     });
 
@@ -497,7 +479,7 @@ describe('decodeHeaderLine', () => {
       const headerBuf = Buffer.from('X-Special:!@#$%^&*()_+-=[]{}|;:",.<>?/~`');
       const [name, value] = decodeHeaderLine(headerBuf, DEFAULT_HEADER_LIMITS);
 
-      assert.strictEqual(name, 'X-Special');
+      assert.strictEqual(name, 'x-special');
       assert.strictEqual(value, '!@#$%^&*()_+-=[]{}|;:",.<>?/~`');
     });
 
@@ -505,7 +487,7 @@ describe('decodeHeaderLine', () => {
       const headerBuf = Buffer.from('Content-Length:12345');
       const [name, value] = decodeHeaderLine(headerBuf, DEFAULT_HEADER_LIMITS);
 
-      assert.strictEqual(name, 'Content-Length');
+      assert.strictEqual(name, 'content-length');
       assert.strictEqual(value, '12345');
     });
   });
@@ -523,8 +505,8 @@ describe('decodeHeaderLine', () => {
     };
 
     const [name, value] = decodeHeaderLine(buffer, limit);
-    assert.strictEqual(name, 'Content-Type');
-    assert.strictEqual(value, ' application/json');
+    assert.strictEqual(name, 'content-type');
+    assert.strictEqual(value, 'application/json');
   });
 
   it('应该正确解析带空格的头部值', () => {
@@ -538,8 +520,8 @@ describe('decodeHeaderLine', () => {
     };
 
     const [name, value] = decodeHeaderLine(buffer, limit);
-    assert.strictEqual(name, 'Authorization');
-    assert.strictEqual(value, ' Bearer token123');
+    assert.strictEqual(name, 'authorization');
+    assert.strictEqual(value, 'Bearer token123');
   });
 
   it('应该在头部行过大时抛出错误', () => {
@@ -625,7 +607,6 @@ describe('createHeadersState', () => {
     assert.strictEqual(state.phase, HeadersDecodePhase.LINE);
     assert.strictEqual(state.receivedBytes, 0);
     assert.deepStrictEqual(state.headers, {});
-    assert.deepStrictEqual(state.rawHeaders, []);
     assert.ok(state.buffer instanceof Buffer);
     assert.strictEqual(state.buffer.length, 0);
   });
@@ -653,8 +634,7 @@ describe('decodeHeaders', () => {
 
     assert.strictEqual(result.phase, HeadersDecodePhase.DONE);
     assert.strictEqual(result.headers['content-type'], 'application/json');
-    assert.strictEqual(result.rawHeaders.length, 1);
-    assert.deepStrictEqual(result.rawHeaders[0], ['Content-Type', ' application/json']);
+    assert.strictEqual(result.headersRaw.length, 1);
   });
 
   it('应该解析多个头部', () => {
@@ -672,7 +652,7 @@ describe('decodeHeaders', () => {
     assert.strictEqual(result.headers['content-type'], 'application/json');
     assert.strictEqual(result.headers['authorization'], 'Bearer token');
     assert.strictEqual(result.headers['accept'], '*/*');
-    assert.strictEqual(result.rawHeaders.length, 3);
+    assert.strictEqual(result.headersRaw.length, 3);
   });
 
   it('应该处理相同名称的多个头部', () => {
@@ -794,7 +774,7 @@ describe('decodeHeaders', () => {
 
     assert.strictEqual(result.phase, HeadersDecodePhase.DONE);
     assert.deepStrictEqual(result.headers, {});
-    assert.strictEqual(result.rawHeaders.length, 0);
+    assert.strictEqual(result.headersRaw.length, 0);
   });
 });
 

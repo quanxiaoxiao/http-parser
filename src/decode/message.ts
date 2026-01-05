@@ -174,11 +174,11 @@ function handleHeadersPhase(state: HttpState): void {
   }
   const headersState = decodeHeaders(state.headersState!, state.buffer);
 
-  const newLines = headersState.rawHeaders.slice(state.headersState.rawHeaders.length);
+  const newLines = headersState.headersRaw.slice(state.headersState.headersRaw.length);
   if (newLines.length > 0) {
     addEvent(state, {
       type: 'headers-lines',
-      rawHeaders: newLines,
+      headersRaw: newLines,
     });
   }
   state.headersState = headersState;

@@ -17,7 +17,7 @@ function checkHeaderLimits(state: HeadersState, lineLength: number) {
     });
   }
 
-  if (state.rawHeaders.length >= state.limit.maxHeaderCount) {
+  if (state.headersRaw.length >= state.limit.maxHeaderCount) {
     throw new HttpDecodeError({
       code: HttpDecodeErrorCode.HEADER_TOO_MANY,
       message: `Headers too many: exceeds limit of ${state.limit.maxHeaderCount} count`,
@@ -63,20 +63,19 @@ export function decodeHeaderLine(headerBuf: Buffer, limit: HeaderLimits): [strin
     });
   }
 
-  const name = headerBuf.subarray(0, colonIndex).toString('ascii');
+  const name = headerBuf.subarray(0, colonIndex).toString('ascii').trim();
 
-  if (/^\s+$/.test(name)) {
+  if (name === '') {
     throw new HttpDecodeError({
       code: HttpDecodeErrorCode.INVALID_HEADER,
       message: 'Header name is empty',
     });
   }
 
-  const trimmedName = name.trim();
-  if (INVALID_HEADER_NAME.test(trimmedName)) {
+  if (INVALID_HEADER_NAME.test(name)) {
     throw new HttpDecodeError({
       code: HttpDecodeErrorCode.INVALID_HEADER,
-      message: `Invalid characters in header name: ${trimmedName}`,
+      message: `Invalid characters in header name: ${name}`,
     });
   }
 
@@ -89,17 +88,17 @@ export function decodeHeaderLine(headerBuf: Buffer, limit: HeaderLimits): [strin
     });
   }
 
-  const value = headerBuf.subarray(colonIndex + 1).toString('ascii');
+  const value = headerBuf.subarray(colonIndex + 1).toString('ascii').trim();
 
-  return [name, value];
+  return [name.toLowerCase(), value];
 }
 
 export interface HeadersState {
   buffer: Buffer | null;
   headers: Headers;
-  phase: HeadersDecodePhase,
+  phase: HeadersDecodePhase;
+  headersRaw: string[];
   receivedBytes: number;
-  rawHeaders: Array<[name: string, value: string]>;
   limit: HeaderLimits,
 }
 
@@ -107,7 +106,7 @@ export function createHeadersState(limit: HeaderLimits = DEFAULT_HEADER_LIMITS):
   return {
     buffer: Buffer.alloc(0),
     headers: {},
-    rawHeaders: [],
+    headersRaw: [],
     phase: HeadersDecodePhase.LINE,
     receivedBytes: 0,
     limit,
@@ -137,7 +136,7 @@ export function decodeHeaders(
     ...prev,
     buffer: prev.buffer.length === 0 ? input : Buffer.concat([prev.buffer, input]),
     headers: { ...prev.headers },
-    rawHeaders: [...prev.rawHeaders],
+    headersRaw: [...prev.headersRaw],
   };
 
   let offset = 0;
@@ -188,11 +187,9 @@ export function decodeHeaders(
 
       checkHeaderLimits(state, lineLength);
 
-      const [name, value] = decodeHeaderLine(line, state.limit);
-      state.rawHeaders.push([name, value]);
-      const headerName = name.trim().toLowerCase();
-      const headerValue = value.trim();
+      const [headerName, headerValue] = decodeHeaderLine(line, state.limit);
       addHeader(state, headerName, headerValue);
+      state.headersRaw.push(line.toString('ascii'));
       state.phase = HeadersDecodePhase.LINE;
       break;
     }
