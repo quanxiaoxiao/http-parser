@@ -23,7 +23,6 @@ describe('HTTP Decoder', () => {
 
       const state = decodeRequest(null, input);
 
-      assert.strictEqual(state.finished, true);
       assert.strictEqual(state.phase, HttpDecodePhase.FINISHED);
       assert.strictEqual(state.startLine?.method, 'GET');
       assert.strictEqual(state.startLine?.path, '/path');
@@ -41,7 +40,7 @@ describe('HTTP Decoder', () => {
 
       const state = decodeRequest(null, input);
 
-      assert.strictEqual(state.finished, true);
+      assert.strictEqual(state.phase, HttpDecodePhase.FINISHED);
       assert.strictEqual(state.startLine?.path, '/path?query=value&foo=bar');
     });
 
@@ -58,7 +57,6 @@ describe('HTTP Decoder', () => {
 
       const state = decodeRequest(null, input);
 
-      assert.strictEqual(state.finished, true);
       assert.strictEqual(state.startLine?.method, 'POST');
       assert.strictEqual(state.phase, HttpDecodePhase.FINISHED);
 
@@ -82,17 +80,16 @@ describe('HTTP Decoder', () => {
       }
 
       assert.ok(state);
-      assert.strictEqual(state.finished, true);
+      assert.strictEqual(state.phase, HttpDecodePhase.FINISHED);
       assert.strictEqual(state.startLine?.method, 'GET');
     });
 
     test('应该处理分段的 start line', () => {
       const state1 = decodeRequest(null, Buffer.from('GET /pa'));
       assert.strictEqual(state1.phase, HttpDecodePhase.START_LINE);
-      assert.strictEqual(state1.finished, false);
 
       const state2 = decodeRequest(state1, Buffer.from('th HTTP/1.1\r\n\r\n'));
-      assert.strictEqual(state2.finished, true);
+      assert.strictEqual(state2.phase, HttpDecodePhase.FINISHED);
       assert.strictEqual(state2.startLine?.path, '/path');
     });
 
@@ -110,13 +107,11 @@ describe('HTTP Decoder', () => {
 
       let state = decodeRequest(null, header);
       assert.strictEqual(state.phase, HttpDecodePhase.BODY_CONTENT_LENGTH);
-      assert.strictEqual(state.finished, false);
 
       state = decodeRequest(state, Buffer.from(bodyPart1));
-      assert.strictEqual(state.finished, false);
 
       state = decodeRequest(state, Buffer.from(bodyPart2));
-      assert.strictEqual(state.finished, true);
+      assert.strictEqual(state.phase, HttpDecodePhase.FINISHED);
 
       const bodyCompleteEvent = state.events.find(e => e.type === 'body-complete');
       assert.strictEqual(bodyCompleteEvent?.totalSize, totalBody.length);
@@ -138,7 +133,6 @@ describe('HTTP Decoder', () => {
 
       const state = decodeRequest(null, input);
 
-      assert.strictEqual(state.finished, true);
       assert.strictEqual(state.phase, HttpDecodePhase.FINISHED);
 
       const bodyCompleteEvent = state.events.find(e => e.type === 'body-complete');
@@ -155,7 +149,7 @@ describe('HTTP Decoder', () => {
 
       const state = decodeRequest(null, input);
 
-      assert.strictEqual(state.finished, true);
+      assert.strictEqual(state.phase, HttpDecodePhase.FINISHED);
       assert.strictEqual(state.startLine?.method, 'DELETE');
 
       // 应该没有 body 相关的事件
@@ -202,7 +196,7 @@ describe('HTTP Decoder', () => {
 
       const state = decodeResponse(null, input);
 
-      assert.strictEqual(state.finished, true);
+      assert.strictEqual(state.phase, HttpDecodePhase.FINISHED);
       assert.strictEqual(state.startLine?.version, 1.1);
       assert.strictEqual(state.startLine?.statusCode, 200);
       assert.strictEqual(state.startLine?.statusText, 'OK');
@@ -218,7 +212,7 @@ describe('HTTP Decoder', () => {
 
       const state = decodeResponse(null, input);
 
-      assert.strictEqual(state.finished, true);
+      assert.strictEqual(state.phase, HttpDecodePhase.FINISHED);
       assert.strictEqual(state.startLine?.statusCode, 404);
       assert.strictEqual(state.startLine?.statusText, 'Not Found');
     });
@@ -235,7 +229,7 @@ describe('HTTP Decoder', () => {
 
       const state = decodeResponse(null, input);
 
-      assert.strictEqual(state.finished, true);
+      assert.strictEqual(state.phase, HttpDecodePhase.FINISHED);
       assert.strictEqual(state.startLine?.statusCode, 201);
 
       const bodyCompleteEvent = state.events.find(e => e.type === 'body-complete');
@@ -257,8 +251,7 @@ describe('HTTP Decoder', () => {
 
       const state = decodeResponse(null, input);
 
-      assert.strictEqual(state.finished, true);
-
+      assert.strictEqual(state.phase, HttpDecodePhase.FINISHED);
       const bodyCompleteEvent = state.events.find(e => e.type === 'body-complete');
       assert.strictEqual(bodyCompleteEvent?.totalSize, 9); // "Wikipedia"
     });
@@ -279,7 +272,7 @@ describe('HTTP Decoder', () => {
       }
 
       assert.ok(state);
-      assert.strictEqual(state.finished, true);
+      assert.strictEqual(state.phase, HttpDecodePhase.FINISHED);
       assert.strictEqual(state.startLine?.statusCode, 200);
     });
 
@@ -296,7 +289,7 @@ describe('HTTP Decoder', () => {
 
       const state = decodeResponse(null, input);
 
-      assert.strictEqual(state.finished, true);
+      assert.strictEqual(state.phase, HttpDecodePhase.FINISHED);
       assert.ok(state.headersState?.headers);
 
       // 验证包含多个头部
@@ -313,7 +306,7 @@ describe('HTTP Decoder', () => {
 
       const state = decodeResponse(null, input);
 
-      assert.strictEqual(state.finished, true);
+      assert.strictEqual(state.phase, HttpDecodePhase.FINISHED);
       assert.strictEqual(state.startLine?.statusCode, 204);
 
       const bodyEvents = state.events.filter(e =>
@@ -328,7 +321,7 @@ describe('HTTP Decoder', () => {
       const input = Buffer.from('GET / HTTP/1.1\r\n\r\n');
       const state = decodeRequest(null, input);
 
-      assert.strictEqual(state.finished, true);
+      assert.strictEqual(state.phase, HttpDecodePhase.FINISHED);
 
       assert.throws(() => {
         decodeRequest(state, Buffer.from('GET / HTTP/1.1\r\n\r\n'));
@@ -351,7 +344,6 @@ describe('HTTP Decoder', () => {
 
       assert.strictEqual(state.mode, 'request');
       assert.strictEqual(state.phase, HttpDecodePhase.START_LINE);
-      assert.strictEqual(state.finished, false);
       assert.strictEqual(state.startLine, null);
       assert.strictEqual(state.headersState, null);
       assert.strictEqual(state.bodyState, null);
@@ -363,7 +355,6 @@ describe('HTTP Decoder', () => {
 
       assert.strictEqual(state.mode, 'response');
       assert.strictEqual(state.phase, HttpDecodePhase.START_LINE);
-      assert.strictEqual(state.finished, false);
     });
 
     test('应该在每次解码时重置事件数组', () => {
@@ -400,7 +391,7 @@ describe('HTTP Decoder', () => {
       assert.strictEqual(chunk2Events.length, 1);
       assert.strictEqual(chunk2Events[0].size, 5);
 
-      assert.strictEqual(state.finished, true);
+      assert.strictEqual(state.phase, HttpDecodePhase.FINISHED);
     });
 
     test('应该为 chunked 编码生成正确的 body-chunk 事件', () => {
@@ -417,7 +408,7 @@ describe('HTTP Decoder', () => {
       assert.ok(chunkEvents.length > 0);
 
       state = decodeRequest(state, Buffer.from('4\r\ndefg\r\n0\r\n\r\n'));
-      assert.strictEqual(state.finished, true);
+      assert.strictEqual(state.phase, HttpDecodePhase.FINISHED);
     });
   });
 
@@ -425,10 +416,9 @@ describe('HTTP Decoder', () => {
     test('应该处理空缓冲区输入', () => {
       const state1 = decodeRequest(null, Buffer.alloc(0));
       assert.strictEqual(state1.phase, HttpDecodePhase.START_LINE);
-      assert.strictEqual(state1.finished, false);
 
       const state2 = decodeRequest(state1, Buffer.from('GET / HTTP/1.1\r\n\r\n'));
-      assert.strictEqual(state2.finished, true);
+      assert.strictEqual(state2.phase, HttpDecodePhase.FINISHED);
     });
 
     test('应该处理 Content-Length 为 0 的请求', () => {
@@ -440,7 +430,7 @@ describe('HTTP Decoder', () => {
 
       const state = decodeRequest(null, input);
 
-      assert.strictEqual(state.finished, true);
+      assert.strictEqual(state.phase, HttpDecodePhase.FINISHED);
 
       const bodyEvents = state.events.filter(e =>
         e.type === 'body-chunk' || e.type === 'body-complete',
@@ -458,7 +448,7 @@ describe('HTTP Decoder', () => {
 
       const state = decodeRequest(null, input);
 
-      assert.strictEqual(state.finished, true);
+      assert.strictEqual(state.phase, HttpDecodePhase.FINISHED);
       assert.strictEqual(state.startLine?.path, longPath);
     });
 
@@ -472,7 +462,7 @@ describe('HTTP Decoder', () => {
 
       const state = decodeResponse(null, input);
 
-      assert.strictEqual(state.finished, true);
+      assert.strictEqual(state.phase, HttpDecodePhase.FINISHED);
       assert.ok(state.headersState?.headers);
     });
   });

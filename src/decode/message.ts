@@ -319,3 +319,7 @@ export function decodeResponse(
   const prevState = prev ?? createResponseState();
   return decodeHttp(prevState, input) as HttpResponseState;
 }
+
+export function isMessageFinished(state: HttpState) {
+  return state.phase === HttpDecodePhase.FINISHED;
+}
