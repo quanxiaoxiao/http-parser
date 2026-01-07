@@ -79,7 +79,7 @@ describe('decodeRequest', () => {
 
       const result = decodeRequest(state, input);
 
-      assert.strictEqual(result.finished, true);
+      assert.strictEqual(result.phase, HttpDecodePhase.FINISHED);
       assert.ok(result.headersState?.headers);
       assert.strictEqual(result.headersState.headers['host'], 'example.com');
       assert.strictEqual(result.headersState.headers['user-agent'], 'test');
@@ -627,7 +627,6 @@ describe('HTTP Request Parser', () => {
       const result = decodeRequest(state, input);
 
       assert.strictEqual(result.phase, HttpDecodePhase.FINISHED);
-      assert.strictEqual(result.finished, true);
     });
   });
 });

@@ -59,7 +59,6 @@ function transition(state: HttpState, next: HttpDecodePhase): void {
     phase: next,
   });
   if (next === HttpDecodePhase.FINISHED) {
-    state.finished = true;
     addEvent(state, {
       type: 'message-complete',
     });
@@ -70,7 +69,6 @@ export interface HttpState {
   mode: HttpDecodeMode,
   phase: HttpDecodePhase;
   buffer: Buffer;
-  finished: boolean;
   error?: Error,
   startLine: RequestStartLine | ResponseStartLine | null;
   headersState: HeadersState | null;
@@ -92,7 +90,6 @@ export function createHttpState(mode: HttpDecodeMode): HttpState {
   return {
     phase: HttpDecodePhase.START_LINE,
     buffer: EMPTY_BUFFER,
-    finished: false,
     startLine: null,
     headersState: null,
     bodyState: null,
@@ -248,7 +245,7 @@ function handleBodyPhase<T extends ChunkedBodyState | FixedLengthBodyState>(
 }
 
 function runStateMachine(state: HttpState): void {
-  while (!state.finished) {
+  while (state.phase !== HttpDecodePhase.FINISHED) {
     const previousPhase = state.phase;
     switch (state.phase) {
     case HttpDecodePhase.START_LINE:
