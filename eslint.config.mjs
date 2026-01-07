@@ -63,6 +63,8 @@ export default [
       'object-curly-spacing': ['error', 'always'],
       'block-spacing': 2,
       'key-spacing': 2,
+      // 'no-unused-vars': ['error', { caughtErrors: 'none' }],
+      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
       'no-trailing-spaces': 2,
       'comma-style': 2,
       'no-use-before-define': 2,
@@ -87,15 +89,6 @@ export default [
       'class-methods-use-this': 0,
       'no-plusplus': 0,
       'global-require': 0,
-      // 'no-unused-vars': ['error', { caughtErrors: 'none' }],
-      '@typescript-eslint/no-unused-vars': [
-        'warn',
-        {
-          args: 'after-used',
-          argsIgnorePattern: '^_',
-          varsIgnorePattern: '^_',
-        },
-      ],
     },
   },
 ];
