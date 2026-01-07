@@ -223,7 +223,7 @@ export function decodeChunkedBody(
     const prevPhase = state.phase;
     const handler = phaseHandlers[state.phase];
     if (!handler) {
-      throw new DecodeHttpError(`Unknown phase: ${state.phase}`);
+      throw new Error(`Unknown phase: ${state.phase}`);
     }
 
     state = handler(state);
