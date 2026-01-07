@@ -75,3 +75,18 @@ export interface StartLineLimits {
   maxUriBytes: number;
   maxReasonPhraseBytes: number;
 }
+
+export interface ChunkedBodyLimits {
+  maxChunkCount: number;
+
+  maxChunkSize: number;
+  maxChunkDataBytes: number;
+
+  maxChunkLineBytes: number;
+  maxChunkExtensionsBytes: number;
+
+  maxTotalBodyBytes: number;
+
+  maxTrailerHeaderCount: number;
+  maxTrailerHeaderBytes: number;
+}

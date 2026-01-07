@@ -8,6 +8,18 @@
 ```
 
 ```
+┌─ Start Line Limits
+├─ Header Limits
+├─ Chunked Body Limits
+├─ Parsing Time / Progress Limits
+├─ Line Ending Limits
+├─ Numeric Parsing Limits
+├─ Parser State Limits
+├─ Buffer Behavior Limits
+└─ Protocol Consistency Limits
+```
+
+```
 RAW INPUT
   ↓
 PARSE (严格)

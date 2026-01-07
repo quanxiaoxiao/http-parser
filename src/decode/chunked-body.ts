@@ -1,6 +1,6 @@
 import { Buffer } from 'node:buffer';
 
-import { DecodeHttpError } from '../errors.js';
+import { HttpDecodeErrorCode, HttpDecodeError, DecodeHttpError } from '../errors.js';
 import { CR, CRLF, LF } from '../specs.js';
 import type { BodyType, TrailerHeaders } from '../types.js';
 import { decodeHttpLine } from './http-line.js';
@@ -10,6 +10,7 @@ export enum ChunkedPhase {
   DATA = 'data',
   CRLF = 'crlf', // eslint-disable-line
   TRAILER = 'trailer',
+  FINISHED = 'finished',
 }
 
 export type ChunkedBodyState = {
