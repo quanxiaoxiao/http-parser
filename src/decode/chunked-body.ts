@@ -1,11 +1,11 @@
 import { Buffer } from 'node:buffer';
 
-import { HttpDecodeErrorCode, HttpDecodeError, DecodeHttpError } from '../errors.js';
-import { CR, CRLF, LF } from '../specs.js';
-import type { BodyType, TrailerHeaders } from '../types.js';
+import { DecodeHttpError,HttpDecodeError, HttpDecodeErrorCode } from '../errors.js';
+import { CR, CRLF, DEFAULT_CHUNKED_BODY_LIMITS,LF } from '../specs.js';
+import type { BodyType, ChunkedBodyLimits, TrailerHeaders } from '../types.js';
 import { decodeHttpLine } from './http-line.js';
 
-export enum ChunkedPhase {
+export enum ChunkedBodyPhase {
   SIZE = 'size',
   DATA = 'data',
   CRLF = 'crlf', // eslint-disable-line
@@ -15,9 +15,10 @@ export enum ChunkedPhase {
 
 export type ChunkedBodyState = {
   type: BodyType;
-  phase: ChunkedPhase;
+  phase: ChunkedBodyPhase;
   buffer: Buffer | null;
   totalSize: number;
+  limit: ChunkedBodyLimits,
   currentChunkSize: number;
   bodyChunks: Buffer[];
   trailers: TrailerHeaders;
@@ -30,11 +31,12 @@ const EMPTY_BUFFER = Buffer.alloc(0);
 
 const DOUBLE_CRLF = Buffer.from([CR, LF, CR, LF]);
 
-export function createChunkedBodyState(): ChunkedBodyState {
+export function createChunkedBodyState(limit: ChunkedBodyLimits = DEFAULT_CHUNKED_BODY_LIMITS): ChunkedBodyState {
   return {
     type: 'chunked',
-    phase: ChunkedPhase.SIZE,
+    phase: ChunkedBodyPhase.SIZE,
     buffer: EMPTY_BUFFER,
+    limit,
     currentChunkSize: 0,
     totalSize: 0,
     bodyChunks: [],
@@ -120,7 +122,7 @@ function handleSizePhase(state: ChunkedBodyState): ChunkedBodyState {
   return {
     ...state,
     buffer: state.buffer.subarray(consumed),
-    phase: size === 0 ? ChunkedPhase.TRAILER : ChunkedPhase.DATA,
+    phase: size === 0 ? ChunkedBodyPhase.TRAILER : ChunkedBodyPhase.DATA,
     currentChunkSize: size,
   };
 }
@@ -140,7 +142,7 @@ function handleDataPhase(
     buffer: buffer.subarray(currentChunkSize),
     bodyChunks: [...state.bodyChunks, buffer.subarray(0, currentChunkSize)],
     currentChunkSize: 0,
-    phase: ChunkedPhase.CRLF,
+    phase: ChunkedBodyPhase.CRLF,
   };
 }
 
@@ -160,7 +162,7 @@ function handleCRLFPhase(state: ChunkedBodyState): ChunkedBodyState {
   return {
     ...state,
     buffer: buffer.subarray(CRLF_LENGTH),
-    phase: ChunkedPhase.SIZE,
+    phase: ChunkedBodyPhase.SIZE,
   };
 }
 
@@ -197,11 +199,11 @@ function handleTrailerPhase(state: ChunkedBodyState): ChunkedBodyState {
   };
 }
 
-const phaseHandlers: Record<ChunkedPhase, (state: ChunkedBodyState) => ChunkedBodyState> = {
-  [ChunkedPhase.SIZE]: handleSizePhase,
-  [ChunkedPhase.DATA]: handleDataPhase,
-  [ChunkedPhase.CRLF]: handleCRLFPhase,
-  [ChunkedPhase.TRAILER]: handleTrailerPhase,
+const phaseHandlers: Record<ChunkedBodyPhase, (state: ChunkedBodyState) => ChunkedBodyState> = {
+  [ChunkedBodyPhase.SIZE]: handleSizePhase,
+  [ChunkedBodyPhase.DATA]: handleDataPhase,
+  [ChunkedBodyPhase.CRLF]: handleCRLFPhase,
+  [ChunkedBodyPhase.TRAILER]: handleTrailerPhase,
 } as const;
 
 export function decodeChunkedBody(
@@ -232,4 +234,8 @@ export function decodeChunkedBody(
   }
 
   return state;
+}
+
+export function isChunkedBodyFinished(state: ChunkedBodyState) {
+  return state.phase === ChunkedBodyPhase.FINISHED;
 }
