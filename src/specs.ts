@@ -43,7 +43,6 @@ export enum HttpDecodePhase {
   START_LINE,
   HEADERS,
   BODY_CHUNKED,
-  DISCARDING,
   BODY_CONTENT_LENGTH,
   FINISHED,
 }
