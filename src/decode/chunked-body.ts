@@ -108,49 +108,41 @@ function parseTrailerHeaders(raw: string): TrailerHeaders {
   return trailers;
 }
 
-function handleSizePhase(state: ChunkedBodyState): ChunkedBodyState {
+function handleSizePhase(state: ChunkedBodyState): void {
   const lineBuf = decodeHttpLine(state.buffer);
 
   if (!lineBuf) {
-    return state;
+    return;
   }
 
   const line = lineBuf.toString('ascii');
   const consumed = lineBuf.length + CRLF_LENGTH;
   const size = parseChunkSize(line);
 
-  return {
-    ...state,
-    buffer: state.buffer.subarray(consumed),
-    phase: size === 0 ? ChunkedBodyPhase.TRAILER : ChunkedBodyPhase.DATA,
-    currentChunkSize: size,
-  };
+  state.buffer = state.buffer.subarray(consumed);
+  state.phase = size === 0 ? ChunkedBodyPhase.TRAILER : ChunkedBodyPhase.DATA;
+  state.currentChunkSize = size;
 }
 
-function handleDataPhase(
-  state: ChunkedBodyState,
-): ChunkedBodyState {
+function handleDataPhase(state: ChunkedBodyState): void {
   const { buffer, currentChunkSize } = state;
 
   if (buffer.length < currentChunkSize) {
-    return state;
+    return;
   }
 
-  return {
-    ...state,
-    totalSize: state.totalSize + currentChunkSize,
-    buffer: buffer.subarray(currentChunkSize),
-    bodyChunks: [...state.bodyChunks, buffer.subarray(0, currentChunkSize)],
-    currentChunkSize: 0,
-    phase: ChunkedBodyPhase.CRLF,
-  };
+  state.totalSize = state.totalSize + currentChunkSize;
+  state.buffer = buffer.subarray(currentChunkSize);
+  state.bodyChunks = [...state.bodyChunks, buffer.subarray(0, currentChunkSize)];
+  state.currentChunkSize = 0;
+  state.phase = ChunkedBodyPhase.CRLF;
 }
 
-function handleCRLFPhase(state: ChunkedBodyState): ChunkedBodyState {
+function handleCRLFPhase(state: ChunkedBodyState): void {
   const { buffer } = state;
 
   if (buffer.length < CRLF_LENGTH) {
-    return state;
+    return;
   }
 
   if (buffer[0] !== CR || buffer[1] !== LF) {
@@ -159,47 +151,42 @@ function handleCRLFPhase(state: ChunkedBodyState): ChunkedBodyState {
     );
   }
 
-  return {
-    ...state,
-    buffer: buffer.subarray(CRLF_LENGTH),
-    phase: ChunkedBodyPhase.SIZE,
-  };
+  state.buffer = buffer.subarray(CRLF_LENGTH);
+  state.phase = ChunkedBodyPhase.SIZE;
 }
 
-function handleTrailerPhase(state: ChunkedBodyState): ChunkedBodyState {
+function handleTrailerPhase(state: ChunkedBodyState): void {
   const { buffer } = state;
   const endBuf = decodeHttpLine(buffer);
 
   if (!endBuf) {
-    return state;
+    return;
   }
 
   if (endBuf.length === 0) {
-    return {
-      ...state,
-      buffer: buffer.subarray(CRLF_LENGTH),
-      finished: true,
-    };
+    state.buffer = buffer.subarray(CRLF_LENGTH);
+    state.finished = true;
+    return;
   }
 
   const idx = indexOfDoubleCRLF(buffer);
 
   if (idx < 0) {
-    return state;
+    return;
   }
 
   const raw = buffer.subarray(0, idx).toString('utf8');
   const trailers = parseTrailerHeaders(raw);
 
-  return {
-    ...state,
-    buffer: buffer.subarray(idx + DOUBLE_CRLF_LENGTH),
-    trailers: { ...state.trailers, ...trailers },
-    finished: true,
+  state.finished = true;
+  state.buffer = buffer.subarray(idx + DOUBLE_CRLF_LENGTH);
+  state.trailers = {
+    ...state.trailers,
+    ...trailers,
   };
 }
 
-const phaseHandlers: Record<ChunkedBodyPhase, (state: ChunkedBodyState) => ChunkedBodyState> = {
+const phaseHandlers: Record<ChunkedBodyPhase, (state: ChunkedBodyState) => void> = {
   [ChunkedBodyPhase.SIZE]: handleSizePhase,
   [ChunkedBodyPhase.DATA]: handleDataPhase,
   [ChunkedBodyPhase.CRLF]: handleCRLFPhase,
@@ -214,9 +201,11 @@ export function decodeChunkedBody(
     throw new Error('Chunked decoding already finished');
   }
 
-  let state: ChunkedBodyState = {
+  const state: ChunkedBodyState = {
     ...prev,
     buffer: prev.buffer.length > 0 ? Buffer.concat([prev.buffer, input]) : input,
+    bodyChunks: [...prev.bodyChunks],
+    trailers: { ...prev.trailers },
   };
 
   while (!state.finished) {
@@ -226,7 +215,7 @@ export function decodeChunkedBody(
       throw new Error(`Unknown phase: ${state.phase}`);
     }
 
-    state = handler(state);
+    handler(state);
 
     if (state.phase === prevPhase) {
       break;
