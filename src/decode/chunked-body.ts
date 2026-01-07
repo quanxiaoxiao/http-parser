@@ -211,7 +211,7 @@ export function decodeChunkedBody(
   input: Buffer,
 ): ChunkedBodyState {
   if (prev.finished) {
-    throw new DecodeHttpError('Chunked decoding already finished');
+    throw new Error('Chunked decoding already finished');
   }
 
   let state: ChunkedBodyState = {

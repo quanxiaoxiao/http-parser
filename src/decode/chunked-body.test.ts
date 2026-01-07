@@ -551,8 +551,7 @@ describe('decodeChunkedBody', () => {
       assert.throws(
         () => decodeChunkedBody(state, Buffer.from('5\r\nhello\r\n')),
         (err: Error) => {
-          return err instanceof DecodeHttpError &&
-                 err.message.includes('already finished');
+          return err.message.includes('already finished');
         },
       );
     });
@@ -755,7 +754,6 @@ describe('ChunkedBodyDecoder', () => {
 
       assert.throws(
         () => decodeChunkedBody(result, Buffer.from('5\r\n')),
-        DecodeHttpError,
       );
     });
 
@@ -1406,8 +1404,7 @@ describe('decodeChunkedBody - 边界情况', () => {
     assert.throws(
       () => decodeChunkedBody(state, Buffer.from('5\r\nhello\r\n')),
       (err: Error) => {
-        return err instanceof DecodeHttpError &&
-               err.message.includes('already finished');
+        return err.message.includes('already finished');
       },
     );
   });
