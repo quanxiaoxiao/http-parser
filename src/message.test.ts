@@ -5,9 +5,9 @@ import * as path from 'node:path';
 import { describe, test } from 'node:test';
 import { setTimeout } from 'node:timers/promises';
 
-import { HttpDecodePhase } from './specs.js';
 import { decodeRequest } from './decode/message.js';
 import { encodeRequest } from './encode/message.js';
+import { HttpDecodePhase } from './specs.js';
 
 describe('HTTP Request 编码解码测试', () => {
   describe('基本功能测试', () => {
@@ -862,7 +862,7 @@ describe('HTTP Request 编码解码测试', () => {
           requestState = decodeRequest(requestState, chunk);
         }
 
-      assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
+        assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
         assert.strictEqual(requestState.startLine.raw, `${method} /api/test HTTP/1.1`);
         assert.strictEqual(requestState.startLine.method, method);
       });
@@ -941,7 +941,7 @@ describe('HTTP Request 编码解码测试', () => {
           requestState = decodeRequest(requestState, chunk);
         }
 
-      assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
+        assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
         assert.strictEqual(requestState.headersState.headers['content-type'], contentType);
       });
     });
