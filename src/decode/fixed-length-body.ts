@@ -12,7 +12,7 @@ export type FixedLengthBodyState = {
 
 export function createFixedLengthBodyState(contentLength: number): FixedLengthBodyState {
   if (!Number.isInteger(contentLength) || contentLength < 0) {
-    throw new DecodeHttpError(`Invalid content length: ${contentLength}`);
+    throw new Error(`Invalid content length: ${contentLength}`);
   }
 
   return {

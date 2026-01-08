@@ -31,7 +31,6 @@ describe('createFixedLengthBodyState', () => {
     assert.throws(
       () => createFixedLengthBodyState(-1),
       (err: Error) => {
-        assert.ok(err instanceof DecodeHttpError);
         assert.ok(err.message.includes('Invalid content length'));
         return true;
       },
@@ -42,7 +41,6 @@ describe('createFixedLengthBodyState', () => {
     assert.throws(
       () => createFixedLengthBodyState(100.5),
       (err: Error) => {
-        assert.ok(err instanceof DecodeHttpError);
         assert.ok(err.message.includes('Invalid content length'));
         return true;
       },
@@ -243,8 +241,8 @@ describe('FixedLengthBody Decoder', () => {
     });
 
     test('无效的 Content-Length 应抛出错误', () => {
-      assert.throws(() => createFixedLengthBodyState(-1), DecodeHttpError);
-      assert.throws(() => createFixedLengthBodyState(1.5), DecodeHttpError);
+      assert.throws(() => createFixedLengthBodyState(-1));
+      assert.throws(() => createFixedLengthBodyState(1.5));
     });
   });
 
