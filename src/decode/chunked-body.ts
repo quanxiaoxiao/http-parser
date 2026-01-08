@@ -16,12 +16,12 @@ export enum ChunkedBodyPhase {
 export type ChunkedBodyState = {
   type: BodyType;
   phase: ChunkedBodyPhase;
-  buffer: Buffer | null;
   decodedBodyBytes: number;
-  limit: ChunkedBodyLimits,
-  currentChunkSize: number;
+  remainingChunkBytes: number;
+  buffer: Buffer | null;
   chunks: Buffer[];
   trailers: TrailerHeaders;
+  limit: ChunkedBodyLimits,
 };
 
 const CRLF_LENGTH = 2;
@@ -36,7 +36,7 @@ export function createChunkedBodyState(limit: ChunkedBodyLimits = DEFAULT_CHUNKE
     phase: ChunkedBodyPhase.SIZE,
     buffer: EMPTY_BUFFER,
     limit,
-    currentChunkSize: 0,
+    remainingChunkBytes: 0,
     decodedBodyBytes: 0,
     chunks: [],
     trailers: {},
@@ -119,20 +119,20 @@ function handleSizePhase(state: ChunkedBodyState): void {
 
   state.buffer = state.buffer.subarray(consumed);
   state.phase = size === 0 ? ChunkedBodyPhase.TRAILER : ChunkedBodyPhase.DATA;
-  state.currentChunkSize = size;
+  state.remainingChunkBytes = size;
 }
 
 function handleDataPhase(state: ChunkedBodyState): void {
-  const { buffer, currentChunkSize } = state;
+  const { buffer, remainingChunkBytes } = state;
 
-  if (buffer.length < currentChunkSize) {
+  if (buffer.length < remainingChunkBytes) {
     return;
   }
 
-  state.decodedBodyBytes = state.decodedBodyBytes + currentChunkSize;
-  state.buffer = buffer.subarray(currentChunkSize);
-  state.chunks = [...state.chunks, buffer.subarray(0, currentChunkSize)];
-  state.currentChunkSize = 0;
+  state.decodedBodyBytes = state.decodedBodyBytes + remainingChunkBytes;
+  state.buffer = buffer.subarray(remainingChunkBytes);
+  state.chunks = [...state.chunks, buffer.subarray(0, remainingChunkBytes)];
+  state.remainingChunkBytes = 0;
   state.phase = ChunkedBodyPhase.CRLF;
 }
 
