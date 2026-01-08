@@ -21,7 +21,7 @@ export type ChunkedBodyState = {
   buffer: Buffer | null;
   chunks: Buffer[];
   trailers: TrailerHeaders;
-  limit: ChunkedBodyLimits,
+  limits: ChunkedBodyLimits,
 };
 
 const CRLF_LENGTH = 2;
@@ -30,12 +30,12 @@ const EMPTY_BUFFER = Buffer.alloc(0);
 
 const DOUBLE_CRLF = Buffer.from([CR, LF, CR, LF]);
 
-export function createChunkedBodyState(limit: ChunkedBodyLimits = DEFAULT_CHUNKED_BODY_LIMITS): ChunkedBodyState {
+export function createChunkedBodyState(limits: ChunkedBodyLimits = DEFAULT_CHUNKED_BODY_LIMITS): ChunkedBodyState {
   return {
     type: 'chunked',
     phase: ChunkedBodyPhase.SIZE,
     buffer: EMPTY_BUFFER,
-    limit,
+    limits,
     remainingChunkBytes: 0,
     decodedBodyBytes: 0,
     chunks: [],
