@@ -13,7 +13,6 @@ export type FixedLengthBodyState = {
   contentLength: number;
   receivedBody: number;
   chunks: Buffer[];
-  finished: boolean;
   limits: FixedLengthBodyLimits,
 };
 
@@ -27,13 +26,12 @@ export function createFixedLengthBodyState(
 
   return {
     type: 'fixed',
-    phase: FixedLengthBodyPhase.DATA,
+    phase: contentLength > 0 ? FixedLengthBodyPhase.DATA : FixedLengthBodyPhase.FINISHED,
     buffer: Buffer.alloc(0),
     contentLength,
     receivedBody: 0,
     limits,
     chunks: [],
-    finished: contentLength === 0,
   };
 }
 
@@ -41,7 +39,7 @@ export function decodeFixedLengthBody(
   prev: FixedLengthBodyState,
   input: Buffer,
 ): FixedLengthBodyState {
-  if (prev.finished) {
+  if (prev.phase === FixedLengthBodyPhase.FINISHED) {
     throw new Error('Content-Length parsing already finished');
   }
 
@@ -61,7 +59,6 @@ export function decodeFixedLengthBody(
     contentLength: prev.contentLength,
     receivedBody: totalBytes,
     chunks: [...prev.chunks, validInput],
-    finished,
   };
 
   if (finished) {
@@ -83,5 +80,5 @@ export function getRemainingBytes(state: FixedLengthBodyState): number {
 }
 
 export function isFixedLengthBodyFinished(state: FixedLengthBodyState) {
-  return state.finished;
+  return state.phase === FixedLengthBodyPhase.FINISHED;
 }
