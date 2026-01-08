@@ -76,17 +76,18 @@ export interface StartLineLimits {
   maxReasonPhraseBytes: number;
 }
 
-export interface ChunkedBodyLimits {
-  maxChunkCount: number;
+interface BodyLimits {
+  maxBodySize: number;
+  maxReadChunkSize: number;
+  maxBodyReadTimeMs: number;
+}
 
+export interface FixedLengthBodyLimits extends BodyLimits {
+  allowEmptyBody: boolean;
+};
+
+export interface ChunkedBodyLimits extends BodyLimits {
   maxChunkSize: number;
-  maxChunkDataBytes: number;
-
-  maxChunkLineBytes: number;
-  maxChunkExtensionsBytes: number;
-
-  maxTotalBodyBytes: number;
-
-  maxTrailerHeaderCount: number;
-  maxTrailerHeaderBytes: number;
+  maxChunks: number;
+  maxTrailers: number;
 }
