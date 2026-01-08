@@ -1,6 +1,6 @@
 import { Buffer } from 'node:buffer';
 
-import { DecodeHttpError } from '../errors.js';
+import { HttpDecodeError,HttpDecodeErrorCode } from '../errors.js';
 import { CR, CRLF, DEFAULT_CHUNKED_BODY_LIMITS,LF } from '../specs.js';
 import type { BodyType, ChunkedBodyLimits, TrailerHeaders } from '../types.js';
 import { decodeHttpLine } from './http-line.js';
@@ -56,13 +56,19 @@ function parseChunkSize(line: string): number {
   const match = line.match(/^([0-9a-fA-F]+)/);
 
   if (!match) {
-    throw new DecodeHttpError('Empty chunk size line');
+    throw new HttpDecodeError({
+      code: HttpDecodeErrorCode.INVALID_CHUNK_SIZE,
+      message: 'Empty chunk size line',
+    });
   }
 
   const size = parseInt(match[1], 16);
 
   if (!Number.isFinite(size) || size < 0) {
-    throw new DecodeHttpError(`Invalid chunk size: "${match[1]}"`);
+    throw new HttpDecodeError({
+      code: HttpDecodeErrorCode.INVALID_CHUNK_SIZE,
+      message: `Invalid chunk size: "${match[1]}"`,
+    });
   }
 
   return size;
@@ -86,14 +92,20 @@ function parseTrailerHeaders(raw: string): TrailerHeaders {
     const colonIndex = line.indexOf(':');
 
     if (colonIndex <= 0) {
-      throw new DecodeHttpError(`Invalid trailer header (missing colon): "${line}"`);
+      throw new HttpDecodeError({
+        code: HttpDecodeErrorCode.INVALID_TRAILER,
+        message: `Invalid trailer header (missing colon): "${line}"`,
+      });
     }
 
     const key = line.slice(0, colonIndex).trim().toLowerCase();
     const value = line.slice(colonIndex + 1).trim();
 
     if (!key) {
-      throw new DecodeHttpError(`Invalid trailer header (empty key): "${line}"`);
+      throw new HttpDecodeError({
+        code: HttpDecodeErrorCode.INVALID_TRAILER,
+        message: `Invalid trailer header (empty key): "${line}"`,
+      });
     }
 
     if (trailers[key]) {
@@ -144,9 +156,10 @@ function handleCRLFPhase(state: ChunkedBodyState): void {
   }
 
   if (buffer[0] !== CR || buffer[1] !== LF) {
-    throw new DecodeHttpError(
-      `Missing CRLF after chunk data (got: 0x${buffer[0]?.toString(16)} 0x${buffer[1]?.toString(16)})`,
-    );
+    throw new HttpDecodeError({
+      code: HttpDecodeErrorCode.INVALID_CHUNK_SIZE_LINE_ENDING,
+      message: `Missing CRLF after chunk data (got: 0x${buffer[0]?.toString(16)} 0x${buffer[1]?.toString(16)})`,
+    });
   }
 
   state.buffer = buffer.subarray(CRLF_LENGTH);
