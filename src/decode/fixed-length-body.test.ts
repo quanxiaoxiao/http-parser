@@ -13,8 +13,8 @@ describe('createFixedLengthBodyState', () => {
   test('should create state with valid content length', () => {
     const state = createFixedLengthBodyState(100);
 
-    assert.strictEqual(state.contentLength, 100);
-    assert.strictEqual(state.receivedBody, 0);
+    assert.strictEqual(state.remainingBytes, 100);
+    assert.strictEqual(state.decodedBodyBytes, 0);
     assert.strictEqual(state.phase, FixedLengthBodyPhase.DATA);
     assert.strictEqual(state.buffer.length, 0);
     assert.strictEqual(state.chunks.length, 0);
@@ -23,7 +23,7 @@ describe('createFixedLengthBodyState', () => {
   test('should create finished state when content length is 0', () => {
     const state = createFixedLengthBodyState(0);
 
-    assert.strictEqual(state.contentLength, 0);
+    assert.strictEqual(state.remainingBytes, 0);
     assert.strictEqual(state.phase, FixedLengthBodyPhase.FINISHED);
   });
 
@@ -55,7 +55,7 @@ describe('decodeFixedLengthBody', () => {
 
     const result = decodeFixedLengthBody(state, input);
 
-    assert.strictEqual(result.receivedBody, 10);
+    assert.strictEqual(result.decodedBodyBytes, 10);
     assert.strictEqual(result.phase, FixedLengthBodyPhase.FINISHED);
     assert.strictEqual(result.buffer.toString(), '');
     assert.strictEqual(result.chunks.length, 1);
@@ -65,11 +65,11 @@ describe('decodeFixedLengthBody', () => {
     let state = createFixedLengthBodyState(10);
 
     state = decodeFixedLengthBody(state, Buffer.from('12345'));
-    assert.strictEqual(state.receivedBody, 5);
+    assert.strictEqual(state.decodedBodyBytes, 5);
     assert.strictEqual(state.phase, FixedLengthBodyPhase.DATA);
 
     state = decodeFixedLengthBody(state, Buffer.from('67890'));
-    assert.strictEqual(state.receivedBody, 10);
+    assert.strictEqual(state.decodedBodyBytes, 10);
     assert.strictEqual(state.phase, FixedLengthBodyPhase.FINISHED);
     assert.strictEqual(state.buffer.toString(), '');
   });
@@ -78,12 +78,12 @@ describe('decodeFixedLengthBody', () => {
     let state = createFixedLengthBodyState(5);
 
     state = decodeFixedLengthBody(state, Buffer.from(''));
-    assert.strictEqual(state.receivedBody, 0);
+    assert.strictEqual(state.decodedBodyBytes, 0);
     assert.strictEqual(state.phase, FixedLengthBodyPhase.DATA);
     assert.strictEqual(state.chunks.length, 0);
 
     state = decodeFixedLengthBody(state, Buffer.from('12345'));
-    assert.strictEqual(state.receivedBody, 5);
+    assert.strictEqual(state.decodedBodyBytes, 5);
     assert.strictEqual(state.phase, FixedLengthBodyPhase.FINISHED);
   });
 
@@ -93,7 +93,7 @@ describe('decodeFixedLengthBody', () => {
 
     state = decodeFixedLengthBody(state, input);
 
-    assert.strictEqual(state.receivedBody, input.length);
+    assert.strictEqual(state.decodedBodyBytes, 5);
     assert.strictEqual(state.phase, FixedLengthBodyPhase.FINISHED);
     assert.strictEqual(state.chunks[0].length, 5);
     assert.strictEqual(state.buffer.toString(), input.subarray(5).toString());
@@ -228,8 +228,8 @@ describe('FixedLengthBody Decoder', () => {
   describe('createFixedLengthBodyState', () => {
     test('应该正确初始化状态', () => {
       const state = createFixedLengthBodyState(100);
-      assert.equal(state.contentLength, 100);
-      assert.equal(state.receivedBody, 0);
+      assert.equal(state.remainingBytes, 100);
+      assert.equal(state.decodedBodyBytes, 0);
       assert.strictEqual(state.phase, FixedLengthBodyPhase.DATA);
       assert.equal(state.chunks.length, 0);
     });
@@ -250,11 +250,11 @@ describe('FixedLengthBody Decoder', () => {
       let state = createFixedLengthBodyState(10);
 
       state = decodeFixedLengthBody(state, Buffer.from('hello'));
-      assert.equal(state.receivedBody, 5);
+      assert.equal(state.decodedBodyBytes, 5);
       assert.strictEqual(state.phase, FixedLengthBodyPhase.DATA);
 
       state = decodeFixedLengthBody(state, Buffer.from('world'));
-      assert.equal(state.receivedBody, 10);
+      assert.equal(state.decodedBodyBytes, 10);
       assert.strictEqual(state.phase, FixedLengthBodyPhase.FINISHED);
       assert.deepEqual(Buffer.concat(state.chunks), Buffer.from('helloworld'));
     });
@@ -266,7 +266,7 @@ describe('FixedLengthBody Decoder', () => {
       const nextState = decodeFixedLengthBody(state, input);
 
       assert.strictEqual(nextState.phase, FixedLengthBodyPhase.FINISHED);
-      assert.equal(nextState.receivedBody, 8);
+      assert.equal(nextState.decodedBodyBytes, 5);
       // 验证 chunks 只包含前 5 个字节
       assert.deepEqual(Buffer.concat(nextState.chunks), Buffer.from('12345'));
       // 验证剩余的 3 个字节进入了 buffer

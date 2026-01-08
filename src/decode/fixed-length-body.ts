@@ -10,10 +10,9 @@ export type FixedLengthBodyState = {
   type: BodyType;
   phase: FixedLengthBodyPhase,
   buffer: Buffer | null;
-  contentLength: number;
-  receivedBody: number;
   chunks: Buffer[];
   decodedBodyBytes: number;
+  remainingBytes: number;
   limits: FixedLengthBodyLimits,
 };
 
@@ -29,8 +28,7 @@ export function createFixedLengthBodyState(
     type: 'fixed',
     phase: contentLength > 0 ? FixedLengthBodyPhase.DATA : FixedLengthBodyPhase.FINISHED,
     buffer: Buffer.alloc(0),
-    contentLength,
-    receivedBody: 0,
+    remainingBytes: contentLength,
     decodedBodyBytes: 0,
     limits,
     chunks: [],
@@ -45,21 +43,23 @@ export function decodeFixedLengthBody(
     throw new Error('Content-Length parsing already finished');
   }
 
-  if (input.length === 0) {
+  const size = input.length;
+  if (size === 0) {
     return prev;
   }
 
-  const totalBytes = prev.receivedBody + input.length;
-  const finished = totalBytes >= prev.contentLength;
-  const overflowBytes = totalBytes - prev.contentLength;
-  const validInput = overflowBytes > 0 ? input.subarray(0, -overflowBytes) : input;
-  const remainingBuffer = overflowBytes > 0 ? input.subarray(-overflowBytes) : Buffer.alloc(0);
+  const remainingBytes = prev.remainingBytes - size;
+  const decodedBodyBytes = prev.decodedBodyBytes + size;
+  const finished = remainingBytes <= 0;
+
+  const validInput = remainingBytes >= 0 ? input : input.subarray(0, size + remainingBytes);
+  const remainingBuffer = remainingBytes >= 0 ? Buffer.alloc(0) : input.subarray(remainingBytes);
 
   const state = {
     ...prev,
     buffer: remainingBuffer,
-    contentLength: prev.contentLength,
-    receivedBody: totalBytes,
+    remainingBytes: Math.max(remainingBytes, 0),
+    decodedBodyBytes: remainingBytes < 0 ? decodedBodyBytes + remainingBytes : decodedBodyBytes,
     chunks: [...prev.chunks, validInput],
   };
 
@@ -71,14 +71,15 @@ export function decodeFixedLengthBody(
 }
 
 export function getProgress(state: FixedLengthBodyState): number {
-  if (state.contentLength === 0) {
+  if (state.remainingBytes === 0) {
     return 1;
   }
-  return Math.min(state.receivedBody / state.contentLength, 1);
+  const contentLength = state.remainingBytes + state.decodedBodyBytes;
+  return state.decodedBodyBytes / contentLength;
 }
 
 export function getRemainingBytes(state: FixedLengthBodyState): number {
-  return Math.max(state.contentLength - state.receivedBody, 0);
+  return state.remainingBytes;
 }
 
 export function isFixedLengthBodyFinished(state: FixedLengthBodyState) {

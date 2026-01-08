@@ -219,13 +219,8 @@ function handleBodyPhase<T extends ChunkedBodyState | FixedLengthBodyState>(
     state.buffer,
   );
 
-  const previousSize = state.bodyState
-    ? (state.bodyState.type === 'fixed' ? state.bodyState.receivedBody : state.bodyState.decodedBodyBytes)
-    : 0;
-  const currentSize = state.bodyState.type === 'fixed'
-    ? bodyState.receivedBody
-    : bodyState.decodedBodyBytes;
-  const delta = currentSize - previousSize;
+  const previousSize = state.bodyState.decodedBodyBytes;
+  const delta = bodyState.decodedBodyBytes - previousSize;
   if (delta > 0) {
     addEvent(state, {
       type: 'body-chunk',
@@ -238,13 +233,9 @@ function handleBodyPhase<T extends ChunkedBodyState | FixedLengthBodyState>(
     return;
   }
 
-  const totalSize = 'contentLength' in bodyState
-    ? bodyState.contentLength
-    : bodyState.decodedBodyBytes;
-
   addEvent(state, {
     type: 'body-complete',
-    totalSize,
+    totalSize: bodyState.decodedBodyBytes,
   });
 
   state.bodyState = {
