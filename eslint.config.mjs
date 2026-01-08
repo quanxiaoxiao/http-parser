@@ -50,6 +50,7 @@ export default [
       'object-curly-newline': 2,
       'no-multi-assign': 2,
       'no-else-return': 2,
+      'no-undef': 'error',
       indent: [
         'error',
         2,

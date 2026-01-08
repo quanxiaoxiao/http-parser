@@ -6,8 +6,8 @@ import { getHeaderValue } from '../headers/headers.js';
 import parseInteger from '../parseInteger.js';
 import { DEFAULT_HEADER_LIMITS, DEFAULT_START_LINE_LIMITS, HttpDecodePhase } from '../specs.js';
 import type { Headers, RequestStartLine, ResponseStartLine } from '../types.js';
-import { type ChunkedBodyState, createChunkedBodyState, decodeChunkedBody } from './chunked-body.js';
-import { createFixedLengthBodyState, decodeFixedLengthBody,type FixedLengthBodyState } from './fixed-length-body.js';
+import { type ChunkedBodyState, createChunkedBodyState, decodeChunkedBody, isChunkedBodyFinished } from './chunked-body.js';
+import { createFixedLengthBodyState, decodeFixedLengthBody, type FixedLengthBodyState,isFixedLengthBodyFinished } from './fixed-length-body.js';
 import { createHeadersState, decodeHeaders, type HeadersState,isHeadersFinished } from './headers.js';
 import { decodeHttpLine } from './http-line.js';
 import { decodeRequestStartLine, decodeResponseStartLine } from './start-line.js';
@@ -31,6 +31,17 @@ export type HttpDecodeEvent =
   | { type: 'body-chunk'; size: number }
   | { type: 'body-complete'; totalSize: number }
   | { type: 'message-complete' };
+
+function isBodyFinished(state: ChunkedBodyState | FixedLengthBodyState): boolean {
+  switch (state.type) {
+  case 'fixed':
+    return isFixedLengthBodyFinished(state);
+  case 'chunked':
+    return isChunkedBodyFinished(state);
+  default:
+    throw new Error(`Unexpected body state: ${JSON.stringify(state)}`);
+  }
+}
 
 function formatError(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -221,7 +232,7 @@ function handleBodyPhase<T extends ChunkedBodyState | FixedLengthBodyState>(
       size: delta,
     });
   }
-  if (!bodyState.finished) {
+  if (!isBodyFinished(bodyState)) {
     state.buffer = EMPTY_BUFFER;
     state.bodyState = bodyState;
     return;

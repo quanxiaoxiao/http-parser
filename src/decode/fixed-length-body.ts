@@ -63,3 +63,7 @@ export function getProgress(state: FixedLengthBodyState): number {
 export function getRemainingBytes(state: FixedLengthBodyState): number {
   return Math.max(state.contentLength - state.receivedBody, 0);
 }
+
+export function isFixedLengthBodyFinished(state: FixedLengthBodyState) {
+  return state.finished;
+}
