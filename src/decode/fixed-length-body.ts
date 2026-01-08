@@ -1,9 +1,14 @@
-import { DecodeHttpError } from '../errors.js';
 import { DEFAULT_FIXED_LENGTH_BODY_LIMITS } from '../specs.js';
 import type { BodyType, FixedLengthBodyLimits } from '../types.js';
 
+export enum FixedLengthBodyPhase {
+  DATA = 'data',
+  FINISHED = 'finished',
+}
+
 export type FixedLengthBodyState = {
   type: BodyType;
+  phase: FixedLengthBodyPhase,
   buffer: Buffer | null;
   contentLength: number;
   receivedBody: number;
@@ -22,6 +27,7 @@ export function createFixedLengthBodyState(
 
   return {
     type: 'fixed',
+    phase: FixedLengthBodyPhase.DATA,
     buffer: Buffer.alloc(0),
     contentLength,
     receivedBody: 0,
@@ -36,7 +42,7 @@ export function decodeFixedLengthBody(
   input: Buffer,
 ): FixedLengthBodyState {
   if (prev.finished) {
-    throw new DecodeHttpError('Content-Length parsing already finished');
+    throw new Error('Content-Length parsing already finished');
   }
 
   if (input.length === 0) {
@@ -49,7 +55,7 @@ export function decodeFixedLengthBody(
   const validInput = overflowBytes > 0 ? input.subarray(0, -overflowBytes) : input;
   const remainingBuffer = overflowBytes > 0 ? input.subarray(-overflowBytes) : Buffer.alloc(0);
 
-  return {
+  const state = {
     ...prev,
     buffer: remainingBuffer,
     contentLength: prev.contentLength,
@@ -57,6 +63,12 @@ export function decodeFixedLengthBody(
     chunks: [...prev.chunks, validInput],
     finished,
   };
+
+  if (finished) {
+    state.phase = FixedLengthBodyPhase.FINISHED;
+  }
+
+  return state;
 }
 
 export function getProgress(state: FixedLengthBodyState): number {

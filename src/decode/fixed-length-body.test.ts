@@ -1,7 +1,6 @@
 import * as assert from 'node:assert';
 import { describe, test } from 'node:test';
 
-import { DecodeHttpError } from '../errors.js';
 import {
   createFixedLengthBodyState,
   decodeFixedLengthBody,
@@ -106,7 +105,6 @@ describe('decodeFixedLengthBody', () => {
     assert.throws(
       () => decodeFixedLengthBody(state, Buffer.from('more')),
       (err: Error) => {
-        assert.ok(err instanceof DecodeHttpError);
         assert.ok(err.message.includes('already finished'));
         return true;
       },
@@ -281,7 +279,6 @@ describe('FixedLengthBody Decoder', () => {
       assert.throws(() => {
         decodeFixedLengthBody(nextState, Buffer.from('extra'));
       }, {
-        name: 'DecodeHttpError',
         message: 'Content-Length parsing already finished',
       });
     });
