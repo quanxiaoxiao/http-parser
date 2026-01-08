@@ -205,7 +205,7 @@ describe('decodeHeaders', () => {
         'Host: example.com\r\n' +
         'Content-Length: 123\r\n\r\n',
       );
-      const result = decodeHeaders(state, input);
+      decodeHeaders(state, input);
 
     });
   });

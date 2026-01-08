@@ -462,9 +462,7 @@ describe('encodeRequest - 流式传输（AsyncIterable）', () => {
 
     await assert.rejects(
       async () => {
-        for await (const chunk of generator) {
-          // 消费数据直到错误
-        }
+        for await (const chunk of generator) { void chunk; }
       },
       { message: 'Stream Interrupted' },
     );

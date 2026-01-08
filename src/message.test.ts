@@ -213,7 +213,7 @@ describe('HTTP Request 编码解码测试', () => {
       try {
         const { unlinkSync } = await import('node:fs');
         unlinkSync(testFilePath);
-      } catch (err) {
+      } catch {
         // ignore
       }
     });

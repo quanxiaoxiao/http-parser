@@ -1,6 +1,6 @@
 import { Buffer } from 'node:buffer';
 
-import { DecodeHttpError,HttpDecodeError, HttpDecodeErrorCode } from '../errors.js';
+import { DecodeHttpError } from '../errors.js';
 import { CR, CRLF, DEFAULT_CHUNKED_BODY_LIMITS,LF } from '../specs.js';
 import type { BodyType, ChunkedBodyLimits, TrailerHeaders } from '../types.js';
 import { decodeHttpLine } from './http-line.js';
