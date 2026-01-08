@@ -44,7 +44,7 @@ function validateHttpVersion(versionStr: string): HttpVersion {
 
 export function decodeRequestStartLine(
   str: string,
-  limit: StartLineLimits = DEFAULT_START_LINE_LIMITS,
+  limits: StartLineLimits = DEFAULT_START_LINE_LIMITS,
 ): RequestStartLine {
   validateInput(str, 'request');
   const trimmedStr = str.trim();
@@ -60,10 +60,10 @@ export function decodeRequestStartLine(
   const [, method, path, versionStr] = matches;
   const version = validateHttpVersion(versionStr!);
 
-  if (path.length > limit.maxUriBytes) {
+  if (path.length > limits.maxUriBytes) {
     throw new HttpDecodeError({
       code: HttpDecodeErrorCode.URI_TOO_LARGE,
-      message: `Request start line URI too large: exceeds limit of ${limit.maxUriBytes} bytes`,
+      message: `Request start line URI too large: exceeds limit of ${limits.maxUriBytes} bytes`,
     });
   }
 
@@ -75,7 +75,7 @@ export function decodeRequestStartLine(
   };
 };
 
-export function decodeResponseStartLine(str: string, limit: StartLineLimits = DEFAULT_START_LINE_LIMITS): ResponseStartLine {
+export function decodeResponseStartLine(str: string, limits: StartLineLimits = DEFAULT_START_LINE_LIMITS): ResponseStartLine {
   validateInput(str, 'response');
 
   const trimmedStr = str.trim();
@@ -102,10 +102,10 @@ export function decodeResponseStartLine(str: string, limit: StartLineLimits = DE
 
   const finalStatusMessage = statusText?.trim() || STATUS_CODES[statusCode] || 'Unknown';
 
-  if (finalStatusMessage.length > limit.maxReasonPhraseBytes) {
+  if (finalStatusMessage.length > limits.maxReasonPhraseBytes) {
     throw new HttpDecodeError({
       code: HttpDecodeErrorCode.REASON_PHARSE_TOO_LARGE,
-      message: `Response start line rease phase too large: exceeds limit of ${limit.maxReasonPhraseBytes} bytes`,
+      message: `Response start line rease phase too large: exceeds limit of ${limits.maxReasonPhraseBytes} bytes`,
     });
   }
 

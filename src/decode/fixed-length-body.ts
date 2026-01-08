@@ -1,5 +1,6 @@
 import { DecodeHttpError } from '../errors.js';
-import type { BodyType } from '../types.js';
+import { DEFAULT_FIXED_LENGTH_BODY_LIMITS } from '../specs.js';
+import type { BodyType, FixedLengthBodyLimits } from '../types.js';
 
 export type FixedLengthBodyState = {
   type: BodyType;
@@ -8,9 +9,13 @@ export type FixedLengthBodyState = {
   receivedBody: number;
   chunks: Buffer[];
   finished: boolean;
+  limits: FixedLengthBodyLimits,
 };
 
-export function createFixedLengthBodyState(contentLength: number): FixedLengthBodyState {
+export function createFixedLengthBodyState(
+  contentLength: number,
+  limits: FixedLengthBodyLimits = DEFAULT_FIXED_LENGTH_BODY_LIMITS,
+): FixedLengthBodyState {
   if (!Number.isInteger(contentLength) || contentLength < 0) {
     throw new Error(`Invalid content length: ${contentLength}`);
   }
@@ -20,6 +25,7 @@ export function createFixedLengthBodyState(contentLength: number): FixedLengthBo
     buffer: Buffer.alloc(0),
     contentLength,
     receivedBody: 0,
+    limits,
     chunks: [],
     finished: contentLength === 0,
   };
