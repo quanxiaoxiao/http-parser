@@ -54,40 +54,35 @@ export function decodeFixedLengthBody(
     throw new Error('Content-Length parsing already finished');
   }
 
-  const size = input.length;
-  if (size === 0) {
+  const inputSize = input.length;
+  if (inputSize === 0) {
     return prev;
   }
 
-  const remainingBytes = prev.remainingBytes - size;
-  const decodedBodyBytes = prev.decodedBodyBytes + size;
+  const canAccept = Math.min(inputSize, prev.remainingBytes);
+  const newRemainingBytes = prev.remainingBytes - canAccept;
+  const newDecodedBytes = prev.decodedBodyBytes + canAccept;
 
-  const validInput = remainingBytes >= 0 ? input : input.subarray(0, size + remainingBytes);
-  const remainingBuffer = remainingBytes >= 0 ? Buffer.alloc(0) : input.subarray(remainingBytes);
-
-  const next = {
-    ...prev,
-    buffer: remainingBuffer,
-    remainingBytes: Math.max(remainingBytes, 0),
-    decodedBodyBytes: remainingBytes < 0 ? decodedBodyBytes + remainingBytes : decodedBodyBytes,
-    chunks: [...prev.chunks],
-  };
-
-  const contentLength = next.remainingBytes + next.decodedBodyBytes;
-
-  if (contentLength > next.limits.maxBodySize) {
+  const totalContentLength = newDecodedBytes + newRemainingBytes;
+  if (totalContentLength > prev.limits.maxBodySize) {
     throw new HttpDecodeError({
       code: HttpDecodeErrorCode.CONTENT_LENGTH_TOO_LARGE,
-      message: `Content-Length ${contentLength} exceeds limit ${next.limits.maxBodySize}`,
+      message: `Content-Length ${totalContentLength} exceeds limit ${prev.limits.maxBodySize}`,
     });
   }
 
-  if (validInput.length > 0) {
-    next.chunks.push(validInput);
-  }
+  const next: FixedLengthBodyState = {
+    ...prev,
+    decodedBodyBytes: newDecodedBytes,
+    remainingBytes: newRemainingBytes,
+    phase: newRemainingBytes === 0 ? FixedLengthBodyPhase.FINISHED : prev.phase,
+    buffer: canAccept < inputSize ? input.subarray(canAccept) : Buffer.alloc(0),
+    chunks: [...prev.chunks],
+  };
 
-  if (next.remainingBytes === 0) {
-    next.phase = FixedLengthBodyPhase.FINISHED;
+  if (canAccept > 0) {
+    const validChunk = canAccept === inputSize ? input : input.subarray(0, canAccept);
+    next.chunks = [...prev.chunks, validChunk];
   }
 
   return next;
