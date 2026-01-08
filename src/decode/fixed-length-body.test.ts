@@ -31,7 +31,7 @@ describe('createFixedLengthBodyState', () => {
     assert.throws(
       () => createFixedLengthBodyState(-1),
       (err: Error) => {
-        assert.ok(err.message.includes('Invalid content length'));
+        assert.ok(err.message.includes('Invalid Content-Length'));
         return true;
       },
     );
@@ -41,7 +41,7 @@ describe('createFixedLengthBodyState', () => {
     assert.throws(
       () => createFixedLengthBodyState(100.5),
       (err: Error) => {
-        assert.ok(err.message.includes('Invalid content length'));
+        assert.ok(err.message.includes('Invalid Content-Length'));
         return true;
       },
     );
