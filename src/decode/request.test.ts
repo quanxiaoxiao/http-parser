@@ -68,7 +68,7 @@ describe('decodeRequest', () => {
   });
 
   describe('HEADERS 阶段', () => {
-    it.only('应该解析没有 body 的完整请求', () => {
+    it('应该解析没有 body 的完整请求', () => {
       const state = createRequestState();
       const input = Buffer.from(
         'GET /path HTTP/1.1\r\n' +

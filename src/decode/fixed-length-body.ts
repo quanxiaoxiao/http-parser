@@ -63,14 +63,6 @@ export function decodeFixedLengthBody(
   const newRemainingBytes = prev.remainingBytes - canAccept;
   const newDecodedBytes = prev.decodedBodyBytes + canAccept;
 
-  const totalContentLength = newDecodedBytes + newRemainingBytes;
-  if (totalContentLength > prev.limits.maxBodySize) {
-    throw new HttpDecodeError({
-      code: HttpDecodeErrorCode.CONTENT_LENGTH_TOO_LARGE,
-      message: `Content-Length ${totalContentLength} exceeds limit ${prev.limits.maxBodySize}`,
-    });
-  }
-
   const next: FixedLengthBodyState = {
     ...prev,
     decodedBodyBytes: newDecodedBytes,

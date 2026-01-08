@@ -250,7 +250,7 @@ describe('HTTP Header Name Linter', () => {
   });
 
   describe('Complex scenarios', () => {
-    it.only('should handle multiple errors at once', () => {
+    it('should handle multiple errors at once', () => {
       const result = lintHeaderName(' Invalid Header- ');
       assert.ok(result.errors.length >= 2,
         'Should have multiple errors: whitespace, spaces, trailing hyphen');
