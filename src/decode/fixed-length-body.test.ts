@@ -17,7 +17,7 @@ describe('createFixedLengthBodyState', () => {
     assert.strictEqual(state.receivedBody, 0);
     assert.strictEqual(state.finished, false);
     assert.strictEqual(state.buffer.length, 0);
-    assert.strictEqual(state.bodyChunks.length, 0);
+    assert.strictEqual(state.chunks.length, 0);
   });
 
   test('should create finished state when content length is 0', () => {
@@ -60,7 +60,7 @@ describe('decodeFixedLengthBody', () => {
     assert.strictEqual(result.receivedBody, 10);
     assert.strictEqual(result.finished, true);
     assert.strictEqual(result.buffer.toString(), '');
-    assert.strictEqual(result.bodyChunks.length, 1);
+    assert.strictEqual(result.chunks.length, 1);
   });
 
   test('should parse multiple chunks', () => {
@@ -82,7 +82,7 @@ describe('decodeFixedLengthBody', () => {
     state = decodeFixedLengthBody(state, Buffer.from(''));
     assert.strictEqual(state.receivedBody, 0);
     assert.strictEqual(state.finished, false);
-    assert.strictEqual(state.bodyChunks.length, 0);
+    assert.strictEqual(state.chunks.length, 0);
 
     state = decodeFixedLengthBody(state, Buffer.from('12345'));
     assert.strictEqual(state.receivedBody, 5);
@@ -97,7 +97,7 @@ describe('decodeFixedLengthBody', () => {
 
     assert.strictEqual(state.receivedBody, input.length);
     assert.strictEqual(state.finished, true);
-    assert.strictEqual(state.bodyChunks[0].length, 5);
+    assert.strictEqual(state.chunks[0].length, 5);
     assert.strictEqual(state.buffer.toString(), input.subarray(5).toString());
   });
 
@@ -234,7 +234,7 @@ describe('FixedLengthBody Decoder', () => {
       assert.equal(state.contentLength, 100);
       assert.equal(state.receivedBody, 0);
       assert.equal(state.finished, false);
-      assert.equal(state.bodyChunks.length, 0);
+      assert.equal(state.chunks.length, 0);
     });
 
     test('当 Content-Length 为 0 时，应立即标记为完成', () => {
@@ -259,7 +259,7 @@ describe('FixedLengthBody Decoder', () => {
       state = decodeFixedLengthBody(state, Buffer.from('world'));
       assert.equal(state.receivedBody, 10);
       assert.equal(state.finished, true);
-      assert.deepEqual(Buffer.concat(state.bodyChunks), Buffer.from('helloworld'));
+      assert.deepEqual(Buffer.concat(state.chunks), Buffer.from('helloworld'));
     });
 
     test('当输入超出 Content-Length 时，应截断输入并将剩余部分存入 buffer', () => {
@@ -270,8 +270,8 @@ describe('FixedLengthBody Decoder', () => {
 
       assert.equal(nextState.finished, true);
       assert.equal(nextState.receivedBody, 8);
-      // 验证 bodyChunks 只包含前 5 个字节
-      assert.deepEqual(Buffer.concat(nextState.bodyChunks), Buffer.from('12345'));
+      // 验证 chunks 只包含前 5 个字节
+      assert.deepEqual(Buffer.concat(nextState.chunks), Buffer.from('12345'));
       // 验证剩余的 3 个字节进入了 buffer
       assert.deepEqual(nextState.buffer, Buffer.from('678'));
     });

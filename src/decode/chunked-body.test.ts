@@ -11,7 +11,7 @@ describe('createChunkedBodyState', () => {
     assert.strictEqual(state.phase, ChunkedBodyPhase.SIZE);
     assert.strictEqual(state.buffer.length, 0);
     assert.strictEqual(state.currentChunkSize, 0);
-    assert.deepStrictEqual(state.bodyChunks, []);
+    assert.deepStrictEqual(state.chunks, []);
     assert.deepStrictEqual(state.trailers, {});
   });
 });
@@ -24,8 +24,8 @@ describe('decodeChunkedBody - basic functionality', () => {
     const result = decodeChunkedBody(state, input);
 
     assert.strictEqual(result.phase, ChunkedBodyPhase.FINISHED);
-    assert.strictEqual(result.bodyChunks.length, 1);
-    assert.strictEqual(result.bodyChunks[0].toString(), 'hello');
+    assert.strictEqual(result.chunks.length, 1);
+    assert.strictEqual(result.chunks[0].toString(), 'hello');
   });
 
   test('should parse multiple chunks', () => {
@@ -35,9 +35,9 @@ describe('decodeChunkedBody - basic functionality', () => {
     const result = decodeChunkedBody(state, input);
 
     assert.strictEqual(result.phase, ChunkedBodyPhase.FINISHED);
-    assert.strictEqual(result.bodyChunks.length, 2);
-    assert.strictEqual(result.bodyChunks[0].toString(), 'hello');
-    assert.strictEqual(result.bodyChunks[1].toString(), ' world');
+    assert.strictEqual(result.chunks.length, 2);
+    assert.strictEqual(result.chunks[0].toString(), 'hello');
+    assert.strictEqual(result.chunks[1].toString(), ' world');
   });
 
   test('should handle chunk with extension', () => {
@@ -47,7 +47,7 @@ describe('decodeChunkedBody - basic functionality', () => {
     const result = decodeChunkedBody(state, input);
 
     assert.strictEqual(result.phase, ChunkedBodyPhase.FINISHED);
-    assert.strictEqual(result.bodyChunks[0].toString(), 'hello');
+    assert.strictEqual(result.chunks[0].toString(), 'hello');
   });
 
   test('should handle empty chunk (size 0)', () => {
@@ -57,7 +57,7 @@ describe('decodeChunkedBody - basic functionality', () => {
     const result = decodeChunkedBody(state, input);
 
     assert.strictEqual(result.phase, ChunkedBodyPhase.FINISHED);
-    assert.strictEqual(result.bodyChunks.length, 0);
+    assert.strictEqual(result.chunks.length, 0);
   });
 });
 
@@ -73,7 +73,7 @@ describe('decodeChunkedBody - incremental parsing', () => {
 
     state = decodeChunkedBody(state, Buffer.from('\r\n0\r\n\r\n'));
     assert.strictEqual(state.phase, ChunkedBodyPhase.FINISHED);
-    assert.strictEqual(state.bodyChunks[0].toString(), 'hello');
+    assert.strictEqual(state.chunks[0].toString(), 'hello');
   });
 
   test('should handle partial chunk size', () => {
@@ -84,7 +84,7 @@ describe('decodeChunkedBody - incremental parsing', () => {
 
     state = decodeChunkedBody(state, Buffer.from('\r\nhelloworld\r\n0\r\n\r\n'));
     assert.strictEqual(state.phase, ChunkedBodyPhase.FINISHED);
-    assert.strictEqual(state.bodyChunks[0].toString(), 'helloworld');
+    assert.strictEqual(state.chunks[0].toString(), 'helloworld');
   });
 
   test('should handle partial chunk data', () => {
@@ -95,7 +95,7 @@ describe('decodeChunkedBody - incremental parsing', () => {
 
     state = decodeChunkedBody(state, Buffer.from('world\r\n0\r\n\r\n'));
     assert.strictEqual(state.phase, ChunkedBodyPhase.FINISHED);
-    assert.strictEqual(state.bodyChunks[0].toString(), 'helloworld');
+    assert.strictEqual(state.chunks[0].toString(), 'helloworld');
   });
 });
 
@@ -152,7 +152,7 @@ describe('decodeChunkedBody - hex parsing', () => {
     const result = decodeChunkedBody(state, input);
 
     assert.strictEqual(result.phase, ChunkedBodyPhase.FINISHED);
-    assert.strictEqual(result.bodyChunks[0].toString(), '0123456789');
+    assert.strictEqual(result.chunks[0].toString(), '0123456789');
   });
 
   test('should parse uppercase hex', () => {
@@ -162,7 +162,7 @@ describe('decodeChunkedBody - hex parsing', () => {
     const result = decodeChunkedBody(state, input);
 
     assert.strictEqual(result.phase, ChunkedBodyPhase.FINISHED);
-    assert.strictEqual(result.bodyChunks[0].toString(), '0123456789');
+    assert.strictEqual(result.chunks[0].toString(), '0123456789');
   });
 
   test('should parse mixed case hex', () => {
@@ -172,7 +172,7 @@ describe('decodeChunkedBody - hex parsing', () => {
     const result = decodeChunkedBody(state, input);
 
     assert.strictEqual(result.phase, ChunkedBodyPhase.FINISHED);
-    assert.strictEqual(result.bodyChunks[0].length, 26);
+    assert.strictEqual(result.chunks[0].length, 26);
   });
 
   test('should handle large chunk size', () => {
@@ -183,7 +183,7 @@ describe('decodeChunkedBody - hex parsing', () => {
     const result = decodeChunkedBody(state, input);
 
     assert.strictEqual(result.phase, ChunkedBodyPhase.FINISHED);
-    assert.strictEqual(result.bodyChunks[0].length, 1000);
+    assert.strictEqual(result.chunks[0].length, 1000);
   });
 });
 
@@ -262,7 +262,7 @@ describe('decodeChunkedBody - edge cases', () => {
     const result = decodeChunkedBody(state, input);
 
     assert.strictEqual(result.phase, ChunkedBodyPhase.FINISHED);
-    assert.strictEqual(result.bodyChunks[0].toString(), 'hello');
+    assert.strictEqual(result.chunks[0].toString(), 'hello');
   });
 
   test('should handle binary data in chunks', () => {
@@ -277,7 +277,7 @@ describe('decodeChunkedBody - edge cases', () => {
     const result = decodeChunkedBody(state, input);
 
     assert.strictEqual(result.phase, ChunkedBodyPhase.FINISHED);
-    assert.deepStrictEqual(result.bodyChunks[0], binaryData);
+    assert.deepStrictEqual(result.chunks[0], binaryData);
   });
 
   test('should preserve multiple body chunks separately', () => {
@@ -287,10 +287,10 @@ describe('decodeChunkedBody - edge cases', () => {
     const result = decodeChunkedBody(state, input);
 
     assert.strictEqual(result.phase, ChunkedBodyPhase.FINISHED);
-    assert.strictEqual(result.bodyChunks.length, 3);
-    assert.strictEqual(result.bodyChunks[0].toString(), 'abc');
-    assert.strictEqual(result.bodyChunks[1].toString(), 'def');
-    assert.strictEqual(result.bodyChunks[2].toString(), 'ghi');
+    assert.strictEqual(result.chunks.length, 3);
+    assert.strictEqual(result.chunks[0].toString(), 'abc');
+    assert.strictEqual(result.chunks[1].toString(), 'def');
+    assert.strictEqual(result.chunks[2].toString(), 'ghi');
   });
 
   test('should handle chunk size of exactly 1 byte', () => {
@@ -300,7 +300,7 @@ describe('decodeChunkedBody - edge cases', () => {
     const result = decodeChunkedBody(state, input);
 
     assert.strictEqual(result.phase, ChunkedBodyPhase.FINISHED);
-    assert.strictEqual(result.bodyChunks[0].toString(), 'x');
+    assert.strictEqual(result.chunks[0].toString(), 'x');
   });
 });
 
@@ -321,7 +321,7 @@ describe('decodeChunkedBody - real-world scenarios', () => {
 
     assert.strictEqual(state.phase, ChunkedBodyPhase.FINISHED);
 
-    const fullBody = Buffer.concat(state.bodyChunks).toString();
+    const fullBody = Buffer.concat(state.chunks).toString();
     const json = JSON.parse(fullBody);
     assert.strictEqual(json.users.length, 2);
     assert.strictEqual(json.users[0].name, 'Alice');
@@ -334,7 +334,7 @@ describe('createChunkedBodyState', () => {
     assert.strictEqual(state.phase, ChunkedBodyPhase.SIZE);
     assert.strictEqual(state.buffer.length, 0);
     assert.strictEqual(state.currentChunkSize, 0);
-    assert.strictEqual(state.bodyChunks.length, 0);
+    assert.strictEqual(state.chunks.length, 0);
     assert.deepStrictEqual(state.trailers, {});
   });
 });
@@ -347,8 +347,8 @@ describe('decodeChunkedBody', () => {
       const result = decodeChunkedBody(state, input);
 
       assert.strictEqual(result.phase, ChunkedBodyPhase.FINISHED);
-      assert.strictEqual(result.bodyChunks.length, 1);
-      assert.strictEqual(result.bodyChunks[0]?.toString(), 'hello');
+      assert.strictEqual(result.chunks.length, 1);
+      assert.strictEqual(result.chunks[0]?.toString(), 'hello');
     });
 
     it('应该解析多个chunks', () => {
@@ -357,9 +357,9 @@ describe('decodeChunkedBody', () => {
       const result = decodeChunkedBody(state, input);
 
       assert.strictEqual(result.phase, ChunkedBodyPhase.FINISHED);
-      assert.strictEqual(result.bodyChunks.length, 2);
-      assert.strictEqual(result.bodyChunks[0]?.toString(), 'hello');
-      assert.strictEqual(result.bodyChunks[1]?.toString(), ' world');
+      assert.strictEqual(result.chunks.length, 2);
+      assert.strictEqual(result.chunks[0]?.toString(), 'hello');
+      assert.strictEqual(result.chunks[1]?.toString(), ' world');
     });
 
     it('应该处理分块接收的数据', () => {
@@ -373,7 +373,7 @@ describe('decodeChunkedBody', () => {
       // 第二块：chunk data
       state = decodeChunkedBody(state, Buffer.from('hello\r\n'));
       assert.strictEqual(state.phase, ChunkedBodyPhase.SIZE);
-      assert.strictEqual(state.bodyChunks[0]?.toString(), 'hello');
+      assert.strictEqual(state.chunks[0]?.toString(), 'hello');
 
       // 第三块：结束
       state = decodeChunkedBody(state, Buffer.from('0\r\n\r\n'));
@@ -387,7 +387,7 @@ describe('decodeChunkedBody', () => {
       const input = Buffer.from('a\r\n0123456789\r\n0\r\n\r\n');
       const result = decodeChunkedBody(state, input);
 
-      assert.strictEqual(result.bodyChunks[0]?.length, 10);
+      assert.strictEqual(result.chunks[0]?.length, 10);
     });
 
     it('应该解析带扩展的chunk size', () => {
@@ -395,7 +395,7 @@ describe('decodeChunkedBody', () => {
       const input = Buffer.from('5;name=value\r\nhello\r\n0\r\n\r\n');
       const result = decodeChunkedBody(state, input);
 
-      assert.strictEqual(result.bodyChunks[0]?.toString(), 'hello');
+      assert.strictEqual(result.chunks[0]?.toString(), 'hello');
     });
 
     it('应该处理大写十六进制', () => {
@@ -403,7 +403,7 @@ describe('decodeChunkedBody', () => {
       const input = Buffer.from('A\r\n0123456789\r\n0\r\n\r\n');
       const result = decodeChunkedBody(state, input);
 
-      assert.strictEqual(result.bodyChunks[0]?.length, 10);
+      assert.strictEqual(result.chunks[0]?.length, 10);
     });
 
     it('应该在chunk size为空时抛出错误', () => {
@@ -535,7 +535,7 @@ describe('decodeChunkedBody', () => {
       const result = decodeChunkedBody(state, input);
 
       assert.strictEqual(result.phase, ChunkedBodyPhase.FINISHED);
-      assert.strictEqual(result.bodyChunks.length, 0);
+      assert.strictEqual(result.chunks.length, 0);
     });
 
     it('应该在已完成的状态下抛出错误', () => {
@@ -618,7 +618,7 @@ describe('ChunkedBodyDecoder', () => {
       assert.strictEqual(state.buffer.length, 0);
       assert.strictEqual(state.decodedBodyBytes, 0);
       assert.strictEqual(state.currentChunkSize, 0);
-      assert.deepStrictEqual(state.bodyChunks, []);
+      assert.deepStrictEqual(state.chunks, []);
       assert.deepStrictEqual(state.trailers, {});
     });
   });
@@ -632,8 +632,8 @@ describe('ChunkedBodyDecoder', () => {
 
       assert.strictEqual(result.phase, ChunkedBodyPhase.FINISHED);
       assert.strictEqual(result.decodedBodyBytes, 5);
-      assert.strictEqual(result.bodyChunks.length, 1);
-      assert.strictEqual(result.bodyChunks[0].toString(), 'Hello');
+      assert.strictEqual(result.chunks.length, 1);
+      assert.strictEqual(result.chunks[0].toString(), 'Hello');
     });
 
     it('应该解码多个 chunks', () => {
@@ -644,9 +644,9 @@ describe('ChunkedBodyDecoder', () => {
 
       assert.strictEqual(result.phase, ChunkedBodyPhase.FINISHED);
       assert.strictEqual(result.decodedBodyBytes, 11);
-      assert.strictEqual(result.bodyChunks.length, 2);
-      assert.strictEqual(result.bodyChunks[0].toString(), 'Hello');
-      assert.strictEqual(result.bodyChunks[1].toString(), ' World');
+      assert.strictEqual(result.chunks.length, 2);
+      assert.strictEqual(result.chunks[0].toString(), 'Hello');
+      assert.strictEqual(result.chunks[1].toString(), ' World');
     });
 
     it('应该处理分片数据', () => {
@@ -660,7 +660,7 @@ describe('ChunkedBodyDecoder', () => {
       // 第二片：chunk data
       state = decodeChunkedBody(state, Buffer.from('Hello\r\n'));
       assert.strictEqual(state.phase, ChunkedBodyPhase.SIZE);
-      assert.strictEqual(state.bodyChunks.length, 1);
+      assert.strictEqual(state.chunks.length, 1);
 
       // 第三片：终止 chunk
       state = decodeChunkedBody(state, Buffer.from('0\r\n\r\n'));
@@ -686,7 +686,7 @@ describe('ChunkedBodyDecoder', () => {
       const result = decodeChunkedBody(state, input);
 
       assert.strictEqual(result.phase, ChunkedBodyPhase.FINISHED);
-      assert.strictEqual(result.bodyChunks[0].toString(), 'Hello');
+      assert.strictEqual(result.chunks[0].toString(), 'Hello');
     });
 
     it('应该解析 trailer headers', () => {
@@ -722,7 +722,7 @@ describe('ChunkedBodyDecoder', () => {
 
       assert.strictEqual(result.phase, ChunkedBodyPhase.FINISHED);
       assert.strictEqual(result.decodedBodyBytes, 10);
-      assert.strictEqual(result.bodyChunks[0].toString(), '0123456789');
+      assert.strictEqual(result.chunks[0].toString(), '0123456789');
     });
 
     it('应该处理混合大小写的十六进制', () => {
@@ -786,7 +786,7 @@ describe('ChunkedBodyDecoder', () => {
 
       assert.strictEqual(result.phase, ChunkedBodyPhase.FINISHED);
       assert.strictEqual(result.decodedBodyBytes, 0);
-      assert.strictEqual(result.bodyChunks.length, 0);
+      assert.strictEqual(result.chunks.length, 0);
     });
 
     it('应该处理无 trailer 的终止 chunk', () => {
@@ -830,7 +830,7 @@ describe('ChunkedBodyDecoder', () => {
 
       assert.strictEqual(result.phase, ChunkedBodyPhase.FINISHED);
       assert.strictEqual(result.decodedBodyBytes, size);
-      assert.strictEqual(result.bodyChunks[0].length, size);
+      assert.strictEqual(result.chunks[0].length, size);
     });
 
     it('应该累计多个 chunk 的总大小', () => {
@@ -842,7 +842,7 @@ describe('ChunkedBodyDecoder', () => {
       const result = decodeChunkedBody(state, input);
 
       assert.strictEqual(result.decodedBodyBytes, 9); // 3 + 4 + 2
-      assert.strictEqual(result.bodyChunks.length, 3);
+      assert.strictEqual(result.chunks.length, 3);
     });
 
     it('应该保持二进制数据的完整性', () => {
@@ -857,7 +857,7 @@ describe('ChunkedBodyDecoder', () => {
       const result = decodeChunkedBody(state, input);
 
       assert.strictEqual(result.phase, ChunkedBodyPhase.FINISHED);
-      assert.deepStrictEqual(result.bodyChunks[0], binaryData);
+      assert.deepStrictEqual(result.chunks[0], binaryData);
     });
 
     it('应该处理 chunk data 跨越多次调用', () => {
@@ -865,11 +865,11 @@ describe('ChunkedBodyDecoder', () => {
 
       state = decodeChunkedBody(state, Buffer.from('A\r\n01234'));
       assert.strictEqual(state.phase, ChunkedBodyPhase.DATA);
-      assert.strictEqual(state.bodyChunks.length, 0);
+      assert.strictEqual(state.chunks.length, 0);
 
       state = decodeChunkedBody(state, Buffer.from('56789\r\n0\r\n\r\n'));
       assert.strictEqual(state.phase, ChunkedBodyPhase.FINISHED);
-      assert.strictEqual(state.bodyChunks[0].toString(), '0123456789');
+      assert.strictEqual(state.chunks[0].toString(), '0123456789');
     });
   });
 
@@ -881,7 +881,7 @@ describe('ChunkedBodyDecoder', () => {
       const result = decodeChunkedBody(state, input);
 
       assert.strictEqual(result.phase, ChunkedBodyPhase.FINISHED);
-      assert.strictEqual(result.bodyChunks[0].toString(), 'A');
+      assert.strictEqual(result.chunks[0].toString(), 'A');
     });
 
     it('应该处理空 buffer 输入', () => {
@@ -916,7 +916,7 @@ describe('ChunkedBodyDecoder', () => {
       state = decodeChunkedBody(state, Buffer.from('0\r\n\r\n'));
 
       assert.strictEqual(state.phase, ChunkedBodyPhase.FINISHED);
-      assert.strictEqual(state.bodyChunks.length, 100);
+      assert.strictEqual(state.chunks.length, 100);
       assert.strictEqual(state.decodedBodyBytes, 100);
     });
   });
@@ -930,7 +930,7 @@ describe('createChunkedBodyState', () => {
     assert.strictEqual(state.buffer.length, 0);
     assert.strictEqual(state.decodedBodyBytes, 0);
     assert.strictEqual(state.currentChunkSize, 0);
-    assert.deepStrictEqual(state.bodyChunks, []);
+    assert.deepStrictEqual(state.chunks, []);
     assert.deepStrictEqual(state.trailers, {});
   });
 });
@@ -943,8 +943,8 @@ describe('decodeChunkedBody - 基本功能', () => {
 
     assert.strictEqual(result.phase, ChunkedBodyPhase.FINISHED);
     assert.strictEqual(result.decodedBodyBytes, 5);
-    assert.strictEqual(result.bodyChunks.length, 1);
-    assert.strictEqual(result.bodyChunks[0]?.toString(), 'hello');
+    assert.strictEqual(result.chunks.length, 1);
+    assert.strictEqual(result.chunks[0]?.toString(), 'hello');
   });
 
   it('应该解析多个 chunks', () => {
@@ -954,9 +954,9 @@ describe('decodeChunkedBody - 基本功能', () => {
 
     assert.strictEqual(result.phase, ChunkedBodyPhase.FINISHED);
     assert.strictEqual(result.decodedBodyBytes, 11);
-    assert.strictEqual(result.bodyChunks.length, 2);
-    assert.strictEqual(result.bodyChunks[0]?.toString(), 'hello');
-    assert.strictEqual(result.bodyChunks[1]?.toString(), ' world');
+    assert.strictEqual(result.chunks.length, 2);
+    assert.strictEqual(result.chunks[0]?.toString(), 'hello');
+    assert.strictEqual(result.chunks[1]?.toString(), ' world');
   });
 
   it('应该处理零长度 chunk', () => {
@@ -966,7 +966,7 @@ describe('decodeChunkedBody - 基本功能', () => {
 
     assert.strictEqual(result.phase, ChunkedBodyPhase.FINISHED);
     assert.strictEqual(result.decodedBodyBytes, 0);
-    assert.strictEqual(result.bodyChunks.length, 0);
+    assert.strictEqual(result.chunks.length, 0);
   });
 
   it('应该累计多个 chunk 的总大小', () => {
@@ -975,7 +975,7 @@ describe('decodeChunkedBody - 基本功能', () => {
     const result = decodeChunkedBody(state, input);
 
     assert.strictEqual(result.decodedBodyBytes, 9);
-    assert.strictEqual(result.bodyChunks.length, 3);
+    assert.strictEqual(result.chunks.length, 3);
   });
 
   it('应该保持各个 chunk 独立', () => {
@@ -983,10 +983,10 @@ describe('decodeChunkedBody - 基本功能', () => {
     const input = Buffer.from('3\r\nabc\r\n3\r\ndef\r\n3\r\nghi\r\n0\r\n\r\n');
     const result = decodeChunkedBody(state, input);
 
-    assert.strictEqual(result.bodyChunks.length, 3);
-    assert.strictEqual(result.bodyChunks[0].toString(), 'abc');
-    assert.strictEqual(result.bodyChunks[1].toString(), 'def');
-    assert.strictEqual(result.bodyChunks[2].toString(), 'ghi');
+    assert.strictEqual(result.chunks.length, 3);
+    assert.strictEqual(result.chunks[0].toString(), 'abc');
+    assert.strictEqual(result.chunks[1].toString(), 'def');
+    assert.strictEqual(result.chunks[2].toString(), 'ghi');
   });
 });
 
@@ -999,7 +999,7 @@ describe('decodeChunkedBody - 分片接收数据', () => {
 
     state = decodeChunkedBody(state, Buffer.from('\r\nhello\r\n0\r\n\r\n'));
     assert.strictEqual(state.phase, ChunkedBodyPhase.FINISHED);
-    assert.strictEqual(state.bodyChunks[0]?.toString(), 'hello');
+    assert.strictEqual(state.chunks[0]?.toString(), 'hello');
   });
 
   it('应该处理分片接收的 chunk data', () => {
@@ -1012,7 +1012,7 @@ describe('decodeChunkedBody - 分片接收数据', () => {
 
     state = decodeChunkedBody(state, Buffer.from('world\r\n0\r\n\r\n'));
     assert.strictEqual(state.phase, ChunkedBodyPhase.FINISHED);
-    assert.strictEqual(state.bodyChunks[0]?.toString(), 'helloworld');
+    assert.strictEqual(state.chunks[0]?.toString(), 'helloworld');
   });
 
   it('应该处理分片接收的 CRLF', () => {
@@ -1054,11 +1054,11 @@ describe('decodeChunkedBody - 分片接收数据', () => {
 
     state = decodeChunkedBody(state, Buffer.from('a\r\n01234'));
     assert.strictEqual(state.phase, ChunkedBodyPhase.DATA);
-    assert.strictEqual(state.bodyChunks.length, 0);
+    assert.strictEqual(state.chunks.length, 0);
 
     state = decodeChunkedBody(state, Buffer.from('56789\r\n0\r\n\r\n'));
     assert.strictEqual(state.phase, ChunkedBodyPhase.FINISHED);
-    assert.strictEqual(state.bodyChunks[0].toString(), '0123456789');
+    assert.strictEqual(state.chunks[0].toString(), '0123456789');
   });
 });
 
@@ -1068,7 +1068,7 @@ describe('decodeChunkedBody - Chunk Size 解析', () => {
     const input = Buffer.from('a\r\n0123456789\r\n0\r\n\r\n');
     const result = decodeChunkedBody(state, input);
 
-    assert.strictEqual(result.bodyChunks[0]?.length, 10);
+    assert.strictEqual(result.chunks[0]?.length, 10);
   });
 
   it('应该解析大写十六进制', () => {
@@ -1076,7 +1076,7 @@ describe('decodeChunkedBody - Chunk Size 解析', () => {
     const input = Buffer.from('A\r\n0123456789\r\n0\r\n\r\n');
     const result = decodeChunkedBody(state, input);
 
-    assert.strictEqual(result.bodyChunks[0]?.length, 10);
+    assert.strictEqual(result.chunks[0]?.length, 10);
   });
 
   it('应该解析混合大小写十六进制', () => {
@@ -1103,7 +1103,7 @@ describe('decodeChunkedBody - Chunk Size 解析', () => {
     const input = Buffer.from('5;name=value\r\nhello\r\n0\r\n\r\n');
     const result = decodeChunkedBody(state, input);
 
-    assert.strictEqual(result.bodyChunks[0]?.toString(), 'hello');
+    assert.strictEqual(result.chunks[0]?.toString(), 'hello');
   });
 
   it('应该处理带空格和多个扩展的 chunk size', () => {
@@ -1111,7 +1111,7 @@ describe('decodeChunkedBody - Chunk Size 解析', () => {
     const input = Buffer.from('5  ;  ext1=val1  ;  ext2=val2  \r\nhello\r\n0\r\n\r\n');
     const result = decodeChunkedBody(state, input);
 
-    assert.strictEqual(result.bodyChunks[0]?.toString(), 'hello');
+    assert.strictEqual(result.chunks[0]?.toString(), 'hello');
   });
 
   it('应该在空 chunk size 时抛出错误', () => {
@@ -1192,7 +1192,7 @@ describe('decodeChunkedBody - CRLF 验证', () => {
     const result = decodeChunkedBody(state, input);
 
     assert.strictEqual(result.phase, ChunkedBodyPhase.FINISHED);
-    assert.strictEqual(result.bodyChunks[0]?.toString(), data);
+    assert.strictEqual(result.chunks[0]?.toString(), data);
   });
 });
 
@@ -1334,7 +1334,7 @@ describe('decodeChunkedBody - 二进制数据处理', () => {
     const result = decodeChunkedBody(state, input);
 
     assert.strictEqual(result.phase, ChunkedBodyPhase.FINISHED);
-    assert.deepStrictEqual(result.bodyChunks[0], binaryData);
+    assert.deepStrictEqual(result.chunks[0], binaryData);
   });
 
   it('应该处理包含空字节的数据', () => {
@@ -1347,7 +1347,7 @@ describe('decodeChunkedBody - 二进制数据处理', () => {
     ]);
     const result = decodeChunkedBody(state, input);
 
-    assert.deepStrictEqual(result.bodyChunks[0], data);
+    assert.deepStrictEqual(result.chunks[0], data);
   });
 
   it('应该处理全零数据', () => {
@@ -1360,7 +1360,7 @@ describe('decodeChunkedBody - 二进制数据处理', () => {
     ]);
     const result = decodeChunkedBody(state, input);
 
-    assert.deepStrictEqual(result.bodyChunks[0], data);
+    assert.deepStrictEqual(result.chunks[0], data);
   });
 });
 
@@ -1371,7 +1371,7 @@ describe('decodeChunkedBody - 边界情况', () => {
     const result = decodeChunkedBody(state, input);
 
     assert.strictEqual(result.phase, ChunkedBodyPhase.FINISHED);
-    assert.strictEqual(result.bodyChunks[0].toString(), 'A');
+    assert.strictEqual(result.chunks[0].toString(), 'A');
   });
 
   it('应该处理空 buffer 输入', () => {
@@ -1441,7 +1441,7 @@ describe('decodeChunkedBody - 性能和压力测试', () => {
     state = decodeChunkedBody(state, Buffer.from('0\r\n\r\n'));
 
     assert.strictEqual(state.phase, ChunkedBodyPhase.FINISHED);
-    assert.strictEqual(state.bodyChunks.length, 100);
+    assert.strictEqual(state.chunks.length, 100);
     assert.strictEqual(state.decodedBodyBytes, 100);
   });
 
@@ -1490,7 +1490,7 @@ describe('decodeChunkedBody - 真实场景模拟', () => {
 
     assert.strictEqual(state.phase, ChunkedBodyPhase.FINISHED);
 
-    const fullBody = Buffer.concat(state.bodyChunks).toString();
+    const fullBody = Buffer.concat(state.chunks).toString();
     const json = JSON.parse(fullBody);
     assert.strictEqual(json.users.length, 2);
     assert.strictEqual(json.users[0].name, 'Alice');
@@ -1543,7 +1543,7 @@ describe('decodeChunkedBody - 真实场景模拟', () => {
     state = decodeChunkedBody(state, Buffer.from('0\r\n\r\n'));
 
     assert.strictEqual(state.phase, ChunkedBodyPhase.FINISHED);
-    assert.strictEqual(state.bodyChunks.length, 3);
+    assert.strictEqual(state.chunks.length, 3);
   });
 
   it('应该处理带认证信息的 trailer', () => {

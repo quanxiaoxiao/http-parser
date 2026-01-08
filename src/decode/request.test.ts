@@ -252,8 +252,8 @@ describe('decodeRequest', () => {
       // 剩余 body
       state = decodeRequest(state, Buffer.from(' worldextra'));
       assert.strictEqual(state.phase, HttpDecodePhase.FINISHED);
-      assert.strictEqual(state.bodyState.bodyChunks.length, 2);
-      assert.strictEqual(Buffer.concat(state.bodyState.bodyChunks).toString(), 'hello world');
+      assert.strictEqual(state.bodyState.chunks.length, 2);
+      assert.strictEqual(Buffer.concat(state.bodyState.chunks).toString(), 'hello world');
       assert.strictEqual(state.buffer.toString(), 'extra');
     });
   });

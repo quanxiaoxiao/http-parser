@@ -6,7 +6,7 @@ export type FixedLengthBodyState = {
   buffer: Buffer | null;
   contentLength: number;
   receivedBody: number;
-  bodyChunks: Buffer[];
+  chunks: Buffer[];
   finished: boolean;
 };
 
@@ -20,7 +20,7 @@ export function createFixedLengthBodyState(contentLength: number): FixedLengthBo
     buffer: Buffer.alloc(0),
     contentLength,
     receivedBody: 0,
-    bodyChunks: [],
+    chunks: [],
     finished: contentLength === 0,
   };
 }
@@ -48,7 +48,7 @@ export function decodeFixedLengthBody(
     buffer: remainingBuffer,
     contentLength: prev.contentLength,
     receivedBody: totalBytes,
-    bodyChunks: [...prev.bodyChunks, validInput],
+    chunks: [...prev.chunks, validInput],
     finished,
   };
 }
