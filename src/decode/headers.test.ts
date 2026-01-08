@@ -496,7 +496,7 @@ describe('decodeHeaderLine', () => {
 describe('decodeHeaderLine', () => {
   it('should correctly parse simple header line', () => {
     const buffer = Buffer.from('Content-Type: application/json');
-    const limit = {
+    const limits = {
       maxHeaderLineBytes: 8192,
       maxHeaderNameBytes: 256,
       maxHeaderValueBytes: 8192,
@@ -504,14 +504,14 @@ describe('decodeHeaderLine', () => {
       maxHeaderCount: 100,
     };
 
-    const [name, value] = decodeHeaderLine(buffer, limit);
+    const [name, value] = decodeHeaderLine(buffer, limits);
     assert.strictEqual(name, 'content-type');
     assert.strictEqual(value, 'application/json');
   });
 
   it('should correctly parse header values with spaces', () => {
     const buffer = Buffer.from('Authorization: Bearer token123');
-    const limit = {
+    const limits = {
       maxHeaderLineBytes: 8192,
       maxHeaderNameBytes: 256,
       maxHeaderValueBytes: 8192,
@@ -519,14 +519,14 @@ describe('decodeHeaderLine', () => {
       maxHeaderCount: 100,
     };
 
-    const [name, value] = decodeHeaderLine(buffer, limit);
+    const [name, value] = decodeHeaderLine(buffer, limits);
     assert.strictEqual(name, 'authorization');
     assert.strictEqual(value, 'Bearer token123');
   });
 
   it('should throw error when header line is too large', () => {
     const buffer = Buffer.from('Content-Type: application/json');
-    const limit = {
+    const limits = {
       maxHeaderLineBytes: 10,
       maxHeaderNameBytes: 256,
       maxHeaderValueBytes: 8192,
@@ -535,13 +535,13 @@ describe('decodeHeaderLine', () => {
     };
 
     assert.throws(
-      () => decodeHeaderLine(buffer, limit),
+      () => decodeHeaderLine(buffer, limits),
     );
   });
 
   it('should throw error when colon separator is missing', () => {
     const buffer = Buffer.from('InvalidHeader');
-    const limit = {
+    const limits = {
       maxHeaderLineBytes: 8192,
       maxHeaderNameBytes: 256,
       maxHeaderValueBytes: 8192,
@@ -550,7 +550,7 @@ describe('decodeHeaderLine', () => {
     };
 
     assert.throws(
-      () => decodeHeaderLine(buffer, limit),
+      () => decodeHeaderLine(buffer, limits),
       (err) => {
         return err instanceof HttpDecodeError &&
                err.code === HttpDecodeErrorCode.INVALID_HEADER &&
@@ -562,7 +562,7 @@ describe('decodeHeaderLine', () => {
   it('should throw error when header name is too large', () => {
     const longName = 'A'.repeat(300);
     const buffer = Buffer.from(`${longName}: value`);
-    const limit = {
+    const limits = {
       maxHeaderLineBytes: 8192,
       maxHeaderNameBytes: 256,
       maxHeaderValueBytes: 8192,
@@ -571,7 +571,7 @@ describe('decodeHeaderLine', () => {
     };
 
     assert.throws(
-      () => decodeHeaderLine(buffer, limit),
+      () => decodeHeaderLine(buffer, limits),
       (err) => {
         return err instanceof HttpDecodeError &&
                err.code === HttpDecodeErrorCode.HEADER_NAME_TOO_LARGE;
@@ -582,7 +582,7 @@ describe('decodeHeaderLine', () => {
   it('should throw error when header value is too large', () => {
     const longValue = 'V'.repeat(10000);
     const buffer = Buffer.from(`Name: ${longValue}`);
-    const limit = {
+    const limits = {
       maxHeaderLineBytes: 20000,
       maxHeaderNameBytes: 256,
       maxHeaderValueBytes: 8192,
@@ -591,7 +591,7 @@ describe('decodeHeaderLine', () => {
     };
 
     assert.throws(
-      () => decodeHeaderLine(buffer, limit),
+      () => decodeHeaderLine(buffer, limits),
       (err) => {
         return err instanceof HttpDecodeError &&
                err.code === HttpDecodeErrorCode.HEADER_VALUE_TOO_LARGE;
@@ -621,7 +621,7 @@ describe('createHeadersState', () => {
     };
 
     const state = createHeadersState(customLimit);
-    assert.deepStrictEqual(state.limit, customLimit);
+    assert.deepStrictEqual(state.limits, customLimit);
   });
 });
 
