@@ -16,7 +16,7 @@ describe('encodeHeaders', () => {
       assert.strictEqual(result.toString(), 'Content-Type: application/json\r\n');
     });
 
-    it('应该正确编码多个 headers', () => {
+    it('should correctly encode multiple headers', () => {
       const headers: Headers = {
         'Content-Type': 'application/json',
         Authorization: 'Bearer token123',
@@ -31,7 +31,7 @@ describe('encodeHeaders', () => {
       assert.ok(resultStr.includes('User-Agent: Mozilla/5.0\r\n'));
     });
 
-    it('应该正确处理空 headers 对象', () => {
+    it('should correctly handle empty headers object', () => {
       const headers: Headers = {};
       const result = encodeHeaders(headers);
 
@@ -39,7 +39,7 @@ describe('encodeHeaders', () => {
       assert.strictEqual(result.toString(), '');
     });
 
-    it('应该返回 Buffer 类型', () => {
+    it('should return Buffer type', () => {
       const headers: Headers = {
         'Content-Type': 'text/plain',
       };
@@ -48,7 +48,7 @@ describe('encodeHeaders', () => {
       assert.ok(Buffer.isBuffer(result));
     });
 
-    it('应该使用 CRLF 行结束符', () => {
+    it('should use CRLF line terminator', () => {
       const headers = {
         host: 'example.com',
       };
@@ -59,8 +59,8 @@ describe('encodeHeaders', () => {
     });
   });
 
-  describe('数组值处理', () => {
-    it('应该正确处理数组值的 header（同名多个值）', () => {
+  describe('Array Value Handling', () => {
+    it('should correctly handle header with array value (multiple values for same name)', () => {
       const headers: Headers = {
         'Set-Cookie': ['session=abc123', 'token=xyz789'],
       };
@@ -88,7 +88,7 @@ describe('encodeHeaders', () => {
       assert.ok(resultStr.includes('Cache-Control: no-cache\r\n'));
     });
 
-    it('应该处理单值数组与字符串值相同', () => {
+    it('should handle single-value array same as string value', () => {
       const headersWithArray: Headers = {
         'Content-Type': ['application/json'],
       };
@@ -102,7 +102,7 @@ describe('encodeHeaders', () => {
       assert.strictEqual(resultArray.toString(), resultString.toString());
     });
 
-    it('应该正确处理数组中的空字符串', () => {
+    it('should correctly handle empty strings in array', () => {
       const headers: Headers = {
         'X-Values': ['', 'value', ''],
       };
@@ -115,8 +115,8 @@ describe('encodeHeaders', () => {
     });
   });
 
-  describe('Header 名称规范化', () => {
-    it('应该将 header 名称规范化为首字母大写', () => {
+  describe('Header Name Normalization', () => {
+    it('should normalize header names to capitalized first letters', () => {
       const headers: Headers = {
         'content-type': 'application/json',
         'user-agent': 'test-agent',
@@ -132,7 +132,7 @@ describe('encodeHeaders', () => {
       assert.ok(result.includes('Accept-Encoding:'));
     });
 
-    it('应该处理单字符 header 名称', () => {
+    it('should handle single character header names', () => {
       const headers: Headers = {
         x: 'value',
       };
@@ -141,7 +141,7 @@ describe('encodeHeaders', () => {
       assert.strictEqual(result.toString(), 'X: value\r\n');
     });
 
-    it('应该正确处理多单词带连字符的 header 名称', () => {
+    it('should correctly handle multi-word hyphenated header names', () => {
       const headers: Headers = {
         'x-forwarded-for': '192.168.1.1',
         'strict-transport-security': 'max-age=31536000',

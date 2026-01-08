@@ -9,9 +9,9 @@ import { decodeRequest } from './decode/message.js';
 import { encodeRequest } from './encode/message.js';
 import { HttpDecodePhase } from './specs.js';
 
-describe('HTTP Request 编码解码测试', () => {
-  describe('基本功能测试', () => {
-    test('应该正确编码和解码简单的GET请求', async () => {
+describe('HTTP Request Encode Decode Tests', () => {
+  describe('Basic Functionality Tests', () => {
+    test('should correctly encode and decode simple GET request', async () => {
       const request = encodeRequest({
         startLine: {
           method: 'GET',
@@ -34,7 +34,7 @@ describe('HTTP Request 编码解码测试', () => {
       assert.strictEqual(requestState.headersState.headers['user-agent'], 'TestClient/1.0');
     });
 
-    test('应该正确编码和解码POST请求与字符串body', async () => {
+    test('should correctly encode and decode POST request with string body', async () => {
       const bodyContent = 'Hello, World!';
       const request = encodeRequest({
         startLine: {
@@ -61,7 +61,7 @@ describe('HTTP Request 编码解码测试', () => {
       );
     });
 
-    test('应该正确处理PUT请求', async () => {
+    test('should correctly handle PUT request', async () => {
       const request = encodeRequest({
         startLine: {
           method: 'PUT',
@@ -82,7 +82,7 @@ describe('HTTP Request 编码解码测试', () => {
       assert.strictEqual(requestState.startLine.path, '/api/resource/123');
     });
 
-    test('应该正确处理PATCH请求', async () => {
+    test('should correctly handle PATCH request', async () => {
       const patchData = JSON.stringify({ status: 'updated' });
       const request = encodeRequest({
         startLine: {
@@ -109,7 +109,7 @@ describe('HTTP Request 编码解码测试', () => {
       );
     });
 
-    test('应该正确处理DELETE请求', async () => {
+    test('should correctly handle DELETE request', async () => {
       const request = encodeRequest({
         startLine: {
           method: 'DELETE',
@@ -132,8 +132,8 @@ describe('HTTP Request 编码解码测试', () => {
     });
   });
 
-  describe('流式上传测试', () => {
-    test('应该正确处理流式上传数据', async () => {
+  describe('Streaming Upload Tests', () => {
+    test('should correctly handle streaming upload data', async () => {
       async function* generateData() {
         const file = await open(path.join(process.cwd(), 'package-lock.json'));
         for await (const chunk of file.readableWebStream()) {
@@ -174,7 +174,7 @@ describe('HTTP Request 编码解码测试', () => {
       );
     });
 
-    test('应该正确处理小文件流式上传', async () => {
+    test('should correctly handle small file streaming upload', async () => {
       const testData = 'Test content for streaming';
       const testFilePath = path.join(process.cwd(), 'test-temp-file.txt');
 
@@ -218,7 +218,7 @@ describe('HTTP Request 编码解码测试', () => {
       }
     });
 
-    test('应该正确处理分块的流式数据', async () => {
+    test('should correctly handle chunked streaming data', async () => {
       async function* generateChunks() {
         const chunks = ['chunk1', 'chunk2', 'chunk3'];
         for (const chunk of chunks) {
@@ -250,7 +250,7 @@ describe('HTTP Request 编码解码测试', () => {
       );
     });
 
-    test('应该正确处理包含空chunk的流式数据', async () => {
+    test('should correctly handle streaming data with empty chunks', async () => {
       async function* generateData() {
         yield Buffer.from('start');
         yield Buffer.from('');
@@ -282,7 +282,7 @@ describe('HTTP Request 编码解码测试', () => {
       );
     });
 
-    test('应该正确处理大块流式数据', async () => {
+    test('should correctly handle large chunk streaming data', async () => {
       async function* generateData() {
         yield Buffer.alloc(5000, 'a');
         yield Buffer.alloc(5000, 'b');
@@ -309,7 +309,7 @@ describe('HTTP Request 编码解码测试', () => {
       assert.strictEqual(Buffer.concat(requestState.bodyState.bodyChunks).length, 15000);
     });
 
-    test('应该正确处理单个chunk的流式数据', async () => {
+    test('should correctly handle single chunk streaming data', async () => {
       async function* generateData() {
         yield Buffer.from('single-chunk-data');
       }
@@ -338,8 +338,8 @@ describe('HTTP Request 编码解码测试', () => {
     });
   });
 
-  describe('Headers测试', () => {
-    test('应该正确处理多个headers', async () => {
+  describe('Headers Tests', () => {
+    test('should correctly handle multiple headers', async () => {
       const request = encodeRequest({
         startLine: {
           method: 'GET',
@@ -368,7 +368,7 @@ describe('HTTP Request 编码解码测试', () => {
       assert.strictEqual(headers.authorization, 'Bearer token123');
     });
 
-    test('应该正确处理空headers', async () => {
+    test('should correctly handle empty headers', async () => {
       const request = encodeRequest({
         startLine: {
           method: 'GET',
@@ -386,7 +386,7 @@ describe('HTTP Request 编码解码测试', () => {
       assert.strictEqual(requestState.startLine.method, 'GET');
     });
 
-    test('应该正确处理大小写不敏感的header名称', async () => {
+    test('should correctly handle case-insensitive header names', async () => {
       const request = encodeRequest({
         startLine: {
           method: 'GET',
@@ -411,7 +411,7 @@ describe('HTTP Request 编码解码测试', () => {
       assert.ok('accept-encoding' in requestState.headersState.headers);
     });
 
-    test('应该正确处理包含特殊字符的header值', async () => {
+    test('should correctly handle header values with special characters', async () => {
       const request = encodeRequest({
         startLine: {
           method: 'GET',
@@ -439,7 +439,7 @@ describe('HTTP Request 编码解码测试', () => {
       assert.strictEqual(requestState.headersState.headers['x-mixed'], 'ABC123-xyz_789');
     });
 
-    test('应该正确处理大量自定义headers', async () => {
+    test('should correctly handle many custom headers', async () => {
       const manyHeaders = { Host: 'example.com' };
       for (let i = 0; i < 50; i++) {
         manyHeaders[`X-Custom-Header-${i}`] = `value-${i}`;
@@ -464,7 +464,7 @@ describe('HTTP Request 编码解码测试', () => {
       assert.strictEqual(requestState.headersState.headers['x-custom-header-49'], 'value-49');
     });
 
-    test('应该正确处理包含空格的header值', async () => {
+    test('should correctly handle header values with spaces', async () => {
       const request = encodeRequest({
         startLine: {
           method: 'GET',
@@ -489,8 +489,8 @@ describe('HTTP Request 编码解码测试', () => {
     });
   });
 
-  describe('Body测试', () => {
-    test('应该正确处理JSON body', async () => {
+  describe('Body Tests', () => {
+    test('should correctly handle JSON body', async () => {
       const bodyData = { name: 'John', age: 30 };
       const request = encodeRequest({
         startLine: {
@@ -514,7 +514,7 @@ describe('HTTP Request 编码解码测试', () => {
       assert.deepStrictEqual(JSON.parse(receivedBody), bodyData);
     });
 
-    test('应该正确处理空body', async () => {
+    test('should correctly handle empty body', async () => {
       const request = encodeRequest({
         startLine: {
           method: 'GET',
@@ -536,7 +536,7 @@ describe('HTTP Request 编码解码测试', () => {
       }
     });
 
-    test('应该正确处理空字符串body', async () => {
+    test('should correctly handle empty string body', async () => {
       const request = encodeRequest({
         startLine: {
           method: 'POST',
@@ -557,7 +557,7 @@ describe('HTTP Request 编码解码测试', () => {
       assert.deepStrictEqual(requestState.headersState.headers['content-length'], '0');
     });
 
-    test('应该正确处理二进制body', async () => {
+    test('should correctly handle binary body', async () => {
       const binaryData = Buffer.from([0x00, 0x01, 0x02, 0x03, 0xFF]);
       const request = encodeRequest({
         startLine: {
@@ -581,7 +581,7 @@ describe('HTTP Request 编码解码测试', () => {
       assert.deepStrictEqual(receivedBody, binaryData);
     });
 
-    test('应该正确处理Buffer body', async () => {
+    test('should correctly handle Buffer body', async () => {
       const bufferData = Buffer.from('test buffer data');
       const request = encodeRequest({
         startLine: {
@@ -607,7 +607,7 @@ describe('HTTP Request 编码解码测试', () => {
       assert.strictEqual(requestState.headersState.headers['content-length'], '16');
     });
 
-    test('应该正确处理大型Buffer body', async () => {
+    test('should correctly handle large Buffer body', async () => {
       const largeData = Buffer.alloc(10000, 'x');
       const request = encodeRequest({
         startLine: {
@@ -630,7 +630,7 @@ describe('HTTP Request 编码解码测试', () => {
       assert.strictEqual(requestState.headersState.headers['content-length'], '10000');
     });
 
-    test('应该正确处理UTF-8编码的字符串body', async () => {
+    test('should correctly handle UTF-8 encoded string body', async () => {
       const unicodeString = '你好世界🌍🚀';
       const request = encodeRequest({
         startLine: {
@@ -656,7 +656,7 @@ describe('HTTP Request 编码解码测试', () => {
       );
     });
 
-    test('应该正确处理复杂的JSON结构', async () => {
+    test('should correctly handle complex JSON structure', async () => {
       const complexData = {
         user: {
           name: 'John Doe',
@@ -694,8 +694,8 @@ describe('HTTP Request 编码解码测试', () => {
     });
   });
 
-  describe('路径测试', () => {
-    test('应该正确处理带查询参数的路径', async () => {
+  describe('Path Tests', () => {
+    test('should correctly handle path with query parameters', async () => {
       const request = encodeRequest({
         startLine: {
           method: 'GET',
@@ -715,7 +715,7 @@ describe('HTTP Request 编码解码测试', () => {
       assert.strictEqual(requestState.startLine.path, '/api/search?q=test&limit=10');
     });
 
-    test('应该正确处理根路径', async () => {
+    test('should correctly handle root path', async () => {
       const request = encodeRequest({
         startLine: {
           method: 'GET',
@@ -735,7 +735,7 @@ describe('HTTP Request 编码解码测试', () => {
       assert.strictEqual(requestState.startLine.path, '/');
     });
 
-    test('应该正确处理复杂路径', async () => {
+    test('should correctly handle complex path', async () => {
       const complexPath = '/api/v1/users/123/posts/456/comments';
       const request = encodeRequest({
         startLine: {
@@ -756,7 +756,7 @@ describe('HTTP Request 编码解码测试', () => {
       assert.strictEqual(requestState.startLine.path, complexPath);
     });
 
-    test('应该正确处理带编码字符的路径', async () => {
+    test('should correctly handle path with encoded characters', async () => {
       const encodedPath = '/api/path%20with%20spaces/file%2Fname.txt';
       const request = encodeRequest({
         startLine: {
@@ -777,7 +777,7 @@ describe('HTTP Request 编码解码测试', () => {
       assert.strictEqual(requestState.startLine.path, encodedPath);
     });
 
-    test('应该正确处理带锚点的路径', async () => {
+    test('should correctly handle path with fragment', async () => {
       const pathWithFragment = '/api/docs#section-1';
       const request = encodeRequest({
         startLine: {
@@ -798,7 +798,7 @@ describe('HTTP Request 编码解码测试', () => {
       assert.strictEqual(requestState.startLine.path, pathWithFragment);
     });
 
-    test('应该正确处理很长的路径', async () => {
+    test('should correctly handle very long path', async () => {
       const longPath = '/api/' + 'segment/'.repeat(50) + 'end';
       const request = encodeRequest({
         startLine: {
@@ -819,7 +819,7 @@ describe('HTTP Request 编码解码测试', () => {
       assert.ok(requestState.startLine.raw.includes(longPath));
     });
 
-    test('应该正确处理复杂查询参数', async () => {
+    test('should correctly handle complex query parameters', async () => {
       const complexQuery =
         '/api/search?q=test&tags[]=a&tags[]=b&filter[status]=active&sort=-created_at';
       const request = encodeRequest({
@@ -842,11 +842,11 @@ describe('HTTP Request 编码解码测试', () => {
     });
   });
 
-  describe('HTTP方法测试', () => {
+  describe('HTTP Method Tests', () => {
     const methods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS', 'TRACE'];
 
     methods.forEach((method) => {
-      test(`应该正确处理${method}请求`, async () => {
+      test(`should correctly handle ${method} request`, async () => {
         const request = encodeRequest({
           startLine: {
             method,
@@ -868,7 +868,7 @@ describe('HTTP Request 编码解码测试', () => {
       });
     });
 
-    test('应该正确处理HEAD请求不包含body', async () => {
+    test('should correctly handle HEAD request without body', async () => {
       const request = encodeRequest({
         startLine: {
           method: 'HEAD',
@@ -888,7 +888,7 @@ describe('HTTP Request 编码解码测试', () => {
       assert.strictEqual(requestState.bodyState, null);
     });
 
-    test('应该正确处理OPTIONS请求与星号路径', async () => {
+    test('should correctly handle OPTIONS request with asterisk path', async () => {
       const request = encodeRequest({
         startLine: {
           method: 'OPTIONS',
@@ -909,7 +909,7 @@ describe('HTTP Request 编码解码测试', () => {
     });
   });
 
-  describe('Content-Type测试', () => {
+  describe('Content-Type Tests', () => {
     const contentTypes = [
       'application/json',
       'application/xml',
@@ -923,7 +923,7 @@ describe('HTTP Request 编码解码测试', () => {
     ];
 
     contentTypes.forEach((contentType) => {
-      test(`应该正确处理${contentType}类型`, async () => {
+      test(`should correctly handle ${contentType} type`, async () => {
         const request = encodeRequest({
           startLine: {
             method: 'POST',
@@ -946,7 +946,7 @@ describe('HTTP Request 编码解码测试', () => {
       });
     });
 
-    test('应该正确处理带charset的Content-Type', async () => {
+    test('should correctly handle Content-Type with charset', async () => {
       const request = encodeRequest({
         startLine: {
           method: 'POST',
@@ -971,7 +971,7 @@ describe('HTTP Request 编码解码测试', () => {
       );
     });
 
-    test('应该正确处理带boundary的multipart/form-data', async () => {
+    test('should correctly handle multipart/form-data with boundary', async () => {
       const contentType = 'multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW';
       const request = encodeRequest({
         startLine: {
@@ -995,8 +995,8 @@ describe('HTTP Request 编码解码测试', () => {
     });
   });
 
-  describe('真实场景测试', () => {
-    test('应该正确处理JSON API请求', async () => {
+  describe('Real World Scenario Tests', () => {
+    test('should correctly handle JSON API request', async () => {
       const jsonData = JSON.stringify({ name: 'test', value: 123 });
       const request = encodeRequest({
         startLine: {
@@ -1022,7 +1022,7 @@ describe('HTTP Request 编码解码测试', () => {
       assert.deepStrictEqual(JSON.parse(receivedData), { name: 'test', value: 123 });
     });
 
-    test('应该正确处理表单提交', async () => {
+    test('should correctly handle form submission', async () => {
       const formData = 'username=test&password=secret&remember=true';
       const request = encodeRequest({
         startLine: {
@@ -1045,7 +1045,7 @@ describe('HTTP Request 编码解码测试', () => {
       assert.strictEqual(Buffer.concat(requestState.bodyState.bodyChunks).toString(), formData);
     });
 
-    test('应该正确处理流式文件上传模拟', async () => {
+    test('should correctly handle simulated streaming file upload', async () => {
       async function* generateFileData() {
         for (let i = 0; i < 5; i++) {
           await setTimeout(10);
@@ -1076,7 +1076,7 @@ describe('HTTP Request 编码解码测试', () => {
       assert.ok(uploaded.includes('file-chunk-4-'));
     });
 
-    test('应该正确处理GraphQL请求', async () => {
+    test('should correctly handle GraphQL request', async () => {
       const graphqlQuery = {
         query: 'query { user(id: "123") { name, email } }',
         variables: { id: '123' },
@@ -1104,7 +1104,7 @@ describe('HTTP Request 编码解码测试', () => {
       assert.deepStrictEqual(received, graphqlQuery);
     });
 
-    test('应该正确处理REST API PATCH请求', async () => {
+    test('should correctly handle REST API PATCH request', async () => {
       const patchData = [
         { op: 'replace', path: '/status', value: 'active' },
         { op: 'add', path: '/tags/-', value: 'important' },
@@ -1132,7 +1132,7 @@ describe('HTTP Request 编码解码测试', () => {
       assert.deepStrictEqual(received, patchData);
     });
 
-    test('应该正确处理带认证的请求', async () => {
+    test('should correctly handle authenticated request', async () => {
       const request = encodeRequest({
         startLine: {
           method: 'GET',
@@ -1156,8 +1156,8 @@ describe('HTTP Request 编码解码测试', () => {
     });
   });
 
-  describe('边界情况和错误处理测试', () => {
-    test('应该正确处理仅包含必需字段的请求', async () => {
+  describe('Edge Cases and Error Handling Tests', () => {
+    test('should correctly handle request with only required fields', async () => {
       const request = encodeRequest({
         startLine: {
           method: 'GET',
@@ -1175,7 +1175,7 @@ describe('HTTP Request 编码解码测试', () => {
       assert.strictEqual(requestState.startLine.raw, 'GET / HTTP/1.1');
     });
 
-    test('应该正确处理增量解码', async () => {
+    test('should correctly handle incremental decoding', async () => {
       const request = encodeRequest({
         startLine: {
           method: 'POST',
@@ -1199,7 +1199,7 @@ describe('HTTP Request 编码解码测试', () => {
       assert.ok(chunkCount > 0);
     });
 
-    test('应该在解码步骤之间保持状态', async () => {
+    test('should maintain state between decoding steps', async () => {
       const request = encodeRequest({
         startLine: {
           method: 'POST',
@@ -1223,7 +1223,7 @@ describe('HTTP Request 编码解码测试', () => {
       assert.deepStrictEqual(states[states.length - 1].phase, HttpDecodePhase.FINISHED);
     });
 
-    test('应该正确处理极小的body', async () => {
+    test('should correctly handle extremely small body', async () => {
       const request = encodeRequest({
         startLine: {
           method: 'POST',
@@ -1244,7 +1244,7 @@ describe('HTTP Request 编码解码测试', () => {
       assert.strictEqual(Buffer.concat(requestState.bodyState.bodyChunks).toString(), 'x');
     });
 
-    test('应该正确处理很长的header值', async () => {
+    test('should correctly handle very long header value', async () => {
       const longValue = 'a'.repeat(1000);
       const request = encodeRequest({
         startLine: {
@@ -1266,7 +1266,7 @@ describe('HTTP Request 编码解码测试', () => {
       assert.strictEqual(requestState.headersState.headers['x-long-header'], longValue);
     });
 
-    test('应该正确处理多个相同类型但不同值的自定义headers', async () => {
+    test('should correctly handle multiple custom headers with same type but different values', async () => {
       const request = encodeRequest({
         startLine: {
           method: 'GET',
@@ -1292,8 +1292,8 @@ describe('HTTP Request 编码解码测试', () => {
     });
   });
 
-  describe('性能和压力测试', () => {
-    test('应该正确处理大量小请求连续编码解码', async () => {
+  describe('Performance and Stress Tests', () => {
+    test('should correctly handle many small requests encoding and decoding consecutively', async () => {
       for (let i = 0; i < 100; i++) {
         const request = encodeRequest({
           startLine: {
@@ -1315,7 +1315,7 @@ describe('HTTP Request 编码解码测试', () => {
       }
     });
 
-    test('应该正确处理非常大的body数据', async () => {
+    test('should correctly handle very large body data', async () => {
       const hugeData = Buffer.alloc(100000, 'x');
       const request = encodeRequest({
         startLine: {
@@ -1337,7 +1337,7 @@ describe('HTTP Request 编码解码测试', () => {
       assert.strictEqual(Buffer.concat(requestState.bodyState.bodyChunks).length, 100000);
     });
 
-    test('应该正确处理包含大量chunk的流式传输', async () => {
+    test('should correctly handle streaming with many chunks', async () => {
       async function* generateManyChunks() {
         for (let i = 0; i < 1000; i++) {
           yield Buffer.from(`chunk${i}`);
@@ -1368,8 +1368,8 @@ describe('HTTP Request 编码解码测试', () => {
     });
   });
 
-  describe('特殊字符和编码测试', () => {
-    test('应该正确处理包含特殊字符的body', async () => {
+  describe('Special Characters and Encoding Tests', () => {
+    test('should correctly handle body with special characters', async () => {
       const specialChars = '!@#$%^&*()_+-=[]{}|;:\'",.<>?/~`';
       const request = encodeRequest({
         startLine: {
@@ -1394,7 +1394,7 @@ describe('HTTP Request 编码解码测试', () => {
       );
     });
 
-    test('应该正确处理各种语言的Unicode字符', async () => {
+    test('should correctly handle Unicode characters from various languages', async () => {
       const multiLang = '中文 日本語 한국어 العربية עברית Ελληνικά Русский';
       const request = encodeRequest({
         startLine: {
@@ -1416,7 +1416,7 @@ describe('HTTP Request 编码解码测试', () => {
       assert.strictEqual(Buffer.concat(requestState.bodyState.bodyChunks).toString(), multiLang);
     });
 
-    test('应该正确处理emoji字符', async () => {
+    test('should correctly handle emoji characters', async () => {
       const emojis = '😀😃😄😁🎉🎊🎈🎁🌟✨💫⭐';
       const request = encodeRequest({
         startLine: {
@@ -1438,7 +1438,7 @@ describe('HTTP Request 编码解码测试', () => {
       assert.strictEqual(Buffer.concat(requestState.bodyState.bodyChunks).toString(), emojis);
     });
 
-    test('应该正确处理包含换行符的body', async () => {
+    test('should correctly handle body with newlines', async () => {
       const multiline = 'Line 1\nLine 2\r\nLine 3\rLine 4';
       const request = encodeRequest({
         startLine: {
@@ -1461,8 +1461,8 @@ describe('HTTP Request 编码解码测试', () => {
     });
   });
 
-  describe('Content-Length和Transfer-Encoding测试', () => {
-    test('应该为Buffer body自动添加Content-Length', async () => {
+  describe('Content-Length and Transfer-Encoding Tests', () => {
+    test('should automatically add Content-Length for Buffer body', async () => {
       const request = encodeRequest({
         startLine: {
           method: 'POST',
@@ -1483,7 +1483,7 @@ describe('HTTP Request 编码解码测试', () => {
       assert.strictEqual(requestState.headersState.headers['content-length'], '9');
     });
 
-    test('应该为AsyncIterable body使用Transfer-Encoding: chunked', async () => {
+    test('should use Transfer-Encoding: chunked for AsyncIterable body', async () => {
       async function* gen() {
         yield Buffer.from('chunk');
       }
@@ -1508,7 +1508,7 @@ describe('HTTP Request 编码解码测试', () => {
       assert.strictEqual(requestState.headersState.headers['transfer-encoding'], 'chunked');
     });
 
-    test('应该为空Buffer设置Content-Length为0', async () => {
+    test('should set Content-Length to 0 for empty Buffer', async () => {
       const request = encodeRequest({
         startLine: {
           method: 'POST',

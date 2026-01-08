@@ -14,7 +14,7 @@ import {
 
 describe('HTTP Decoder', () => {
   describe('Request Decoding', () => {
-    test('应该解码简单的 GET 请求', () => {
+    test('should decode simple GET request', () => {
       const input = Buffer.from(
         'GET /path HTTP/1.1\r\n' +
         'Host: example.com\r\n' +
@@ -30,7 +30,7 @@ describe('HTTP Decoder', () => {
       assert.ok(state.headersState?.headers);
     });
 
-    test('应该解码带查询参数的请求', () => {
+    test('should decode request with query parameters', () => {
       const input = Buffer.from(
         'GET /path?query=value&foo=bar HTTP/1.1\r\n' +
         'Host: example.com\r\n' +
@@ -44,7 +44,7 @@ describe('HTTP Decoder', () => {
       assert.strictEqual(state.startLine?.path, '/path?query=value&foo=bar');
     });
 
-    test('应该解码 POST 请求（Content-Length）', () => {
+    test('should decode POST request (Content-Length)', () => {
       const body = 'name=value&test=123';
       const input = Buffer.from(
         'POST /api/data HTTP/1.1\r\n' +
@@ -65,7 +65,7 @@ describe('HTTP Decoder', () => {
       assert.strictEqual(bodyCompleteEvent.totalSize, body.length);
     });
 
-    test('应该分段解码请求（流式输入）', () => {
+    test('should decode request in chunks (streaming input)', () => {
       const parts = [
         'GET /path HTTP/1.1\r\n',
         'Host: example.com\r\n',
@@ -84,7 +84,7 @@ describe('HTTP Decoder', () => {
       assert.strictEqual(state.startLine?.method, 'GET');
     });
 
-    test('应该处理分段的 start line', () => {
+    test('should handle segmented start line', () => {
       const state1 = decodeRequest(null, Buffer.from('GET /pa'));
       assert.strictEqual(state1.phase, HttpDecodePhase.START_LINE);
 
@@ -93,7 +93,7 @@ describe('HTTP Decoder', () => {
       assert.strictEqual(state2.startLine?.path, '/path');
     });
 
-    test('应该处理分段的请求体', () => {
+    test('should handle segmented request body', () => {
       const bodyPart1 = 'Hello ';
       const bodyPart2 = 'World!';
       const totalBody = bodyPart1 + bodyPart2;
@@ -117,7 +117,7 @@ describe('HTTP Decoder', () => {
       assert.strictEqual(bodyCompleteEvent?.totalSize, totalBody.length);
     });
 
-    test('应该处理 chunked 编码的请求体', () => {
+    test('should handle chunked encoded request body', () => {
       const input = Buffer.from(
         'POST /upload HTTP/1.1\r\n' +
         'Host: example.com\r\n' +
@@ -140,7 +140,7 @@ describe('HTTP Decoder', () => {
       assert.strictEqual(bodyCompleteEvent.totalSize, 11); // "Hello World"
     });
 
-    test('应该处理没有请求体的请求', () => {
+    test('should handle request without body', () => {
       const input = Buffer.from(
         'DELETE /resource/123 HTTP/1.1\r\n' +
         'Host: example.com\r\n' +
@@ -159,7 +159,7 @@ describe('HTTP Decoder', () => {
       assert.strictEqual(bodyEvents.length, 0);
     });
 
-    test('应该生成正确的事件序列', () => {
+    test('should generate correct event sequence', () => {
       const input = Buffer.from(
         'GET /test HTTP/1.1\r\n' +
         'Host: example.com\r\n' +
@@ -185,7 +185,7 @@ describe('HTTP Decoder', () => {
   });
 
   describe('Response Decoding', () => {
-    test('应该解码简单的 200 响应', () => {
+    test('should decode simple 200 response', () => {
       const input = Buffer.from(
         'HTTP/1.1 200 OK\r\n' +
         'Content-Type: text/plain\r\n' +
@@ -202,7 +202,7 @@ describe('HTTP Decoder', () => {
       assert.strictEqual(state.startLine?.statusText, 'OK');
     });
 
-    test('应该解码 404 响应', () => {
+    test('should decode 404 response', () => {
       const input = Buffer.from(
         'HTTP/1.1 404 Not Found\r\n' +
         'Content-Type: text/html\r\n' +
@@ -217,7 +217,7 @@ describe('HTTP Decoder', () => {
       assert.strictEqual(state.startLine?.statusText, 'Not Found');
     });
 
-    test('应该解码带响应体的 POST 响应', () => {
+    test('should decode POST response with body', () => {
       const body = '{"success":true,"id":123}';
       const input = Buffer.from(
         'HTTP/1.1 201 Created\r\n' +
@@ -236,7 +236,7 @@ describe('HTTP Decoder', () => {
       assert.strictEqual(bodyCompleteEvent?.totalSize, body.length);
     });
 
-    test('应该处理 chunked 编码的响应', () => {
+    test('should handle chunked encoded response', () => {
       const input = Buffer.from(
         'HTTP/1.1 200 OK\r\n' +
         'Transfer-Encoding: chunked\r\n' +
@@ -256,7 +256,7 @@ describe('HTTP Decoder', () => {
       assert.strictEqual(bodyCompleteEvent?.totalSize, 9); // "Wikipedia"
     });
 
-    test('应该分段解码响应', () => {
+    test('should decode response in chunks', () => {
       const parts = [
         'HTTP/1.1 200 OK\r\n',
         'Content-Type: text/plain\r\n',
@@ -276,7 +276,7 @@ describe('HTTP Decoder', () => {
       assert.strictEqual(state.startLine?.statusCode, 200);
     });
 
-    test('应该处理多个头部字段', () => {
+    test('should handle multiple header fields', () => {
       const input = Buffer.from(
         'HTTP/1.1 200 OK\r\n' +
         'Content-Type: text/html\r\n' +
@@ -297,7 +297,7 @@ describe('HTTP Decoder', () => {
       assert.ok(headerNames.length >= 4);
     });
 
-    test('应该处理没有响应体的响应', () => {
+    test('should handle response without body', () => {
       const input = Buffer.from(
         'HTTP/1.1 204 No Content\r\n' +
         'Date: Mon, 01 Jan 2024 00:00:00 GMT\r\n' +
@@ -317,7 +317,7 @@ describe('HTTP Decoder', () => {
   });
 
   describe('Error Handling', () => {
-    test('应该在重复解码已完成的请求时抛出错误', () => {
+    test('should throw error when decoding already finished request', () => {
       const input = Buffer.from('GET / HTTP/1.1\r\n\r\n');
       const state = decodeRequest(null, input);
 
@@ -328,7 +328,7 @@ describe('HTTP Decoder', () => {
       }, /already finished/);
     });
 
-    test('应该在遇到错误后拒绝继续解码', () => {
+    test('should reject continuing decoding after error', () => {
       const state = createRequestState();
       state.error = new Error('Test error');
 
@@ -339,7 +339,7 @@ describe('HTTP Decoder', () => {
   });
 
   describe('State Management', () => {
-    test('应该正确初始化请求状态', () => {
+    test('should correctly initialize request state', () => {
       const state = createRequestState();
 
       assert.strictEqual(state.mode, 'request');
@@ -350,14 +350,14 @@ describe('HTTP Decoder', () => {
       assert.strictEqual(state.events.length, 0);
     });
 
-    test('应该正确初始化响应状态', () => {
+    test('should correctly initialize response state', () => {
       const state = createResponseState();
 
       assert.strictEqual(state.mode, 'response');
       assert.strictEqual(state.phase, HttpDecodePhase.START_LINE);
     });
 
-    test('应该在每次解码时重置事件数组', () => {
+    test('should reset events array on each decode', () => {
       const input1 = Buffer.from('GET / HTTP/1.1\r\n');
       const state1 = decodeRequest(null, input1);
       const events1Count = state1.events.length;
@@ -372,7 +372,7 @@ describe('HTTP Decoder', () => {
   });
 
   describe('Body Chunk Events', () => {
-    test('应该为分段接收的请求体生成多个 body-chunk 事件', () => {
+    test('should generate multiple body-chunk events for segmented received body', () => {
       const header = Buffer.from(
         'POST / HTTP/1.1\r\n' +
         'Content-Length: 10\r\n' +
@@ -394,7 +394,7 @@ describe('HTTP Decoder', () => {
       assert.strictEqual(state.phase, HttpDecodePhase.FINISHED);
     });
 
-    test('应该为 chunked 编码生成正确的 body-chunk 事件', () => {
+    test('should generate correct body-chunk events for chunked encoding', () => {
       const header = Buffer.from(
         'POST / HTTP/1.1\r\n' +
         'Transfer-Encoding: chunked\r\n' +
@@ -413,7 +413,7 @@ describe('HTTP Decoder', () => {
   });
 
   describe('Edge Cases', () => {
-    test('应该处理空缓冲区输入', () => {
+    test('should handle empty buffer input', () => {
       const state1 = decodeRequest(null, Buffer.alloc(0));
       assert.strictEqual(state1.phase, HttpDecodePhase.START_LINE);
 
@@ -421,7 +421,7 @@ describe('HTTP Decoder', () => {
       assert.strictEqual(state2.phase, HttpDecodePhase.FINISHED);
     });
 
-    test('应该处理 Content-Length 为 0 的请求', () => {
+    test('should handle request with Content-Length 0', () => {
       const input = Buffer.from(
         'POST / HTTP/1.1\r\n' +
         'Content-Length: 0\r\n' +
@@ -438,7 +438,7 @@ describe('HTTP Decoder', () => {
       assert.strictEqual(bodyEvents.length, 0);
     });
 
-    test('应该处理长路径', () => {
+    test('should handle long path', () => {
       const longPath = '/api/' + 'a'.repeat(1000);
       const input = Buffer.from(
         `GET ${longPath} HTTP/1.1\r\n` +
@@ -452,7 +452,7 @@ describe('HTTP Decoder', () => {
       assert.strictEqual(state.startLine?.path, longPath);
     });
 
-    test('应该处理多行头部值', () => {
+    test('should handle multi-line header values', () => {
       const input = Buffer.from(
         'HTTP/1.1 200 OK\r\n' +
         'Content-Type: text/plain\r\n' +

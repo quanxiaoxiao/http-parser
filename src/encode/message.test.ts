@@ -24,8 +24,8 @@ async function encodeAndCollect(params: any): Promise<string> {
   return result.toString();
 }
 
-describe('encodeRequest - 基础功能', () => {
-  test('应该正确编码 GET 请求', async () => {
+describe('encodeRequest - Basic Functionality', () => {
+  test('should correctly encode GET request', async () => {
     const params = {
       startLine: { method: 'GET', path: '/api/users' },
       headers: { host: 'example.com', 'User-Agent': 'test-client' },
@@ -39,7 +39,7 @@ describe('encodeRequest - 基础功能', () => {
     assert.ok(output.endsWith('\r\n\r\n'));
   });
 
-  test('应该正确编码 GET 请求（完整匹配）', async () => {
+  test('should correctly encode GET request (exact match)', async () => {
     const params = {
       startLine: { method: 'GET', path: '/api/users' },
       headers: { host: 'example.com', 'User-Agent': 'test-client' },
@@ -52,7 +52,7 @@ describe('encodeRequest - 基础功能', () => {
     );
   });
 
-  test('应该正确编码带字符串 Body 的 POST 请求', async () => {
+  test('should correctly encode POST request with string Body', async () => {
     const params = {
       startLine: { method: 'POST', path: '/api/data', version: 1.1 },
       headers: { 'content-type': 'application/json' },
@@ -68,7 +68,7 @@ describe('encodeRequest - 基础功能', () => {
     assert.ok(output.endsWith('{"foo":"bar"}'));
   });
 
-  test('应该正确编码带字符串 Body 的 POST 请求（完整匹配）', async () => {
+  test('should correctly encode POST request with string Body (exact match)', async () => {
     const params = {
       startLine: { method: 'POST', path: '/api/data', version: 1.1 },
       headers: { 'content-type': 'application/json' },
@@ -82,7 +82,7 @@ describe('encodeRequest - 基础功能', () => {
     );
   });
 
-  test('应该正确编码带 Buffer Body 的 POST 请求', async () => {
+  test('should correctly encode POST request with Buffer Body', async () => {
     const params = {
       startLine: { method: 'POST', path: '/api/data', version: 1.1 },
       headers: { 'content-type': 'application/json' },
@@ -96,7 +96,7 @@ describe('encodeRequest - 基础功能', () => {
     );
   });
 
-  test('应该正确处理 DELETE 请求（无 Body）', async () => {
+  test('should correctly handle DELETE request (no Body)', async () => {
     const params = {
       startLine: { method: 'DELETE', path: '/api/resource/123' },
       headers: { host: 'example.com' },
@@ -109,7 +109,7 @@ describe('encodeRequest - 基础功能', () => {
     assert.ok(output.endsWith('\r\n\r\n'));
   });
 
-  test('应该正确处理空字符串 Body', async () => {
+  test('should correctly handle empty string Body', async () => {
     const params = {
       startLine: { method: 'POST', path: '/empty' },
       headers: { host: 'example.com' },
@@ -122,7 +122,7 @@ describe('encodeRequest - 基础功能', () => {
     assert.ok(output.endsWith('\r\n\r\n'));
   });
 
-  test('应该正确处理 PUT 请求', async () => {
+  test('should correctly handle PUT request', async () => {
     const params = {
       startLine: { method: 'PUT', path: '/api/resource/456' },
       headers: { host: 'example.com' },
@@ -136,7 +136,7 @@ describe('encodeRequest - 基础功能', () => {
     assert.ok(output.endsWith('{"updated":"data"}'));
   });
 
-  test('应该正确处理 PATCH 请求', async () => {
+  test('should correctly handle PATCH request', async () => {
     const params = {
       startLine: { method: 'PATCH', path: '/api/user/789' },
       headers: { host: 'example.com', 'content-type': 'application/json' },
@@ -150,7 +150,7 @@ describe('encodeRequest - 基础功能', () => {
     assert.ok(output.endsWith('{"status":"active"}'));
   });
 
-  test('应该正确处理 HEAD 请求', async () => {
+  test('should correctly handle HEAD request', async () => {
     const params = {
       startLine: { method: 'HEAD', path: '/api/status' },
       headers: { host: 'example.com' },
@@ -162,7 +162,7 @@ describe('encodeRequest - 基础功能', () => {
     assert.ok(output.endsWith('\r\n\r\n'));
   });
 
-  test('应该正确处理 OPTIONS 请求', async () => {
+  test('should correctly handle OPTIONS request', async () => {
     const params = {
       startLine: { method: 'OPTIONS', path: '*' },
       headers: { host: 'example.com' },
@@ -175,8 +175,8 @@ describe('encodeRequest - 基础功能', () => {
   });
 });
 
-describe('encodeRequest - Body 类型处理', () => {
-  test('应该正确处理 Buffer Body', async () => {
+describe('encodeRequest - Body Type Handling', () => {
+  test('should correctly handle Buffer Body', async () => {
     const bodyBuffer = Buffer.from('binary data');
     const params = {
       startLine: { method: 'PUT', path: '/upload' },
@@ -190,7 +190,7 @@ describe('encodeRequest - Body 类型处理', () => {
     assert.ok(result.toString().includes('Content-Length:'));
   });
 
-  test('应该正确处理 AsyncIterable Body（分块传输）', async () => {
+  test('should correctly handle AsyncIterable Body (chunked transfer)', async () => {
     async function* generateBody() {
       yield Buffer.from('chunk1');
       yield Buffer.from('chunk2');
@@ -212,7 +212,7 @@ describe('encodeRequest - Body 类型处理', () => {
     assert.ok(output.includes('chunk3'));
   });
 
-  test('应该正确处理大 Buffer Body', async () => {
+  test('should correctly handle large Buffer Body', async () => {
     const largeBody = Buffer.alloc(1024 * 1024, 'x'); // 1MB
     const params = {
       startLine: { method: 'POST', path: '/large' },
@@ -226,7 +226,7 @@ describe('encodeRequest - Body 类型处理', () => {
     assert.strictEqual(output.length, output.indexOf('\r\n\r\n') + 4 + largeBody.length);
   });
 
-  test('应该正确处理包含特殊字符的 Body', async () => {
+  test('should correctly handle Body with special characters', async () => {
     const specialBody = '{"emoji":"😀","unicode":"中文","newline":"line1\\nline2"}';
     const params = {
       startLine: { method: 'POST', path: '/special' },
@@ -241,7 +241,7 @@ describe('encodeRequest - Body 类型处理', () => {
     assert.ok(output.endsWith(specialBody));
   });
 
-  test('应该正确处理 null 或 undefined Body', async () => {
+  test('should correctly handle null or undefined Body', async () => {
     const paramsNull = {
       startLine: { method: 'GET', path: '/test' },
       headers: { host: 'example.com' },
@@ -262,8 +262,8 @@ describe('encodeRequest - Body 类型处理', () => {
   });
 });
 
-describe('encodeRequest - Headers 处理', () => {
-  test('应该移除 hop-by-hop headers', async () => {
+describe('encodeRequest - Headers Handling', () => {
+  test('should remove hop-by-hop headers', async () => {
     const params = {
       startLine: { method: 'GET', path: '/' },
       headers: {
@@ -286,7 +286,7 @@ describe('encodeRequest - Headers 处理', () => {
     assert.ok(!output.toLowerCase().includes('upgrade:'));
   });
 
-  test('应该自动添加 Content-Length（字符串 Body）', async () => {
+  test('should automatically add Content-Length (string Body)', async () => {
     const params = {
       startLine: { method: 'POST', path: '/data' },
       headers: { host: 'example.com' },
@@ -298,7 +298,7 @@ describe('encodeRequest - Headers 处理', () => {
     assert.ok(output.includes('Content-Length: 9'));
   });
 
-  test('应该验证 Headers 格式正确性', async () => {
+  test('should validate Headers format correctness', async () => {
     const params = {
       startLine: { method: 'GET', path: '/test' },
       headers: {
@@ -316,7 +316,7 @@ describe('encodeRequest - Headers 处理', () => {
     assert.ok(lines.some(line => line.includes('Accept:')));
   });
 
-  test('应该正确处理大小写混合的 Header 名称', async () => {
+  test('should correctly handle mixed-case Header names', async () => {
     const params = {
       startLine: { method: 'GET', path: '/test' },
       headers: {
@@ -333,7 +333,7 @@ describe('encodeRequest - Headers 处理', () => {
     assert.ok(output.includes('Accept-Encoding:') || output.includes('accept-encoding:'));
   });
 
-  test('应该正确处理包含特殊字符的 Header 值', async () => {
+  test('should correctly handle Header values with special characters', async () => {
     const params = {
       startLine: { method: 'GET', path: '/test' },
       headers: {
@@ -419,7 +419,7 @@ describe('encodeRequest - 流式传输（AsyncIterable）', () => {
     assert.ok(headerIndex < bodyIndex, 'Headers 必须在 Body 之前发送');
   });
 
-  test('应该正确处理带延迟的异步流（非阻塞）', async () => {
+  test('should correctly handle async stream with delay (non-blocking)', async () => {
     const chunks = [Buffer.from('slow'), Buffer.from('data')];
     const stream = createMockStream(chunks, 50);
 
@@ -436,7 +436,7 @@ describe('encodeRequest - 流式传输（AsyncIterable）', () => {
     assert.match(output, /data/);
   });
 
-  test('应该正确处理空的异步流', async () => {
+  test('should correctly handle empty async stream', async () => {
     async function* emptyStream() {}
 
     const output = await encodeAndCollect({
@@ -448,7 +448,7 @@ describe('encodeRequest - 流式传输（AsyncIterable）', () => {
     assert.match(output, /transfer-encoding: chunked/i);
   });
 
-  test('应该能捕获异步流中抛出的错误', async () => {
+  test('should be able to catch errors thrown in async stream', async () => {
     async function* errorStream() {
       yield Buffer.from('good data');
       throw new Error('Stream Interrupted');
@@ -468,7 +468,7 @@ describe('encodeRequest - 流式传输（AsyncIterable）', () => {
     );
   });
 
-  test('应该保证 Headers 的原子性（在拉取 Body 前完整输出）', async () => {
+  test('should guarantee Headers atomicity (output completely before pulling Body)', async () => {
     let bodyPulled = false;
     async function* spyStream() {
       bodyPulled = true;
@@ -489,7 +489,7 @@ describe('encodeRequest - 流式传输（AsyncIterable）', () => {
     assert.strictEqual(bodyPulled, true, '此时应该已开始拉取 Body');
   });
 
-  test('应该正确处理单个大块的异步流', async () => {
+  test('should correctly handle async stream with single large chunk', async () => {
     const largeChunk = Buffer.alloc(10000, 'X');
     async function* singleChunkStream() {
       yield largeChunk;
@@ -504,7 +504,7 @@ describe('encodeRequest - 流式传输（AsyncIterable）', () => {
     assert.match(output, /transfer-encoding: chunked/i);
   });
 
-  test('应该正确处理多个小块的异步流', async () => {
+  test('should correctly handle async stream with many small chunks', async () => {
     async function* manySmallChunks() {
       for (let i = 0; i < 100; i++) {
         yield Buffer.from(`chunk${i}`);
@@ -522,7 +522,7 @@ describe('encodeRequest - 流式传输（AsyncIterable）', () => {
     assert.ok(output.includes('chunk99'));
   });
 
-  test('应该正确处理包含空 Buffer 的异步流', async () => {
+  test('should correctly handle async stream with empty Buffers', async () => {
     async function* streamWithEmptyBuffers() {
       yield Buffer.from('start');
       yield Buffer.from('');
@@ -543,8 +543,8 @@ describe('encodeRequest - 流式传输（AsyncIterable）', () => {
   });
 });
 
-describe('encodeRequest - HTTP 版本处理', () => {
-  test('应该默认使用 HTTP/1.1', async () => {
+describe('encodeRequest - HTTP Version Handling', () => {
+  test('should use HTTP/1.1 by default', async () => {
     const params = {
       startLine: { method: 'GET', path: '/test' },
       headers: {},
@@ -554,7 +554,7 @@ describe('encodeRequest - HTTP 版本处理', () => {
     assert.ok(output.includes('HTTP/1.1'));
   });
 
-  test('应该支持显式指定 HTTP/1.0', async () => {
+  test('should support explicit HTTP/1.0', async () => {
     const params = {
       startLine: { method: 'GET', path: '/test', version: 1.0 },
       headers: {},
@@ -564,7 +564,7 @@ describe('encodeRequest - HTTP 版本处理', () => {
     assert.ok(output.includes('HTTP/1.0'));
   });
 
-  test('应该支持显式指定 HTTP/1.1', async () => {
+  test('should support explicit HTTP/1.1', async () => {
     const params = {
       startLine: { method: 'GET', path: '/test', version: 1.1 },
       headers: {},
@@ -575,8 +575,8 @@ describe('encodeRequest - HTTP 版本处理', () => {
   });
 });
 
-describe('encodeRequest - 路径处理', () => {
-  test('应该正确处理包含查询参数的路径', async () => {
+describe('encodeRequest - Path Handling', () => {
+  test('should correctly handle path with query parameters', async () => {
     const params = {
       startLine: { method: 'GET', path: '/api/search?q=test&limit=10' },
       headers: { host: 'example.com' },
@@ -586,7 +586,7 @@ describe('encodeRequest - 路径处理', () => {
     assert.ok(output.includes('GET /api/search?q=test&limit=10 HTTP/1.1'));
   });
 
-  test('应该正确处理包含特殊字符的路径', async () => {
+  test('should correctly handle path with special characters', async () => {
     const params = {
       startLine: { method: 'GET', path: '/api/users/%E4%B8%AD%E6%96%87' },
       headers: { host: 'example.com' },
@@ -596,7 +596,7 @@ describe('encodeRequest - 路径处理', () => {
     assert.ok(output.includes('/api/users/%E4%B8%AD%E6%96%87'));
   });
 
-  test('应该正确处理根路径', async () => {
+  test('should correctly handle root path', async () => {
     const params = {
       startLine: { method: 'GET', path: '/' },
       headers: { host: 'example.com' },
@@ -606,7 +606,7 @@ describe('encodeRequest - 路径处理', () => {
     assert.ok(output.includes('GET / HTTP/1.1'));
   });
 
-  test('应该正确处理包含锚点的路径', async () => {
+  test('should correctly handle path with fragment', async () => {
     const params = {
       startLine: { method: 'GET', path: '/page#section' },
       headers: { host: 'example.com' },
@@ -617,8 +617,8 @@ describe('encodeRequest - 路径处理', () => {
   });
 });
 
-describe('encodeRequest - 实际场景测试', () => {
-  test('应该正确编码标准的 JSON API 请求', async () => {
+describe('encodeRequest - Real World Scenario Tests', () => {
+  test('should correctly encode standard JSON API request', async () => {
     const params = {
       startLine: { method: 'POST', path: '/api/v1/users' },
       headers: {
@@ -638,7 +638,7 @@ describe('encodeRequest - 实际场景测试', () => {
     assert.ok(output.includes('"name":"John Doe"'));
   });
 
-  test('应该正确编码表单提交请求', async () => {
+  test('should correctly encode form submission request', async () => {
     const params = {
       startLine: { method: 'POST', path: '/submit' },
       headers: {
@@ -654,7 +654,7 @@ describe('encodeRequest - 实际场景测试', () => {
     assert.ok(output.endsWith('username=test&password=secret&remember=true'));
   });
 
-  test('应该正确编码文件上传请求（multipart）', async () => {
+  test('should correctly encode file upload request (multipart)', async () => {
     const boundary = '----WebKitFormBoundary7MA4YWxkTrZu0gW';
     const body = [
       '------WebKitFormBoundary7MA4YWxkTrZu0gW',
@@ -680,7 +680,7 @@ describe('encodeRequest - 实际场景测试', () => {
     assert.ok(output.includes('File content here'));
   });
 
-  test('应该正确编码带认证的 API 请求', async () => {
+  test('should correctly encode authenticated API request', async () => {
     const params = {
       startLine: { method: 'GET', path: '/protected/resource' },
       headers: {

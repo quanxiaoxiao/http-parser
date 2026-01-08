@@ -290,8 +290,8 @@ describe('decodeHeaders', () => {
 });
 
 describe('decodeHeaderLine', () => {
-  describe('正常情况', () => {
-    it('应该正确解析标准的 HTTP 头部', () => {
+  describe('Normal Cases', () => {
+    it('should correctly parse standard HTTP header', () => {
       const headerBuf = Buffer.from('Content-Type:application/json');
       const [name, value] = decodeHeaderLine(headerBuf, DEFAULT_HEADER_LIMITS);
 
@@ -299,7 +299,7 @@ describe('decodeHeaderLine', () => {
       assert.strictEqual(value, 'application/json');
     });
 
-    it('应该正确处理带空格的头部值', () => {
+    it('should correctly handle header values with spaces', () => {
       const headerBuf = Buffer.from('Content-Type: application/json; charset=utf-8');
       const [name, value] = decodeHeaderLine(headerBuf, DEFAULT_HEADER_LIMITS);
 
@@ -307,7 +307,7 @@ describe('decodeHeaderLine', () => {
       assert.strictEqual(value, 'application/json; charset=utf-8');
     });
 
-    it('应该正确处理头部名称和值前后的空格', () => {
+    it('should correctly handle spaces before and after header name and value', () => {
       const headerBuf = Buffer.from('  User-Agent  :  Mozilla/5.0  ');
       const [name, value] = decodeHeaderLine(headerBuf, DEFAULT_HEADER_LIMITS);
 
@@ -315,7 +315,7 @@ describe('decodeHeaderLine', () => {
       assert.strictEqual(value, 'Mozilla/5.0');
     });
 
-    it('应该正确处理空值', () => {
+    it('should correctly handle empty values', () => {
       const headerBuf = Buffer.from('X-Custom-Header:');
       const [name, value] = decodeHeaderLine(headerBuf, DEFAULT_HEADER_LIMITS);
 
@@ -323,7 +323,7 @@ describe('decodeHeaderLine', () => {
       assert.strictEqual(value, '');
     });
 
-    it('应该正确处理包含多个冒号的值', () => {
+    it('should correctly handle values containing multiple colons', () => {
       const headerBuf = Buffer.from('Authorization:Bearer:token:with:colons');
       const [name, value] = decodeHeaderLine(headerBuf, DEFAULT_HEADER_LIMITS);
 
@@ -331,7 +331,7 @@ describe('decodeHeaderLine', () => {
       assert.strictEqual(value, 'Bearer:token:with:colons');
     });
 
-    it('应该正确处理单字符头部名称', () => {
+    it('should correctly handle single character header names', () => {
       const headerBuf = Buffer.from('X:value');
       const [name, value] = decodeHeaderLine(headerBuf, DEFAULT_HEADER_LIMITS);
 
@@ -340,8 +340,8 @@ describe('decodeHeaderLine', () => {
     });
   });
 
-  describe('边界情况', () => {
-    it('应该接受最大长度的头部名称', () => {
+  describe('Edge Cases', () => {
+    it('should accept maximum length header names', () => {
       const maxName = 'A'.repeat(DEFAULT_HEADER_LIMITS.maxHeaderNameBytes);
       const headerBuf = Buffer.from(`${maxName}:value`);
       const [name, value] = decodeHeaderLine(headerBuf, DEFAULT_HEADER_LIMITS);
@@ -350,7 +350,7 @@ describe('decodeHeaderLine', () => {
       assert.strictEqual(value, 'value');
     });
 
-    it('应该接受最大长度的头部值', () => {
+    it('should accept maximum length header values', () => {
       const maxValue = 'V'.repeat(DEFAULT_HEADER_LIMITS.maxHeaderValueBytes);
       const headerBuf = Buffer.from(`Name:${maxValue}`);
       const [name, value] = decodeHeaderLine(headerBuf, DEFAULT_HEADER_LIMITS);
@@ -359,7 +359,7 @@ describe('decodeHeaderLine', () => {
       assert.strictEqual(value, maxValue);
     });
 
-    it('应该接受最大长度的整行', () => {
+    it('should accept maximum length line', () => {
       const nameLen = DEFAULT_HEADER_LIMITS.maxHeaderNameBytes;
       const valueLen = DEFAULT_HEADER_LIMITS.maxHeaderLineBytes - nameLen - 1;
       const headerBuf = Buffer.from(`${'N'.repeat(nameLen)}:${'V'.repeat(valueLen)}`);
@@ -370,8 +370,8 @@ describe('decodeHeaderLine', () => {
     });
   });
 
-  describe('错误情况', () => {
-    it('应该在缺少冒号时抛出错误', () => {
+  describe('Error Cases', () => {
+    it('should throw error when colon is missing', () => {
       const headerBuf = Buffer.from('InvalidHeaderWithoutColon');
 
       assert.throws(
@@ -384,7 +384,7 @@ describe('decodeHeaderLine', () => {
       );
     });
 
-    it('应该在头部名称过长时抛出错误', () => {
+    it('should throw error when header name is too long', () => {
       const longName = 'A'.repeat(DEFAULT_HEADER_LIMITS.maxHeaderNameBytes + 1);
       const headerBuf = Buffer.from(`${longName}:value`);
 
@@ -397,7 +397,7 @@ describe('decodeHeaderLine', () => {
       );
     });
 
-    it('应该在头部值过长时抛出错误', () => {
+    it('should throw error when header value is too long', () => {
       const longValue = 'V'.repeat(DEFAULT_HEADER_LIMITS.maxHeaderValueBytes + 1);
       const headerBuf = Buffer.from(`Name:${longValue}`);
 
@@ -410,7 +410,7 @@ describe('decodeHeaderLine', () => {
       );
     });
 
-    it('应该在整行过长时抛出错误', () => {
+    it('should throw error when line is too long', () => {
       const longLine = 'A'.repeat(DEFAULT_HEADER_LIMITS.maxHeaderLineBytes + 1);
       const headerBuf = Buffer.from(longLine);
 
@@ -424,8 +424,8 @@ describe('decodeHeaderLine', () => {
     });
   });
 
-  describe('自定义限制', () => {
-    it('应该遵守自定义的头部名称限制', () => {
+  describe('Custom Limits', () => {
+    it('should respect custom header name limits', () => {
       const customLimits = {
         ...DEFAULT_HEADER_LIMITS,
         maxHeaderNameBytes: 10,
@@ -441,7 +441,7 @@ describe('decodeHeaderLine', () => {
       );
     });
 
-    it('应该遵守自定义的头部值限制', () => {
+    it('should respect custom header value limits', () => {
       const customLimits = {
         ...DEFAULT_HEADER_LIMITS,
         maxHeaderValueBytes: 5,
@@ -457,7 +457,7 @@ describe('decodeHeaderLine', () => {
       );
     });
 
-    it('应该遵守自定义的整行限制', () => {
+    it('should respect custom line limits', () => {
       const customLimits = {
         ...DEFAULT_HEADER_LIMITS,
         maxHeaderLineBytes: 20,
@@ -474,8 +474,8 @@ describe('decodeHeaderLine', () => {
     });
   });
 
-  describe('特殊字符处理', () => {
-    it('应该正确处理 ASCII 可打印字符', () => {
+  describe('Special Character Handling', () => {
+    it('should correctly handle ASCII printable characters', () => {
       const headerBuf = Buffer.from('X-Special:!@#$%^&*()_+-=[]{}|;:",.<>?/~`');
       const [name, value] = decodeHeaderLine(headerBuf, DEFAULT_HEADER_LIMITS);
 
@@ -483,7 +483,7 @@ describe('decodeHeaderLine', () => {
       assert.strictEqual(value, '!@#$%^&*()_+-=[]{}|;:",.<>?/~`');
     });
 
-    it('应该正确处理数字', () => {
+    it('should correctly handle numbers', () => {
       const headerBuf = Buffer.from('Content-Length:12345');
       const [name, value] = decodeHeaderLine(headerBuf, DEFAULT_HEADER_LIMITS);
 
@@ -494,7 +494,7 @@ describe('decodeHeaderLine', () => {
 });
 
 describe('decodeHeaderLine', () => {
-  it('应该正确解析简单的头部行', () => {
+  it('should correctly parse simple header line', () => {
     const buffer = Buffer.from('Content-Type: application/json');
     const limit = {
       maxHeaderLineBytes: 8192,
@@ -509,7 +509,7 @@ describe('decodeHeaderLine', () => {
     assert.strictEqual(value, 'application/json');
   });
 
-  it('应该正确解析带空格的头部值', () => {
+  it('should correctly parse header values with spaces', () => {
     const buffer = Buffer.from('Authorization: Bearer token123');
     const limit = {
       maxHeaderLineBytes: 8192,
@@ -524,7 +524,7 @@ describe('decodeHeaderLine', () => {
     assert.strictEqual(value, 'Bearer token123');
   });
 
-  it('应该在头部行过大时抛出错误', () => {
+  it('should throw error when header line is too large', () => {
     const buffer = Buffer.from('Content-Type: application/json');
     const limit = {
       maxHeaderLineBytes: 10,
@@ -539,7 +539,7 @@ describe('decodeHeaderLine', () => {
     );
   });
 
-  it('应该在缺少冒号分隔符时抛出错误', () => {
+  it('should throw error when colon separator is missing', () => {
     const buffer = Buffer.from('InvalidHeader');
     const limit = {
       maxHeaderLineBytes: 8192,
@@ -559,7 +559,7 @@ describe('decodeHeaderLine', () => {
     );
   });
 
-  it('应该在头部名称过大时抛出错误', () => {
+  it('should throw error when header name is too large', () => {
     const longName = 'A'.repeat(300);
     const buffer = Buffer.from(`${longName}: value`);
     const limit = {
@@ -579,7 +579,7 @@ describe('decodeHeaderLine', () => {
     );
   });
 
-  it('应该在头部值过大时抛出错误', () => {
+  it('should throw error when header value is too large', () => {
     const longValue = 'V'.repeat(10000);
     const buffer = Buffer.from(`Name: ${longValue}`);
     const limit = {
@@ -601,7 +601,7 @@ describe('decodeHeaderLine', () => {
 });
 
 describe('createHeadersState', () => {
-  it('应该创建初始状态', () => {
+  it('should create initial state', () => {
     const state = createHeadersState();
 
     assert.strictEqual(state.phase, HeadersDecodePhase.LINE);
@@ -611,7 +611,7 @@ describe('createHeadersState', () => {
     assert.strictEqual(state.buffer.length, 0);
   });
 
-  it('应该使用自定义限制创建状态', () => {
+  it('should create state with custom limits', () => {
     const customLimit = {
       maxHeaderLineBytes: 4096,
       maxHeaderNameBytes: 128,
@@ -626,7 +626,7 @@ describe('createHeadersState', () => {
 });
 
 describe('decodeHeaders', () => {
-  it('应该解析单个头部', () => {
+  it('should parse single header', () => {
     const state = createHeadersState();
     const input = Buffer.from('Content-Type: application/json\r\n\r\n');
 
@@ -637,7 +637,7 @@ describe('decodeHeaders', () => {
     assert.strictEqual(result.headersRaw.length, 1);
   });
 
-  it('应该解析多个头部', () => {
+  it('should parse multiple headers', () => {
     const state = createHeadersState();
     const input = Buffer.from(
       'Content-Type: application/json\r\n' +
@@ -655,7 +655,7 @@ describe('decodeHeaders', () => {
     assert.strictEqual(result.headersRaw.length, 3);
   });
 
-  it('应该处理相同名称的多个头部', () => {
+  it('should handle multiple headers with same name', () => {
     const state = createHeadersState();
     const input = Buffer.from(
       'Set-Cookie: session=abc123\r\n' +
@@ -670,7 +670,7 @@ describe('decodeHeaders', () => {
     assert.deepStrictEqual(result.headers['set-cookie'], ['session=abc123', 'user=john']);
   });
 
-  it('应该处理分块输入', () => {
+  it('should handle chunked input', () => {
     let state = createHeadersState();
 
     // 第一块
@@ -692,7 +692,7 @@ describe('decodeHeaders', () => {
     assert.strictEqual(state.headers['authorization'], 'Bearer token');
   });
 
-  it('应该去除头部名称和值的空格', () => {
+  it('should trim spaces from header names and values', () => {
     const state = createHeadersState();
     const input = Buffer.from('  Content-Type  :   application/json  \r\n\r\n');
 
@@ -701,7 +701,7 @@ describe('decodeHeaders', () => {
     assert.strictEqual(result.headers['content-type'], 'application/json');
   });
 
-  it('应该在头部名称无效时抛出错误', () => {
+  it('should throw error when header name is invalid', () => {
     const state = createHeadersState();
     const input = Buffer.from('Invalid Header: value\r\n\r\n');
 
@@ -715,7 +715,7 @@ describe('decodeHeaders', () => {
     );
   });
 
-  it('应该在头部名称为空时抛出错误', () => {
+  it('should throw error when header name is empty', () => {
     const state = createHeadersState();
     const input = Buffer.from('  : value\r\n\r\n');
 
@@ -728,7 +728,7 @@ describe('decodeHeaders', () => {
     );
   });
 
-  it('应该在头部数量超过限制时抛出错误', () => {
+  it('should throw error when header count exceeds limit', () => {
     const customLimit = {
       maxHeaderLineBytes: 8192,
       maxHeaderNameBytes: 256,
@@ -753,7 +753,7 @@ describe('decodeHeaders', () => {
     );
   });
 
-  it('应该在已完成后再次调用时抛出错误', () => {
+  it('should throw error when called again after completion', () => {
     const state = createHeadersState();
     const input = Buffer.from('Content-Type: application/json\r\n\r\n');
 
@@ -766,7 +766,7 @@ describe('decodeHeaders', () => {
     );
   });
 
-  it('应该正确处理空头部（只有CRLF）', () => {
+  it('should correctly handle empty headers (only CRLF)', () => {
     const state = createHeadersState();
     const input = Buffer.from('\r\n');
 
@@ -779,12 +779,12 @@ describe('decodeHeaders', () => {
 });
 
 describe('isHeadersFinished', () => {
-  it('应该在未完成时返回false', () => {
+  it('should return false when not finished', () => {
     const state = createHeadersState();
     assert.strictEqual(isHeadersFinished(state), false);
   });
 
-  it('应该在完成时返回true', () => {
+  it('should return true when finished', () => {
     const state = createHeadersState();
     const input = Buffer.from('\r\n');
     const result = decodeHeaders(state, input);
@@ -793,8 +793,8 @@ describe('isHeadersFinished', () => {
   });
 });
 
-describe('边界情况测试', () => {
-  it('应该处理包含特殊字符的有效头部名称', () => {
+describe('Edge Cases Tests', () => {
+  it('should handle valid header names with special characters', () => {
     const state = createHeadersState();
     const input = Buffer.from('X-Custom-Header_123: value\r\n\r\n');
 
@@ -803,7 +803,7 @@ describe('边界情况测试', () => {
     assert.strictEqual(result.headers['x-custom-header_123'], 'value');
   });
 
-  it('应该处理空值的头部', () => {
+  it('should handle headers with empty values', () => {
     const state = createHeadersState();
     const input = Buffer.from('Empty-Value:\r\n\r\n');
 
@@ -812,7 +812,7 @@ describe('边界情况测试', () => {
     assert.strictEqual(result.headers['empty-value'], '');
   });
 
-  it('应该处理三个相同名称的头部', () => {
+  it('should handle three headers with same name', () => {
     const state = createHeadersState();
     const input = Buffer.from(
       'X-Custom: first\r\n' +
