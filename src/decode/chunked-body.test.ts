@@ -616,7 +616,7 @@ describe('ChunkedBodyDecoder', () => {
 
       assert.strictEqual(state.phase, ChunkedBodyPhase.SIZE);
       assert.strictEqual(state.buffer.length, 0);
-      assert.strictEqual(state.totalSize, 0);
+      assert.strictEqual(state.decodedBodyBytes, 0);
       assert.strictEqual(state.currentChunkSize, 0);
       assert.deepStrictEqual(state.bodyChunks, []);
       assert.deepStrictEqual(state.trailers, {});
@@ -631,7 +631,7 @@ describe('ChunkedBodyDecoder', () => {
       const result = decodeChunkedBody(state, input);
 
       assert.strictEqual(result.phase, ChunkedBodyPhase.FINISHED);
-      assert.strictEqual(result.totalSize, 5);
+      assert.strictEqual(result.decodedBodyBytes, 5);
       assert.strictEqual(result.bodyChunks.length, 1);
       assert.strictEqual(result.bodyChunks[0].toString(), 'Hello');
     });
@@ -643,7 +643,7 @@ describe('ChunkedBodyDecoder', () => {
       const result = decodeChunkedBody(state, input);
 
       assert.strictEqual(result.phase, ChunkedBodyPhase.FINISHED);
-      assert.strictEqual(result.totalSize, 11);
+      assert.strictEqual(result.decodedBodyBytes, 11);
       assert.strictEqual(result.bodyChunks.length, 2);
       assert.strictEqual(result.bodyChunks[0].toString(), 'Hello');
       assert.strictEqual(result.bodyChunks[1].toString(), ' World');
@@ -721,7 +721,7 @@ describe('ChunkedBodyDecoder', () => {
       const result = decodeChunkedBody(state, input);
 
       assert.strictEqual(result.phase, ChunkedBodyPhase.FINISHED);
-      assert.strictEqual(result.totalSize, 10);
+      assert.strictEqual(result.decodedBodyBytes, 10);
       assert.strictEqual(result.bodyChunks[0].toString(), '0123456789');
     });
 
@@ -732,7 +732,7 @@ describe('ChunkedBodyDecoder', () => {
       const result = decodeChunkedBody(state, input);
 
       assert.strictEqual(result.phase, ChunkedBodyPhase.FINISHED);
-      assert.strictEqual(result.totalSize, 171); // 0xAB = 171
+      assert.strictEqual(result.decodedBodyBytes, 171); // 0xAB = 171
     });
 
     it('应该在已完成的状态上抛出错误', () => {
@@ -785,7 +785,7 @@ describe('ChunkedBodyDecoder', () => {
       const result = decodeChunkedBody(state, input);
 
       assert.strictEqual(result.phase, ChunkedBodyPhase.FINISHED);
-      assert.strictEqual(result.totalSize, 0);
+      assert.strictEqual(result.decodedBodyBytes, 0);
       assert.strictEqual(result.bodyChunks.length, 0);
     });
 
@@ -829,7 +829,7 @@ describe('ChunkedBodyDecoder', () => {
       const result = decodeChunkedBody(state, input);
 
       assert.strictEqual(result.phase, ChunkedBodyPhase.FINISHED);
-      assert.strictEqual(result.totalSize, size);
+      assert.strictEqual(result.decodedBodyBytes, size);
       assert.strictEqual(result.bodyChunks[0].length, size);
     });
 
@@ -841,7 +841,7 @@ describe('ChunkedBodyDecoder', () => {
 
       const result = decodeChunkedBody(state, input);
 
-      assert.strictEqual(result.totalSize, 9); // 3 + 4 + 2
+      assert.strictEqual(result.decodedBodyBytes, 9); // 3 + 4 + 2
       assert.strictEqual(result.bodyChunks.length, 3);
     });
 
@@ -917,7 +917,7 @@ describe('ChunkedBodyDecoder', () => {
 
       assert.strictEqual(state.phase, ChunkedBodyPhase.FINISHED);
       assert.strictEqual(state.bodyChunks.length, 100);
-      assert.strictEqual(state.totalSize, 100);
+      assert.strictEqual(state.decodedBodyBytes, 100);
     });
   });
 });
@@ -928,7 +928,7 @@ describe('createChunkedBodyState', () => {
 
     assert.strictEqual(state.phase, ChunkedBodyPhase.SIZE);
     assert.strictEqual(state.buffer.length, 0);
-    assert.strictEqual(state.totalSize, 0);
+    assert.strictEqual(state.decodedBodyBytes, 0);
     assert.strictEqual(state.currentChunkSize, 0);
     assert.deepStrictEqual(state.bodyChunks, []);
     assert.deepStrictEqual(state.trailers, {});
@@ -942,7 +942,7 @@ describe('decodeChunkedBody - 基本功能', () => {
     const result = decodeChunkedBody(state, input);
 
     assert.strictEqual(result.phase, ChunkedBodyPhase.FINISHED);
-    assert.strictEqual(result.totalSize, 5);
+    assert.strictEqual(result.decodedBodyBytes, 5);
     assert.strictEqual(result.bodyChunks.length, 1);
     assert.strictEqual(result.bodyChunks[0]?.toString(), 'hello');
   });
@@ -953,7 +953,7 @@ describe('decodeChunkedBody - 基本功能', () => {
     const result = decodeChunkedBody(state, input);
 
     assert.strictEqual(result.phase, ChunkedBodyPhase.FINISHED);
-    assert.strictEqual(result.totalSize, 11);
+    assert.strictEqual(result.decodedBodyBytes, 11);
     assert.strictEqual(result.bodyChunks.length, 2);
     assert.strictEqual(result.bodyChunks[0]?.toString(), 'hello');
     assert.strictEqual(result.bodyChunks[1]?.toString(), ' world');
@@ -965,7 +965,7 @@ describe('decodeChunkedBody - 基本功能', () => {
     const result = decodeChunkedBody(state, input);
 
     assert.strictEqual(result.phase, ChunkedBodyPhase.FINISHED);
-    assert.strictEqual(result.totalSize, 0);
+    assert.strictEqual(result.decodedBodyBytes, 0);
     assert.strictEqual(result.bodyChunks.length, 0);
   });
 
@@ -974,7 +974,7 @@ describe('decodeChunkedBody - 基本功能', () => {
     const input = Buffer.from('3\r\nabc\r\n4\r\ndefg\r\n2\r\nhi\r\n0\r\n\r\n');
     const result = decodeChunkedBody(state, input);
 
-    assert.strictEqual(result.totalSize, 9);
+    assert.strictEqual(result.decodedBodyBytes, 9);
     assert.strictEqual(result.bodyChunks.length, 3);
   });
 
@@ -1084,7 +1084,7 @@ describe('decodeChunkedBody - Chunk Size 解析', () => {
     const input = Buffer.from('aB\r\n' + 'x'.repeat(171) + '\r\n0\r\n\r\n');
     const result = decodeChunkedBody(state, input);
 
-    assert.strictEqual(result.totalSize, 171); // 0xAB = 171
+    assert.strictEqual(result.decodedBodyBytes, 171); // 0xAB = 171
   });
 
   it('应该处理大型 chunk', () => {
@@ -1095,7 +1095,7 @@ describe('decodeChunkedBody - Chunk Size 解析', () => {
     const result = decodeChunkedBody(state, input);
 
     assert.strictEqual(result.phase, ChunkedBodyPhase.FINISHED);
-    assert.strictEqual(result.totalSize, size);
+    assert.strictEqual(result.decodedBodyBytes, size);
   });
 
   it('应该解析带扩展的 chunk size', () => {
@@ -1442,7 +1442,7 @@ describe('decodeChunkedBody - 性能和压力测试', () => {
 
     assert.strictEqual(state.phase, ChunkedBodyPhase.FINISHED);
     assert.strictEqual(state.bodyChunks.length, 100);
-    assert.strictEqual(state.totalSize, 100);
+    assert.strictEqual(state.decodedBodyBytes, 100);
   });
 
   it('应该处理极多的 trailer headers', () => {
@@ -1523,7 +1523,7 @@ describe('decodeChunkedBody - 真实场景模拟', () => {
     ]));
 
     assert.strictEqual(state.phase, ChunkedBodyPhase.FINISHED);
-    assert.strictEqual(state.totalSize, 2560);
+    assert.strictEqual(state.decodedBodyBytes, 2560);
   });
 
   it('应该处理 SSE (Server-Sent Events) 格式', () => {

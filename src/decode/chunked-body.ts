@@ -17,7 +17,7 @@ export type ChunkedBodyState = {
   type: BodyType;
   phase: ChunkedBodyPhase;
   buffer: Buffer | null;
-  totalSize: number;
+  decodedBodyBytes: number;
   limit: ChunkedBodyLimits,
   currentChunkSize: number;
   bodyChunks: Buffer[];
@@ -37,7 +37,7 @@ export function createChunkedBodyState(limit: ChunkedBodyLimits = DEFAULT_CHUNKE
     buffer: EMPTY_BUFFER,
     limit,
     currentChunkSize: 0,
-    totalSize: 0,
+    decodedBodyBytes: 0,
     bodyChunks: [],
     trailers: {},
   };
@@ -129,7 +129,7 @@ function handleDataPhase(state: ChunkedBodyState): void {
     return;
   }
 
-  state.totalSize = state.totalSize + currentChunkSize;
+  state.decodedBodyBytes = state.decodedBodyBytes + currentChunkSize;
   state.buffer = buffer.subarray(currentChunkSize);
   state.bodyChunks = [...state.bodyChunks, buffer.subarray(0, currentChunkSize)];
   state.currentChunkSize = 0;
