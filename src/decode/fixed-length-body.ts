@@ -13,6 +13,7 @@ export type FixedLengthBodyState = {
   contentLength: number;
   receivedBody: number;
   chunks: Buffer[];
+  decodedBodyBytes: number;
   limits: FixedLengthBodyLimits,
 };
 
@@ -30,6 +31,7 @@ export function createFixedLengthBodyState(
     buffer: Buffer.alloc(0),
     contentLength,
     receivedBody: 0,
+    decodedBodyBytes: 0,
     limits,
     chunks: [],
   };
