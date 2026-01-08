@@ -61,24 +61,36 @@ export function decodeFixedLengthBody(
 
   const remainingBytes = prev.remainingBytes - size;
   const decodedBodyBytes = prev.decodedBodyBytes + size;
-  const finished = remainingBytes <= 0;
 
   const validInput = remainingBytes >= 0 ? input : input.subarray(0, size + remainingBytes);
   const remainingBuffer = remainingBytes >= 0 ? Buffer.alloc(0) : input.subarray(remainingBytes);
 
-  const state = {
+  const next = {
     ...prev,
     buffer: remainingBuffer,
     remainingBytes: Math.max(remainingBytes, 0),
     decodedBodyBytes: remainingBytes < 0 ? decodedBodyBytes + remainingBytes : decodedBodyBytes,
-    chunks: [...prev.chunks, validInput],
+    chunks: [...prev.chunks],
   };
 
-  if (finished) {
-    state.phase = FixedLengthBodyPhase.FINISHED;
+  const contentLength = next.remainingBytes + next.decodedBodyBytes;
+
+  if (contentLength > next.limits.maxBodySize) {
+    throw new HttpDecodeError({
+      code: HttpDecodeErrorCode.CONTENT_LENGTH_TOO_LARGE,
+      message: `Content-Length ${contentLength} exceeds limit ${next.limits.maxBodySize}`,
+    });
   }
 
-  return state;
+  if (validInput.length > 0) {
+    next.chunks.push(validInput);
+  }
+
+  if (next.remainingBytes === 0) {
+    next.phase = FixedLengthBodyPhase.FINISHED;
+  }
+
+  return next;
 }
 
 export function getProgress(state: FixedLengthBodyState): number {
