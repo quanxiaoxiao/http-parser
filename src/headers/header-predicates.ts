@@ -1,5 +1,5 @@
-import parseInteger from '../parseInteger.js';
 import type { Headers, NormalizedHeaders } from '../types.js';
+import { parseInteger } from '../utils/number.js';
 import { getHeaderValue } from './headers.js';
 
 export function isChunked(headers: Headers | NormalizedHeaders): boolean {

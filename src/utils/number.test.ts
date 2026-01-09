@@ -1,7 +1,80 @@
 import * as assert from 'node:assert';
-import { describe,test } from 'node:test';
+import { describe, test } from 'node:test';
 
-import parseInteger from './parseInteger.js';
+import { parseHex,parseInteger } from './number.js';
+
+test('parseInteger - 有效的整数字符串', () => {
+  assert.strictEqual(parseInteger('123'), 123);
+  assert.strictEqual(parseInteger('0'), 0);
+  assert.strictEqual(parseInteger('999'), 999);
+});
+
+test('parseInteger - 有效的数字类型', () => {
+  assert.strictEqual(parseInteger(123), 123);
+  assert.strictEqual(parseInteger(0), 0);
+  assert.strictEqual(parseInteger(999), 999);
+});
+
+test('parseInteger - 无效输入返回 null', () => {
+  assert.strictEqual(parseInteger('abc'), null);
+  assert.strictEqual(parseInteger('12.5'), null);
+  assert.strictEqual(parseInteger('-1'), null);
+  assert.strictEqual(parseInteger('1e2'), null);
+  assert.strictEqual(parseInteger('12a'), null);
+  assert.strictEqual(parseInteger(' 12'), null);
+  assert.strictEqual(parseInteger('12 '), null);
+  assert.strictEqual(parseInteger(''), null);
+  assert.strictEqual(parseInteger(NaN), null);
+  assert.strictEqual(parseInteger(-1), null);
+  assert.strictEqual(parseInteger(12.5), null);
+  assert.strictEqual(parseInteger(Infinity), null);
+});
+
+// parseHex 测试
+test('parseHex - 有效的小写十六进制字符串', () => {
+  assert.strictEqual(parseHex('ff'), 255);
+  assert.strictEqual(parseHex('0'), 0);
+  assert.strictEqual(parseHex('10'), 16);
+  assert.strictEqual(parseHex('a'), 10);
+  assert.strictEqual(parseHex('1a2b'), 6699);
+});
+
+test('parseHex - 有效的大写十六进制字符串', () => {
+  assert.strictEqual(parseHex('FF'), 255);
+  assert.strictEqual(parseHex('A'), 10);
+  assert.strictEqual(parseHex('1A2B'), 6699);
+  assert.strictEqual(parseHex('DEADBEEF'), 3735928559);
+});
+
+test('parseHex - 有效的数字类型', () => {
+  assert.strictEqual(parseHex(255), 255);
+  assert.strictEqual(parseHex(0), 0);
+  assert.strictEqual(parseHex(16), 16);
+});
+
+test('parseHex - 无效输入返回 null', () => {
+  assert.strictEqual(parseHex('xyz'), null);
+  assert.strictEqual(parseHex('1g2'), null);
+  assert.strictEqual(parseHex('-1'), null);
+  assert.strictEqual(parseHex('12.5'), null);
+  assert.strictEqual(parseHex(' ff'), null);
+  assert.strictEqual(parseHex('ff '), null);
+  assert.strictEqual(parseHex(''), null);
+  assert.strictEqual(parseHex(NaN), null);
+  assert.strictEqual(parseHex(-1), null);
+  assert.strictEqual(parseHex(12.5), null);
+  assert.strictEqual(parseHex(Infinity), null);
+});
+
+test('parseHex - 带0x前缀应返回 null', () => {
+  assert.strictEqual(parseHex('0xff'), null);
+  assert.strictEqual(parseHex('0x10'), null);
+});
+
+test('parseHex - 边界值测试', () => {
+  assert.strictEqual(parseHex('ffffffff'), 4294967295);
+  assert.strictEqual(parseHex('0'), 0);
+});
 
 describe('parseInteger 函数测试', () => {
 
