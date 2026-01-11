@@ -18,7 +18,7 @@ export type ChunkedBodyState = {
   phase: ChunkedBodyPhase;
   decodedBodyBytes: number;
   remainingChunkBytes: number;
-  buffer: Buffer | null;
+  buffer: Buffer;
   chunks: Buffer[];
   trailers: TrailerHeaders;
   limits: ChunkedBodyLimits,

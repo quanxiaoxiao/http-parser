@@ -10,7 +10,7 @@
     "build": "tsc",
     "lint": "eslint src --ext .ts",
     "test": "TSX_TSCONFIG=tsconfig.test.json node --import tsx --test 'src/**/*.test.ts'",
-    "test:message": "TSX_TSCONFIG=tsconfig.test.json node --import tsx --test 'src/decode/fixed-length-body.test.ts'",
+    "test:message": "TSX_TSCONFIG=tsconfig.test.json node --import tsx --test 'src/decode/chunked-body.test.ts'",
     "test:coverage": "TSX_TSCONFIG=tsconfig.test.json node --import tsx --test --experimental-test-coverage 'src/**/*.test.ts'",
     "test:single": "TSX_TSCONFIG=tsconfig.test.json node --import tsx --test --test-only"
   },
