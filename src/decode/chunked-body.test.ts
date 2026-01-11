@@ -1,7 +1,8 @@
 import * as assert from 'node:assert';
 import { describe, it, test } from 'node:test';
 
-import { ChunkedBodyPhase, createChunkedBodyState, decodeChunkedBody } from './chunked-body.js';
+import { HttpDecodeError, HttpDecodeErrorCode } from '../errors.js';
+import { ChunkedBodyPhase, createChunkedBodyState, decodeChunkedBody, parseChunkSize } from './chunked-body.js';
 
 describe('createChunkedBodyState', () => {
   test('should create initial state with correct defaults', () => {
@@ -252,16 +253,6 @@ describe('decodeChunkedBody - edge cases', () => {
     const result = decodeChunkedBody(state, Buffer.from(''));
 
     assert.strictEqual(result.phase, ChunkedBodyPhase.SIZE);
-  });
-
-  test('should handle whitespace in chunk size with extension', () => {
-    const state = createChunkedBodyState();
-    const input = Buffer.from('5  ;  ext=value  \r\nhello\r\n0\r\n\r\n');
-
-    const result = decodeChunkedBody(state, input);
-
-    assert.strictEqual(result.phase, ChunkedBodyPhase.FINISHED);
-    assert.strictEqual(result.chunks[0].toString(), 'hello');
   });
 
   test('should handle binary data in chunks', () => {
@@ -1084,14 +1075,6 @@ describe('decodeChunkedBody - Chunk Size 解析', () => {
     assert.strictEqual(result.chunks[0]?.toString(), 'hello');
   });
 
-  it('应该处理带空格和多个扩展的 chunk size', () => {
-    const state = createChunkedBodyState();
-    const input = Buffer.from('5  ;  ext1=val1  ;  ext2=val2  \r\nhello\r\n0\r\n\r\n');
-    const result = decodeChunkedBody(state, input);
-
-    assert.strictEqual(result.chunks[0]?.toString(), 'hello');
-  });
-
   it('应该在空 chunk size 时抛出错误', () => {
     const state = createChunkedBodyState();
     const input = Buffer.from('\r\nhello\r\n0\r\n\r\n');
@@ -1117,16 +1100,6 @@ describe('decodeChunkedBody - Chunk Size 解析', () => {
     assert.throws(
       () => decodeChunkedBody(state, input),
     );
-  });
-
-  it('应该在超大 chunk size 时能够处理', () => {
-    const state = createChunkedBodyState();
-    // 测试 0xFFFFFF (16777215 字节)
-    const input = Buffer.from('ffffff\r\n');
-    const result = decodeChunkedBody(state, input);
-
-    assert.strictEqual(result.phase, ChunkedBodyPhase.DATA);
-    assert.strictEqual(result.remainingChunkBytes, 16777215);
   });
 });
 
@@ -1514,5 +1487,200 @@ describe('decodeChunkedBody - 真实场景模拟', () => {
     assert.strictEqual(result.phase, ChunkedBodyPhase.FINISHED);
     assert.strictEqual(result.trailers['x-checksum'], 'abc123def456');
     assert.ok(result.trailers['x-signature']);
+  });
+});
+
+describe('parseChunkSize', () => {
+  const defaultLimits = {
+    maxChunkSizeHexDigits: 8,
+    maxChunkSize: 1024 * 1024, // 1MB
+  };
+
+  describe('正常解析', () => {
+    test('应该正确解析十六进制数字', () => {
+      assert.strictEqual(parseChunkSize('1A', defaultLimits), 26);
+      assert.strictEqual(parseChunkSize('FF', defaultLimits), 255);
+      assert.strictEqual(parseChunkSize('100', defaultLimits), 256);
+    });
+
+    test('应该支持小写十六进制', () => {
+      assert.strictEqual(parseChunkSize('1a', defaultLimits), 26);
+      assert.strictEqual(parseChunkSize('ff', defaultLimits), 255);
+      assert.strictEqual(parseChunkSize('abc', defaultLimits), 2748);
+    });
+
+    test('应该支持大写十六进制', () => {
+      assert.strictEqual(parseChunkSize('1A', defaultLimits), 26);
+      assert.strictEqual(parseChunkSize('FF', defaultLimits), 255);
+      assert.strictEqual(parseChunkSize('ABC', defaultLimits), 2748);
+    });
+
+    test('应该支持大小写混合', () => {
+      assert.strictEqual(parseChunkSize('AbC', defaultLimits), 2748);
+      assert.strictEqual(parseChunkSize('FfFf', defaultLimits), 65535);
+    });
+
+    test('应该正确解析0', () => {
+      assert.strictEqual(parseChunkSize('0', defaultLimits), 0);
+    });
+
+    test('应该忽略分号后的扩展部分', () => {
+      assert.strictEqual(parseChunkSize('1A;extension', defaultLimits), 26);
+      assert.strictEqual(parseChunkSize('FF;name=value', defaultLimits), 255);
+      assert.strictEqual(parseChunkSize('100;', defaultLimits), 256);
+    });
+  });
+
+  describe('无效格式', () => {
+    test('应该拒绝空字符串', () => {
+      assert.throws(
+        () => parseChunkSize('', defaultLimits),
+        (err: HttpDecodeError) => {
+          return err.code === HttpDecodeErrorCode.INVALID_CHUNK_SIZE &&
+                 err.message === 'Empty chunk size line';
+        }
+      );
+    });
+
+    test('应该拒绝只有分号的情况', () => {
+      assert.throws(
+        () => parseChunkSize(';extension', defaultLimits),
+        (err: HttpDecodeError) => {
+          return err.code === HttpDecodeErrorCode.INVALID_CHUNK_SIZE &&
+                 err.message === 'Empty chunk size line';
+        }
+      );
+    });
+
+    test('应该拒绝非十六进制字符', () => {
+      assert.throws(
+        () => parseChunkSize('1G', defaultLimits),
+        (err: HttpDecodeError) => {
+          return err.code === HttpDecodeErrorCode.INVALID_CHUNK_SIZE &&
+                 err.message === 'Invalid chunk size: "1G"';
+        }
+      );
+    });
+
+    test('应该拒绝包含空格的输入', () => {
+      assert.throws(
+        () => parseChunkSize('1 A', defaultLimits),
+        (err: HttpDecodeError) => {
+          return err.code === HttpDecodeErrorCode.INVALID_CHUNK_SIZE &&
+                 err.message === 'Invalid chunk size: "1 A"';
+        }
+      );
+    });
+
+    test('应该拒绝负数符号', () => {
+      assert.throws(
+        () => parseChunkSize('-1A', defaultLimits),
+        (err: HttpDecodeError) => {
+          return err.code === HttpDecodeErrorCode.INVALID_CHUNK_SIZE &&
+                 err.message === 'Invalid chunk size: "-1A"';
+        }
+      );
+    });
+
+    test('应该拒绝0x前缀', () => {
+      assert.throws(
+        () => parseChunkSize('0x1A', defaultLimits),
+        (err: HttpDecodeError) => {
+          return err.code === HttpDecodeErrorCode.INVALID_CHUNK_SIZE &&
+                 err.message === 'Invalid chunk size: "0x1A"';
+        }
+      );
+    });
+  });
+
+  describe('长度限制', () => {
+    test('应该拒绝超过最大十六进制位数的输入', () => {
+      const limits = {
+        maxChunkSizeHexDigits: 4,
+        maxChunkSize: 1024 * 1024,
+      };
+
+      assert.throws(
+        () => parseChunkSize('12345', limits),
+        (err: HttpDecodeError) => {
+          return err.code === HttpDecodeErrorCode.CHUNK_SIZE_TOO_LARGE &&
+                 err.message === 'Chunk size hex digits exceed limit of 4';
+        }
+      );
+    });
+
+    test('应该接受等于最大十六进制位数的输入', () => {
+      const limits = {
+        maxChunkSizeHexDigits: 4,
+        maxChunkSize: 1024 * 1024,
+      };
+
+      assert.strictEqual(parseChunkSize('FFFF', limits), 65535);
+    });
+
+    test('应该接受小于最大十六进制位数的输入', () => {
+      const limits = {
+        maxChunkSizeHexDigits: 4,
+        maxChunkSize: 1024 * 1024,
+      };
+
+      assert.strictEqual(parseChunkSize('FFF', limits), 4095);
+    });
+  });
+
+  describe('大小限制', () => {
+    test('应该拒绝超过最大chunk大小的值', () => {
+      const limits = {
+        maxChunkSizeHexDigits: 8,
+        maxChunkSize: 100,
+      };
+
+      assert.throws(
+        () => parseChunkSize('FF', limits), // 255 > 100
+        (err: HttpDecodeError) => {
+          return err.code === HttpDecodeErrorCode.CHUNK_SIZE_TOO_LARGE &&
+                 err.message === 'Chunk size exceeds maximum allowed of 100';
+        }
+      );
+    });
+
+    test('应该接受等于最大chunk大小的值', () => {
+      const limits = {
+        maxChunkSizeHexDigits: 8,
+        maxChunkSize: 255,
+      };
+
+      assert.strictEqual(parseChunkSize('FF', limits), 255);
+    });
+
+    test('应该接受小于最大chunk大小的值', () => {
+      const limits = {
+        maxChunkSizeHexDigits: 8,
+        maxChunkSize: 255,
+      };
+
+      assert.strictEqual(parseChunkSize('FE', limits), 254);
+    });
+  });
+
+  describe('边界情况', () => {
+    test('应该正确处理前导零', () => {
+      assert.strictEqual(parseChunkSize('00FF', defaultLimits), 255);
+      assert.strictEqual(parseChunkSize('000A', defaultLimits), 10);
+    });
+
+    test('应该处理大数值', () => {
+      const limits = {
+        maxChunkSizeHexDigits: 8,
+        maxChunkSize: 0xFFFFFFFF,
+      };
+
+      assert.strictEqual(parseChunkSize('FFFFFF', limits), 16777215);
+    });
+
+    test('应该在分号之前截断', () => {
+      assert.strictEqual(parseChunkSize('A;;;;;', defaultLimits), 10);
+      assert.strictEqual(parseChunkSize('1F;a;b;c', defaultLimits), 31);
+    });
   });
 });

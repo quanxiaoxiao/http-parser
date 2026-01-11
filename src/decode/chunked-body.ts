@@ -1,7 +1,7 @@
 import { Buffer } from 'node:buffer';
 
-import { HttpDecodeError,HttpDecodeErrorCode } from '../errors.js';
-import { CR, CRLF, DEFAULT_CHUNKED_BODY_LIMITS,LF } from '../specs.js';
+import { HttpDecodeError, HttpDecodeErrorCode } from '../errors.js';
+import { CR, CRLF, DEFAULT_CHUNKED_BODY_LIMITS, LF } from '../specs.js';
 import type { BodyType, ChunkedBodyLimits, TrailerHeaders } from '../types.js';
 import { decodeHttpLine } from './http-line.js';
 
@@ -30,6 +30,35 @@ const EMPTY_BUFFER = Buffer.alloc(0);
 
 const DOUBLE_CRLF = Buffer.from([CR, LF, CR, LF]);
 
+export function parseChunkSize(line: string, limits: ChunkedBodyLimits): number {
+  const [sizePart] = line.split(';', 1);
+
+  if (!sizePart || !/^[0-9A-Fa-f]+$/.test(sizePart)) {
+    throw new HttpDecodeError({
+      code: HttpDecodeErrorCode.INVALID_CHUNK_SIZE,
+      message: sizePart ? `Invalid chunk size: "${sizePart}"` : 'Empty chunk size line',
+    });
+  }
+
+  if (sizePart.length > limits.maxChunkSizeHexDigits) {
+    throw new HttpDecodeError({
+      code: HttpDecodeErrorCode.CHUNK_SIZE_TOO_LARGE,
+      message: `Chunk size hex digits exceed limit of ${limits.maxChunkSizeHexDigits}`,
+    });
+  }
+
+  const size = parseInt(sizePart, 16);
+
+  if (size > limits.maxChunkSize) {
+    throw new HttpDecodeError({
+      code: HttpDecodeErrorCode.CHUNK_SIZE_TOO_LARGE,
+      message: `Chunk size exceeds maximum allowed of ${limits.maxChunkSize}`,
+    });
+  }
+
+  return size;
+}
+
 export function createChunkedBodyState(limits: ChunkedBodyLimits = DEFAULT_CHUNKED_BODY_LIMITS): ChunkedBodyState {
   return {
     type: 'chunked',
@@ -50,28 +79,6 @@ function indexOfDoubleCRLF(buf: Buffer): number {
   }
 
   return buf.indexOf(DOUBLE_CRLF);
-}
-
-function parseChunkSize(line: string): number {
-  const match = line.match(/^([0-9a-fA-F]+)/);
-
-  if (!match) {
-    throw new HttpDecodeError({
-      code: HttpDecodeErrorCode.INVALID_CHUNK_SIZE,
-      message: 'Empty chunk size line',
-    });
-  }
-
-  const size = parseInt(match[1], 16);
-
-  if (!Number.isFinite(size) || size < 0) {
-    throw new HttpDecodeError({
-      code: HttpDecodeErrorCode.INVALID_CHUNK_SIZE,
-      message: `Invalid chunk size: "${match[1]}"`,
-    });
-  }
-
-  return size;
 }
 
 function parseTrailerHeaders(raw: string): TrailerHeaders {
@@ -127,7 +134,7 @@ function handleSizePhase(state: ChunkedBodyState): void {
 
   const line = lineBuf.toString('ascii');
   const consumed = lineBuf.length + CRLF_LENGTH;
-  const size = parseChunkSize(line);
+  const size = parseChunkSize(line, state.limits);
 
   state.buffer = state.buffer.subarray(consumed);
   state.phase = size === 0 ? ChunkedBodyPhase.TRAILER : ChunkedBodyPhase.DATA;
