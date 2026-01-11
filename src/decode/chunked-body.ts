@@ -155,12 +155,11 @@ function parseTrailerHeaders(raw: string, limits: ChunkedBodyLimits): TrailerHea
 }
 
 function handleSizePhase(state: ChunkedBodyState): void {
-  let lineBuf;
-  if (state.limits.maxChunkExtensionLength === 0) {
-    lineBuf = decodeHttpLine(state.buffer, 0, state.limits.maxChunkSizeHexDigits);
-  } else {
-    lineBuf = decodeHttpLine(state.buffer, 0, state.limits.maxChunkSizeHexDigits + 1 + state.limits.maxChunkExtensionLength);
-  }
+  const { limits } = state;
+  const maxChunkSizeLineLength = limits.maxChunkExtensionLength === 0
+    ? limits.maxChunkSizeHexDigits
+    : limits.maxChunkSizeHexDigits + 1 + limits.maxChunkExtensionLength;
+  const lineBuf = decodeHttpLine(state.buffer, 0, maxChunkSizeLineLength);
 
   if (!lineBuf) {
     return;
