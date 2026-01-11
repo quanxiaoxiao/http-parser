@@ -6,11 +6,12 @@ import path from 'node:path';
 import {
   createRequestState,
   createResponseState,
+  decodeRequest,
+  decodeResponse,
   type HttpRequestState,
   type HttpResponseState,
-  parseRequest,
-  parseResponse,
-} from './decodeHttp/parseHttp.js';
+  isMessageFinished,
+} from './decode/message.js';
 import validateHeaders from './utils/validateHeaders.js';
 import { validateRequestCookie } from './utils/validateRequestCookie.js';
 
@@ -40,38 +41,12 @@ function shouldProcessFile(filePath: string, extensions?: string[]): boolean {
 
 function processHttpRequest(chunk: Buffer): HttpRequestState {
   const state: HttpRequestState = createRequestState();
-  return parseRequest(state, chunk, {
-    onHeader: (name, value) => {
-      if (name === 'cookie') {
-        const ret = validateRequestCookie(value);
-        if (!ret.valid) {
-          console.log(ret);
-        }
-      }
-    },
-    onHeadersComplete: (headers) => {
-      const errors = validateHeaders(headers);
-      errors.forEach((errorItem) => {
-        if (errorItem.header !== 'authorization') {
-          console.log(errorItem);
-        }
-      });
-    },
-  });
+  return decodeRequest(state, chunk);
 }
 
 function procssHttpResponse(chunk: Buffer): HttpResponseState {
   const state: HttpResponseState = createResponseState();
-  return parseResponse(state, chunk, {
-    onHeadersComplete: (headers) => {
-      const errors = validateHeaders(headers);
-      errors.forEach((errorItem) => {
-        if (errorItem.header !== 'authorization') {
-          console.log(errorItem);
-        }
-      });
-    },
-  });
+  return decodeResponse(state, chunk);
 }
 
 async function processFile(filePath: string, options: ProcessOptions): Promise<ProcessFileResult>{
@@ -84,12 +59,16 @@ async function processFile(filePath: string, options: ProcessOptions): Promise<P
   }
   const httpBuf = await fs.readFile(filePath);
   const requestState: HttpRequestState = processHttpRequest(httpBuf);
-  if (!requestState.finished) {
+  if (!isMessageFinished(requestState)) {
     return {
       success: false,
       filePath,
       errorMessage: requestState.error?.message ?? 'parse response uncomplete',
     };
+  }
+
+  if (requestState.bodyState) {
+    console.log(requestState.events);
   }
 
   const responseState: HttpResponseState = procssHttpResponse(requestState.buffer);

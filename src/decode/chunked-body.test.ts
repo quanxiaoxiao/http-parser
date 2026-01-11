@@ -1529,7 +1529,7 @@ describe('parseChunkSize', () => {
         (err: HttpDecodeError) => {
           return err.code === HttpDecodeErrorCode.INVALID_CHUNK_SIZE &&
                  err.message === 'Empty chunk size line';
-        }
+        },
       );
     });
 
@@ -1539,7 +1539,7 @@ describe('parseChunkSize', () => {
         (err: HttpDecodeError) => {
           return err.code === HttpDecodeErrorCode.INVALID_CHUNK_SIZE &&
                  err.message === 'Empty chunk size line';
-        }
+        },
       );
     });
 
@@ -1549,7 +1549,7 @@ describe('parseChunkSize', () => {
         (err: HttpDecodeError) => {
           return err.code === HttpDecodeErrorCode.INVALID_CHUNK_SIZE &&
                  err.message === 'Invalid chunk size: "1G"';
-        }
+        },
       );
     });
 
@@ -1559,7 +1559,7 @@ describe('parseChunkSize', () => {
         (err: HttpDecodeError) => {
           return err.code === HttpDecodeErrorCode.INVALID_CHUNK_SIZE &&
                  err.message === 'Invalid chunk size: "1 A"';
-        }
+        },
       );
     });
 
@@ -1569,7 +1569,7 @@ describe('parseChunkSize', () => {
         (err: HttpDecodeError) => {
           return err.code === HttpDecodeErrorCode.INVALID_CHUNK_SIZE &&
                  err.message === 'Invalid chunk size: "-1A"';
-        }
+        },
       );
     });
 
@@ -1579,7 +1579,7 @@ describe('parseChunkSize', () => {
         (err: HttpDecodeError) => {
           return err.code === HttpDecodeErrorCode.INVALID_CHUNK_SIZE &&
                  err.message === 'Invalid chunk size: "0x1A"';
-        }
+        },
       );
     });
   });
@@ -1596,7 +1596,7 @@ describe('parseChunkSize', () => {
         (err: HttpDecodeError) => {
           return err.code === HttpDecodeErrorCode.CHUNK_SIZE_TOO_LARGE &&
                  err.message === 'Chunk size hex digits exceed limit of 4';
-        }
+        },
       );
     });
 
@@ -1631,7 +1631,7 @@ describe('parseChunkSize', () => {
         (err: HttpDecodeError) => {
           return err.code === HttpDecodeErrorCode.CHUNK_SIZE_TOO_LARGE &&
                  err.message === 'Chunk size exceeds maximum allowed of 100';
-        }
+        },
       );
     });
 
@@ -1723,12 +1723,12 @@ describe('parseChunkSize', () => {
   describe('错误情况 - 不支持的扩展', () => {
     it('当maxChunkExtensionLength为0且有扩展时应该抛出错误', () => {
       const limits = { ...defaultLimits, maxChunkExtensionLength: 0 };
-      
+
       assert.throws(
         () => parseChunkSize('1a;extension', limits),
         (err: HttpDecodeError) => {
           return err.code === HttpDecodeErrorCode.UNSUPPORTED_CHUNK_EXTENSION;
-        }
+        },
       );
     });
 
@@ -1748,7 +1748,7 @@ describe('parseChunkSize', () => {
             err.code === HttpDecodeErrorCode.INVALID_CHUNK_SIZE &&
             err.message === 'Empty chunk size line'
           );
-        }
+        },
       );
     });
 
@@ -1760,7 +1760,7 @@ describe('parseChunkSize', () => {
             err.code === HttpDecodeErrorCode.INVALID_CHUNK_SIZE &&
             err.message === 'Empty chunk size line'
           );
-        }
+        },
       );
     });
 
@@ -1772,7 +1772,7 @@ describe('parseChunkSize', () => {
             err.code === HttpDecodeErrorCode.INVALID_CHUNK_SIZE &&
             err.message.includes('Invalid chunk size: "1G"')
           );
-        }
+        },
       );
     });
 
@@ -1781,7 +1781,7 @@ describe('parseChunkSize', () => {
         () => parseChunkSize('1 a', defaultLimits),
         (err: HttpDecodeError) => {
           return err.code === HttpDecodeErrorCode.INVALID_CHUNK_SIZE;
-        }
+        },
       );
     });
 
@@ -1790,7 +1790,7 @@ describe('parseChunkSize', () => {
         () => parseChunkSize('-1a', defaultLimits),
         (err: HttpDecodeError) => {
           return err.code === HttpDecodeErrorCode.INVALID_CHUNK_SIZE;
-        }
+        },
       );
     });
 
@@ -1799,7 +1799,7 @@ describe('parseChunkSize', () => {
         () => parseChunkSize('+1a', defaultLimits),
         (err: HttpDecodeError) => {
           return err.code === HttpDecodeErrorCode.INVALID_CHUNK_SIZE;
-        }
+        },
       );
     });
   });
@@ -1807,7 +1807,7 @@ describe('parseChunkSize', () => {
   describe('错误情况 - chunk size过大', () => {
     it('应该拒绝超过maxChunkSizeHexDigits的十六进制位数', () => {
       const limits = { ...defaultLimits, maxChunkSizeHexDigits: 4 };
-      
+
       assert.throws(
         () => parseChunkSize('12345', limits),
         (err: HttpDecodeError) => {
@@ -1815,7 +1815,7 @@ describe('parseChunkSize', () => {
             err.code === HttpDecodeErrorCode.CHUNK_SIZE_TOO_LARGE &&
             err.message.includes('hex digits exceed limit of 4')
           );
-        }
+        },
       );
     });
 
@@ -1827,7 +1827,7 @@ describe('parseChunkSize', () => {
 
     it('应该拒绝超过maxChunkSize的数值', () => {
       const limits = { ...defaultLimits, maxChunkSize: 100 };
-      
+
       assert.throws(
         () => parseChunkSize('FF', limits), // 255 > 100
         (err: HttpDecodeError) => {
@@ -1835,7 +1835,7 @@ describe('parseChunkSize', () => {
             err.code === HttpDecodeErrorCode.CHUNK_SIZE_TOO_LARGE &&
             err.message.includes('exceeds maximum allowed of 100')
           );
-        }
+        },
       );
     });
 
