@@ -160,7 +160,7 @@ describe('decodeRequest', () => {
     });
   });
 
-  describe('BODY_CONTENT_LENGTH 阶段', () => {
+  describe('BODY_FIXED_LENGTH 阶段', () => {
     it('应该识别 Content-Length header', () => {
       const state = createRequestState();
       const input = Buffer.from(
@@ -171,7 +171,7 @@ describe('decodeRequest', () => {
 
       const result = decodeRequest(state, input);
 
-      assert.strictEqual(result.phase, HttpDecodePhase.BODY_CONTENT_LENGTH);
+      assert.strictEqual(result.phase, HttpDecodePhase.BODY_FIXED_LENGTH);
       assert.ok(result.bodyState);
     });
 
@@ -200,7 +200,7 @@ describe('decodeRequest', () => {
 
       const result = decodeRequest(state, input);
 
-      assert.strictEqual(result.phase, HttpDecodePhase.BODY_CONTENT_LENGTH);
+      assert.strictEqual(result.phase, HttpDecodePhase.BODY_FIXED_LENGTH);
     });
 
     it('Content-Length 为 0 应该立即完成', () => {
@@ -243,11 +243,11 @@ describe('decodeRequest', () => {
         'Content-Length: 11\r\n' +
         '\r\n',
       ));
-      assert.strictEqual(state.phase, HttpDecodePhase.BODY_CONTENT_LENGTH);
+      assert.strictEqual(state.phase, HttpDecodePhase.BODY_FIXED_LENGTH);
 
       // 部分 body
       state = decodeRequest(state, Buffer.from('hello'));
-      assert.strictEqual(state.phase, HttpDecodePhase.BODY_CONTENT_LENGTH);
+      assert.strictEqual(state.phase, HttpDecodePhase.BODY_FIXED_LENGTH);
 
       // 剩余 body
       state = decodeRequest(state, Buffer.from(' worldextra'));
@@ -438,7 +438,7 @@ describe('HTTP Request Parser', () => {
         '\r\n',
       ));
 
-      assert.strictEqual(state.phase, HttpDecodePhase.BODY_CONTENT_LENGTH);
+      assert.strictEqual(state.phase, HttpDecodePhase.BODY_FIXED_LENGTH);
 
       state = decodeRequest(state, Buffer.from(body));
 

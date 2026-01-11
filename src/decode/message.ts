@@ -170,7 +170,7 @@ function determineBodyPhase(state: HttpState, headersState: HeadersState): void 
 
   if (contentLength > 0) {
     state.bodyState = createFixedLengthBodyState(contentLength);
-    transition(state, HttpDecodePhase.BODY_CONTENT_LENGTH);
+    transition(state, HttpDecodePhase.BODY_FIXED_LENGTH);
   } else {
     transition(state, HttpDecodePhase.FINISHED);
   }
@@ -259,7 +259,7 @@ function runStateMachine(state: HttpState): void {
     case HttpDecodePhase.BODY_CHUNKED:
       handleBodyPhase(state, decodeChunkedBody);
       break;
-    case HttpDecodePhase.BODY_CONTENT_LENGTH:
+    case HttpDecodePhase.BODY_FIXED_LENGTH:
       handleBodyPhase(state, decodeFixedLengthBody);
       break;
     case HttpDecodePhase.FINISHED:

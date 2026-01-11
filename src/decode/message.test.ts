@@ -106,7 +106,7 @@ describe('HTTP Decoder', () => {
       );
 
       let state = decodeRequest(null, header);
-      assert.strictEqual(state.phase, HttpDecodePhase.BODY_CONTENT_LENGTH);
+      assert.strictEqual(state.phase, HttpDecodePhase.BODY_FIXED_LENGTH);
 
       state = decodeRequest(state, Buffer.from(bodyPart1));
 
