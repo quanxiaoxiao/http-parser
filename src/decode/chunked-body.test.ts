@@ -1684,3 +1684,208 @@ describe('parseChunkSize', () => {
     });
   });
 });
+
+describe('parseChunkSize', () => {
+  const defaultLimits: ChunkedBodyLimits = {
+    maxChunkSize: 1024 * 1024, // 1MB
+    maxChunkSizeHexDigits: 8,
+    maxChunkExtensionLength: 100,
+  };
+
+  describe('正常情况', () => {
+    it('应该正确解析有效的十六进制chunk size', () => {
+      const result = parseChunkSize('1a', defaultLimits);
+      assert.strictEqual(result, 26);
+    });
+
+    it('应该正确解析大写十六进制', () => {
+      const result = parseChunkSize('FF', defaultLimits);
+      assert.strictEqual(result, 255);
+    });
+
+    it('应该正确解析小写十六进制', () => {
+      const result = parseChunkSize('ff', defaultLimits);
+      assert.strictEqual(result, 255);
+    });
+
+    it('应该正确解析混合大小写十六进制', () => {
+      const result = parseChunkSize('AaBbc', defaultLimits);
+      assert.strictEqual(result, 699324);
+    });
+
+    it('应该正确解析零', () => {
+      const result = parseChunkSize('0', defaultLimits);
+      assert.strictEqual(result, 0);
+    });
+
+    it('应该正确解析带有扩展的chunk size', () => {
+      const result = parseChunkSize('1a;name=value', defaultLimits);
+      assert.strictEqual(result, 26);
+    });
+
+    it('应该正确解析多个扩展参数', () => {
+      const result = parseChunkSize('100;ext1=val1;ext2=val2', defaultLimits);
+      assert.strictEqual(result, 256);
+    });
+  });
+
+  describe('错误情况 - 不支持的扩展', () => {
+    it('当maxChunkExtensionLength为0且有扩展时应该抛出错误', () => {
+      const limits = { ...defaultLimits, maxChunkExtensionLength: 0 };
+      
+      assert.throws(
+        () => parseChunkSize('1a;extension', limits),
+        (err: HttpDecodeError) => {
+          return err.code === HttpDecodeErrorCode.UNSUPPORTED_CHUNK_EXTENSION;
+        }
+      );
+    });
+
+    it('当maxChunkExtensionLength为0但没有扩展时不应该抛出错误', () => {
+      const limits = { ...defaultLimits, maxChunkExtensionLength: 0 };
+      const result = parseChunkSize('1a', limits);
+      assert.strictEqual(result, 26);
+    });
+  });
+
+  describe('错误情况 - 无效的chunk size', () => {
+    it('应该拒绝空字符串', () => {
+      assert.throws(
+        () => parseChunkSize('', defaultLimits),
+        (err: HttpDecodeError) => {
+          return (
+            err.code === HttpDecodeErrorCode.INVALID_CHUNK_SIZE &&
+            err.message === 'Empty chunk size line'
+          );
+        }
+      );
+    });
+
+    it('应该拒绝只包含分号的字符串', () => {
+      assert.throws(
+        () => parseChunkSize(';extension', defaultLimits),
+        (err: HttpDecodeError) => {
+          return (
+            err.code === HttpDecodeErrorCode.INVALID_CHUNK_SIZE &&
+            err.message === 'Empty chunk size line'
+          );
+        }
+      );
+    });
+
+    it('应该拒绝非十六进制字符', () => {
+      assert.throws(
+        () => parseChunkSize('1G', defaultLimits),
+        (err: HttpDecodeError) => {
+          return (
+            err.code === HttpDecodeErrorCode.INVALID_CHUNK_SIZE &&
+            err.message.includes('Invalid chunk size: "1G"')
+          );
+        }
+      );
+    });
+
+    it('应该拒绝包含空格的字符串', () => {
+      assert.throws(
+        () => parseChunkSize('1 a', defaultLimits),
+        (err: HttpDecodeError) => {
+          return err.code === HttpDecodeErrorCode.INVALID_CHUNK_SIZE;
+        }
+      );
+    });
+
+    it('应该拒绝负号', () => {
+      assert.throws(
+        () => parseChunkSize('-1a', defaultLimits),
+        (err: HttpDecodeError) => {
+          return err.code === HttpDecodeErrorCode.INVALID_CHUNK_SIZE;
+        }
+      );
+    });
+
+    it('应该拒绝加号', () => {
+      assert.throws(
+        () => parseChunkSize('+1a', defaultLimits),
+        (err: HttpDecodeError) => {
+          return err.code === HttpDecodeErrorCode.INVALID_CHUNK_SIZE;
+        }
+      );
+    });
+  });
+
+  describe('错误情况 - chunk size过大', () => {
+    it('应该拒绝超过maxChunkSizeHexDigits的十六进制位数', () => {
+      const limits = { ...defaultLimits, maxChunkSizeHexDigits: 4 };
+      
+      assert.throws(
+        () => parseChunkSize('12345', limits),
+        (err: HttpDecodeError) => {
+          return (
+            err.code === HttpDecodeErrorCode.CHUNK_SIZE_TOO_LARGE &&
+            err.message.includes('hex digits exceed limit of 4')
+          );
+        }
+      );
+    });
+
+    it('应该接受等于maxChunkSizeHexDigits的十六进制位数', () => {
+      const limits = { ...defaultLimits, maxChunkSizeHexDigits: 4 };
+      const result = parseChunkSize('1234', limits);
+      assert.strictEqual(result, 4660);
+    });
+
+    it('应该拒绝超过maxChunkSize的数值', () => {
+      const limits = { ...defaultLimits, maxChunkSize: 100 };
+      
+      assert.throws(
+        () => parseChunkSize('FF', limits), // 255 > 100
+        (err: HttpDecodeError) => {
+          return (
+            err.code === HttpDecodeErrorCode.CHUNK_SIZE_TOO_LARGE &&
+            err.message.includes('exceeds maximum allowed of 100')
+          );
+        }
+      );
+    });
+
+    it('应该接受等于maxChunkSize的数值', () => {
+      const limits = { ...defaultLimits, maxChunkSize: 255 };
+      const result = parseChunkSize('FF', limits);
+      assert.strictEqual(result, 255);
+    });
+  });
+
+  describe('边界情况', () => {
+    it('应该处理最大有效的十六进制值', () => {
+      const limits = {
+        ...defaultLimits,
+        maxChunkSizeHexDigits: 8,
+        maxChunkSize: 0xFFFFFFFF,
+      };
+      const result = parseChunkSize('FFFFFFFF', limits);
+      assert.strictEqual(result, 4294967295);
+    });
+
+    it('应该处理单个零字符', () => {
+      const result = parseChunkSize('0', defaultLimits);
+      assert.strictEqual(result, 0);
+    });
+
+    it('应该处理多个前导零', () => {
+      const result = parseChunkSize('000A', defaultLimits);
+      assert.strictEqual(result, 10);
+    });
+
+    it('应该处理分号后的空扩展', () => {
+      const result = parseChunkSize('1a;', defaultLimits);
+      assert.strictEqual(result, 26);
+    });
+
+    it('应该处理maxChunkSizeHexDigits为1的情况', () => {
+      const limits = { ...defaultLimits, maxChunkSizeHexDigits: 1 };
+      const result = parseChunkSize('A', limits);
+      assert.strictEqual(result, 10);
+    });
+  });
+});
+

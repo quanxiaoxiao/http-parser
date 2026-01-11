@@ -75,6 +75,7 @@ export enum HttpDecodeErrorCode {
   TRAILER_TOO_MANY = 'TRAILER_TOO_MANY',
   TRAILER_TOO_LARGE = 'TRAILER_TOO_LARGE',
   INVALID_TRAILER = 'INVALID_TRAILER',
+  UNSUPPORTED_CHUNK_EXTENSION = 'UNSUPPORTED_CHUNK_EXTENSION',
 
   // =========================
   // Numeric parsing

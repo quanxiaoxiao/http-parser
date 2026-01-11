@@ -31,12 +31,20 @@ const EMPTY_BUFFER = Buffer.alloc(0);
 const DOUBLE_CRLF = Buffer.from([CR, LF, CR, LF]);
 
 export function parseChunkSize(line: string, limits: ChunkedBodyLimits): number {
-  const [sizePart] = line.split(';', 1);
+  const semicolonIndex = line.indexOf(';');
+  const sizePart = semicolonIndex === -1 ? line : line.slice(0, semicolonIndex);
 
-  if (!sizePart || !/^[0-9A-Fa-f]+$/.test(sizePart)) {
+  if (limits.maxChunkExtensionLength === 0 && semicolonIndex !== -1) {
+    throw new HttpDecodeError({
+      code: HttpDecodeErrorCode.UNSUPPORTED_CHUNK_EXTENSION,
+      message: 'Unsupported chunk extension',
+    });
+  }
+
+  if (!sizePart) {
     throw new HttpDecodeError({
       code: HttpDecodeErrorCode.INVALID_CHUNK_SIZE,
-      message: sizePart ? `Invalid chunk size: "${sizePart}"` : 'Empty chunk size line',
+      message: 'Empty chunk size line',
     });
   }
 
@@ -44,6 +52,13 @@ export function parseChunkSize(line: string, limits: ChunkedBodyLimits): number 
     throw new HttpDecodeError({
       code: HttpDecodeErrorCode.CHUNK_SIZE_TOO_LARGE,
       message: `Chunk size hex digits exceed limit of ${limits.maxChunkSizeHexDigits}`,
+    });
+  }
+
+  if (!/^[0-9A-Fa-f]+$/.test(sizePart)) {
+    throw new HttpDecodeError({
+      code: HttpDecodeErrorCode.INVALID_CHUNK_SIZE,
+      message: `Invalid chunk size: "${sizePart}"`,
     });
   }
 
@@ -126,7 +141,12 @@ function parseTrailerHeaders(raw: string): TrailerHeaders {
 }
 
 function handleSizePhase(state: ChunkedBodyState): void {
-  const lineBuf = decodeHttpLine(state.buffer);
+  let lineBuf;
+  if (state.limits.maxChunkExtensionLength === 0) {
+    lineBuf = decodeHttpLine(state.buffer, 0, state.limits.maxChunkSizeHexDigits);
+  } else {
+    lineBuf = decodeHttpLine(state.buffer, 0, state.limits.maxChunkSizeHexDigits + 1 + state.limits.maxChunkExtensionLength);
+  }
 
   if (!lineBuf) {
     return;

@@ -88,6 +88,7 @@ export interface FixedLengthBodyLimits extends BodyLimits {
 
 export interface ChunkedBodyLimits extends BodyLimits {
   maxChunkSizeHexDigits: number;
+  maxChunkExtensionLength: number;
   maxChunkSize: number;
   maxChunks: number;
   maxTrailers: number;
