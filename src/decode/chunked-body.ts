@@ -41,6 +41,13 @@ export function parseChunkSize(line: string, limits: ChunkedBodyLimits): number 
     });
   }
 
+  if (semicolonIndex !== -1 && line.length - semicolonIndex > limits.maxChunkExtensionLength) {
+    throw new HttpDecodeError({
+      code: HttpDecodeErrorCode.CHUNK_EXTENSION_TOO_LARGE,
+      message: `Chunk extension exceeds maximum allowed of ${limits.maxChunkExtensionLength}`,
+    });
+  }
+
   if (!sizePart) {
     throw new HttpDecodeError({
       code: HttpDecodeErrorCode.INVALID_CHUNK_SIZE,
