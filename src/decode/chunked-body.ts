@@ -208,39 +208,40 @@ function handleCRLFPhase(state: ChunkedBodyState): void {
 }
 
 function handleTrailerPhase(state: ChunkedBodyState): void {
-  const { buffer } = state;
-  const endBuf = decodeHttpLine(buffer, 0, state.limits.maxTrailerSize);
+  const { buffer, limits } = state;
+  const { maxTrailerSize } = limits;
+  const firstLine = decodeHttpLine(buffer, 0, maxTrailerSize);
 
-  if (!endBuf) {
+  if (!firstLine) {
     return;
   }
 
-  if (endBuf.length === 0) {
+  if (firstLine.length === 0) {
     state.buffer = buffer.subarray(CRLF_LENGTH);
     state.phase = ChunkedBodyPhase.FINISHED;
     return;
   }
 
-  const idx = indexOfDoubleCRLF(buffer);
+  const trailerEndIdx = indexOfDoubleCRLF(buffer);
 
-  if (idx < 0) {
-    if (buffer.length > state.limits.maxTrailerSize) {
+  if (trailerEndIdx < 0) {
+    if (buffer.length > maxTrailerSize) {
       throw new HttpDecodeError({
         code: HttpDecodeErrorCode.TRAILER_TOO_LARGE,
-        message: `Trailer size exceeds maximum allowed of ${state.limits.maxTrailerSize}`,
+        message: `Trailer size exceeds maximum allowed of ${maxTrailerSize}`,
       });
     }
     return;
   }
 
-  const raw = buffer.subarray(0, idx).toString('utf8');
-  const trailers = parseTrailerHeaders(raw, state.limits);
+  const rawTrailers = buffer.subarray(0, trailerEndIdx).toString('utf8');
+  const parsedTrailers = parseTrailerHeaders(rawTrailers, state.limits);
 
   state.phase = ChunkedBodyPhase.FINISHED;
-  state.buffer = buffer.subarray(idx + DOUBLE_CRLF_LENGTH);
+  state.buffer = buffer.subarray(trailerEndIdx + DOUBLE_CRLF_LENGTH);
   state.trailers = {
     ...state.trailers,
-    ...trailers,
+    ...parsedTrailers,
   };
 }
 
