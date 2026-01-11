@@ -83,4 +83,5 @@ export const DEFAULT_CHUNKED_BODY_LIMITS: ChunkedBodyLimits = {
   maxChunkSize: 1 * 1024 * 1024,
   maxChunks: 1024,
   maxTrailers: 32,
+  maxTrailerSize: 8 * 1024,
 } as const;

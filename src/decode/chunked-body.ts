@@ -103,7 +103,7 @@ function indexOfDoubleCRLF(buf: Buffer): number {
   return buf.indexOf(DOUBLE_CRLF);
 }
 
-function parseTrailerHeaders(raw: string): TrailerHeaders {
+function parseTrailerHeaders(raw: string, limits: ChunkedBodyLimits): TrailerHeaders {
   const trailers: TrailerHeaders = {};
   const trimmed = raw.trim();
 
@@ -112,6 +112,13 @@ function parseTrailerHeaders(raw: string): TrailerHeaders {
   }
 
   const lines = trimmed.split(CRLF);
+
+  if (lines.length > limits.maxTrailers) {
+    throw new HttpDecodeError({
+      code: HttpDecodeErrorCode.TRAILER_TOO_MANY,
+      message: `Trailers too many: exceeds limit of ${limits.maxTrailers} count`,
+    });
+  }
 
   for (const line of lines) {
     if (!line.trim()) {
@@ -202,7 +209,7 @@ function handleCRLFPhase(state: ChunkedBodyState): void {
 
 function handleTrailerPhase(state: ChunkedBodyState): void {
   const { buffer } = state;
-  const endBuf = decodeHttpLine(buffer);
+  const endBuf = decodeHttpLine(buffer, 0, state.limits.maxTrailerSize);
 
   if (!endBuf) {
     return;
@@ -217,11 +224,17 @@ function handleTrailerPhase(state: ChunkedBodyState): void {
   const idx = indexOfDoubleCRLF(buffer);
 
   if (idx < 0) {
+    if (buffer.length > state.limits.maxTrailerSize) {
+      throw new HttpDecodeError({
+        code: HttpDecodeErrorCode.TRAILER_TOO_LARGE,
+        message: `Trailer size exceeds maximum allowed of ${state.limits.maxTrailerSize}`,
+      });
+    }
     return;
   }
 
   const raw = buffer.subarray(0, idx).toString('utf8');
-  const trailers = parseTrailerHeaders(raw);
+  const trailers = parseTrailerHeaders(raw, state.limits);
 
   state.phase = ChunkedBodyPhase.FINISHED;
   state.buffer = buffer.subarray(idx + DOUBLE_CRLF_LENGTH);

@@ -92,4 +92,5 @@ export interface ChunkedBodyLimits extends BodyLimits {
   maxChunkSize: number;
   maxChunks: number;
   maxTrailers: number;
+  maxTrailerSize: number;
 }
