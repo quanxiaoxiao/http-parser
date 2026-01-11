@@ -77,6 +77,7 @@ export const DEFAULT_CHUNKED_BODY_LIMITS: ChunkedBodyLimits = {
   maxBodySize: 8 * 1024 * 1024,
   maxReadChunkSize: 64 * 1024,
   maxBodyReadTimeMs: 30_000,
+  maxChunkSizeHexDigits: 8,
 
   maxChunkSize: 1 * 1024 * 1024,
   maxChunks: 1024,
