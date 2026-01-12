@@ -236,11 +236,11 @@ function handleBodyPhase<T extends ChunkedBodyState | FixedLengthBodyState>(
   );
 
   const previousSize = state.bodyState.decodedBodyBytes;
-  const delta = bodyState.decodedBodyBytes - previousSize;
-  if (delta > 0) {
+  const consumed = bodyState.decodedBodyBytes - previousSize;
+  if (consumed > 0) {
     addEvent(state, {
       type: 'body-data',
-      size: delta,
+      size: consumed,
       offset: previousSize,
     });
   }
@@ -260,29 +260,21 @@ function handleBodyPhase<T extends ChunkedBodyState | FixedLengthBodyState>(
   transition(state, HttpDecodePhase.FINISHED);
 }
 
+const PHASE_HANDLERS: Record<HttpDecodePhase, (state: HttpState) => void> = {
+  [HttpDecodePhase.START_LINE]: handleStartLinePhase,
+  [HttpDecodePhase.HEADERS]: handleHeadersPhase,
+  [HttpDecodePhase.BODY_CHUNKED]: (state) => handleBodyPhase(state, decodeChunkedBody),
+  [HttpDecodePhase.BODY_FIXED_LENGTH]: (state) => handleBodyPhase(state, decodeFixedLengthBody),
+  [HttpDecodePhase.FINISHED]: () => {},
+};
+
 function runStateMachine(state: HttpState): void {
   while (state.phase !== HttpDecodePhase.FINISHED) {
-    const previousPhase = state.phase;
-    switch (state.phase) {
-    case HttpDecodePhase.START_LINE:
-      handleStartLinePhase(state);
+    const prev = state.phase;
+    PHASE_HANDLERS[state.phase](state);
+    if (state.phase === prev) {
       break;
-    case HttpDecodePhase.HEADERS:
-      handleHeadersPhase(state);
-      break;
-    case HttpDecodePhase.BODY_CHUNKED:
-      handleBodyPhase(state, decodeChunkedBody);
-      break;
-    case HttpDecodePhase.BODY_FIXED_LENGTH:
-      handleBodyPhase(state, decodeFixedLengthBody);
-      break;
-    case HttpDecodePhase.FINISHED:
-      return;
-    default:
-      throw new Error(`Unknown phase: ${state.phase}`);
     }
-
-    if (state.phase === previousPhase) break;
   }
 }
 
