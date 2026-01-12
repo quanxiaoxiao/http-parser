@@ -34,8 +34,10 @@ function isBodyFinished(state: ChunkedBodyState | FixedLengthBodyState): boolean
     return isFixedLengthBodyFinished(state);
   case 'chunked':
     return isChunkedBodyFinished(state);
-  default:
-    throw new Error(`Unexpected body state: ${JSON.stringify(state)}`);
+  default: {
+    const _exhaustive: never = state; // eslint-disable-line
+    throw new Error('Unreachable');
+  }
   }
 }
 
