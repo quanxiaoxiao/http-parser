@@ -50,7 +50,7 @@ describe('decodeHeaders', () => {
       const result = decodeHeaders(state, input);
 
       assert.strictEqual(result.headers['host'], 'example.com');
-      assert.strictEqual(result.phase, HeadersDecodePhase.DONE);
+      assert.strictEqual(result.phase, HeadersDecodePhase.FINISHED);
       assert.strictEqual(result.receivedBytes, input.length - 2);
       assert.strictEqual(result.buffer.length, 0);
     });
@@ -148,7 +148,7 @@ describe('decodeHeaders', () => {
       state = decodeHeaders(state, Buffer.from('cation/json\r\n\r\n'));
 
       assert.strictEqual(state.headers['content-type'], 'application/json');
-      assert.strictEqual(state.phase, HeadersDecodePhase.DONE);
+      assert.strictEqual(state.phase, HeadersDecodePhase.FINISHED);
     });
 
     it('should preserve previous headers when continuing parsing', () => {
@@ -158,7 +158,7 @@ describe('decodeHeaders', () => {
 
       assert.strictEqual(state.headers['content-type'], 'application/json');
       assert.strictEqual(state.headers['host'], 'example.com');
-      assert.strictEqual(state.phase, HeadersDecodePhase.DONE);
+      assert.strictEqual(state.phase, HeadersDecodePhase.FINISHED);
     });
   });
 
@@ -219,7 +219,7 @@ describe('decodeHeaders', () => {
       const result = decodeHeaders(state, input);
 
       assert.strictEqual(result.headers['content-type'], 'text/plain');
-      assert.strictEqual(result.phase, HeadersDecodePhase.DONE);
+      assert.strictEqual(result.phase, HeadersDecodePhase.FINISHED);
       assert.strictEqual(result.buffer.toString(), 'This is body data');
     });
   });
@@ -260,7 +260,7 @@ describe('decodeHeaders', () => {
   describe('error handling', () => {
     it('should throw error if headers already finished', () => {
       const state = createHeadersState();
-      state.phase = HeadersDecodePhase.DONE;
+      state.phase = HeadersDecodePhase.FINISHED;
       const input = Buffer.from('Host: example.com\r\n');
 
       assert.throws(
@@ -276,7 +276,7 @@ describe('decodeHeaders', () => {
       const state = createHeadersState();
       const result = decodeHeaders(state, Buffer.from('\r\n'));
 
-      assert.strictEqual(result.phase, HeadersDecodePhase.DONE);
+      assert.strictEqual(result.phase, HeadersDecodePhase.FINISHED);
 
       assert.throws(
         () => decodeHeaders(result, Buffer.from('More: data\r\n')),
@@ -632,7 +632,7 @@ describe('decodeHeaders', () => {
 
     const result = decodeHeaders(state, input);
 
-    assert.strictEqual(result.phase, HeadersDecodePhase.DONE);
+    assert.strictEqual(result.phase, HeadersDecodePhase.FINISHED);
     assert.strictEqual(result.headers['content-type'], 'application/json');
     assert.strictEqual(result.headersRaw.length, 1);
   });
@@ -648,7 +648,7 @@ describe('decodeHeaders', () => {
 
     const result = decodeHeaders(state, input);
 
-    assert.strictEqual(result.phase, HeadersDecodePhase.DONE);
+    assert.strictEqual(result.phase, HeadersDecodePhase.FINISHED);
     assert.strictEqual(result.headers['content-type'], 'application/json');
     assert.strictEqual(result.headers['authorization'], 'Bearer token');
     assert.strictEqual(result.headers['accept'], '*/*');
@@ -665,7 +665,7 @@ describe('decodeHeaders', () => {
 
     const result = decodeHeaders(state, input);
 
-    assert.strictEqual(result.phase, HeadersDecodePhase.DONE);
+    assert.strictEqual(result.phase, HeadersDecodePhase.FINISHED);
     assert.ok(Array.isArray(result.headers['set-cookie']));
     assert.deepStrictEqual(result.headers['set-cookie'], ['session=abc123', 'user=john']);
   });
@@ -686,7 +686,7 @@ describe('decodeHeaders', () => {
     // 第三块
     const input3 = Buffer.from('token\r\n\r\n');
     state = decodeHeaders(state, input3);
-    assert.strictEqual(state.phase, HeadersDecodePhase.DONE);
+    assert.strictEqual(state.phase, HeadersDecodePhase.FINISHED);
 
     assert.strictEqual(state.headers['content-type'], 'application/json');
     assert.strictEqual(state.headers['authorization'], 'Bearer token');
@@ -758,7 +758,7 @@ describe('decodeHeaders', () => {
     const input = Buffer.from('Content-Type: application/json\r\n\r\n');
 
     const result = decodeHeaders(state, input);
-    assert.strictEqual(result.phase, HeadersDecodePhase.DONE);
+    assert.strictEqual(result.phase, HeadersDecodePhase.FINISHED);
 
     assert.throws(
       () => decodeHeaders(result, Buffer.from('More: data\r\n')),
@@ -772,7 +772,7 @@ describe('decodeHeaders', () => {
 
     const result = decodeHeaders(state, input);
 
-    assert.strictEqual(result.phase, HeadersDecodePhase.DONE);
+    assert.strictEqual(result.phase, HeadersDecodePhase.FINISHED);
     assert.deepStrictEqual(result.headers, {});
     assert.strictEqual(result.headersRaw.length, 0);
   });

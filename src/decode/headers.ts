@@ -27,7 +27,7 @@ function checkHeaderLimits(state: HeadersState, lineLength: number) {
 
 export enum HeadersDecodePhase {
   LINE = 'line',
-  DONE = 'done',
+  FINISHED = 'finished',
 }
 
 export function decodeHeaderLine(headerBuf: Buffer, limits: HeaderLimits): [string, string] {
@@ -128,7 +128,7 @@ export function decodeHeaders(
   prev: HeadersState,
   input: Buffer,
 ): HeadersState {
-  if (prev.phase === HeadersDecodePhase.DONE) {
+  if (prev.phase === HeadersDecodePhase.FINISHED) {
     throw new Error('Headers parsing already finished');
   }
 
@@ -142,7 +142,7 @@ export function decodeHeaders(
   let offset = 0;
 
   while (offset < next.buffer.length) {
-    if (next.phase === HeadersDecodePhase.DONE) {
+    if (next.phase === HeadersDecodePhase.FINISHED) {
       break;
     }
     switch (next.phase) {
@@ -181,7 +181,7 @@ export function decodeHeaders(
       offset += lineLength;
 
       if (line.length === 0) {
-        next.phase = HeadersDecodePhase.DONE;
+        next.phase = HeadersDecodePhase.FINISHED;
         break;
       }
 
@@ -193,7 +193,7 @@ export function decodeHeaders(
       next.phase = HeadersDecodePhase.LINE;
       break;
     }
-    case HeadersDecodePhase.DONE:
+    case HeadersDecodePhase.FINISHED:
       next.buffer = next.buffer.subarray(offset);
       return next;
     default:
@@ -206,5 +206,5 @@ export function decodeHeaders(
 }
 
 export function isHeadersFinished(state: HeadersState) {
-  return state.phase === HeadersDecodePhase.DONE;
+  return state.phase === HeadersDecodePhase.FINISHED;
 }
