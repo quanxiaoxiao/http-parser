@@ -17,18 +17,14 @@ const EMPTY_BUFFER = Buffer.alloc(0);
 
 type HttpDecodeMode = 'request' | 'response';
 
-export type TransitionResult =
-  | { type: 'need-more-data' }
-  | { type: 'stay' }
-  | { type: 'transition'; next: HttpDecodePhase }
-  | { type: 'finish' };
-
 export type HttpDecodeEvent =
-  | { type: 'phase-enter'; phase: HttpDecodePhase }
+  | { type: 'phase-enter'; phase: HttpDecodePhase, reason?: string; value?: number; limits?: Record<string, number> }
   | { type: 'start-line-complete'; raw: string }
-  | { type: 'headers-lines'; headersRaw: string[] }
-  | { type: 'headers-complete'; headers: Headers }
-  | { type: 'body-chunk'; size: number }
+  | { type: 'start-line-parsed'; method?: string; path?: string; version: number; statusCode?: number; statusText?: string }
+  | { type: 'header-line'; name: string; value: string; index: number; }
+  | { type: 'headers-complete'; count: number }
+  | { type: 'headers-normalized'; headers: Headers }
+  | { type: 'body-data'; size: number; offset: number }
   | { type: 'body-complete'; totalSize: number }
   | { type: 'message-complete' };
 
@@ -73,6 +69,26 @@ function transition(state: HttpState, next: HttpDecodePhase): void {
     addEvent(state, {
       type: 'message-complete',
     });
+  }
+}
+
+function determineBodyPhase(state: HttpState, headersState: HeadersState): void {
+  const { headers } = headersState;
+
+  if (isChunked(headers)) {
+    state.bodyState = createChunkedBodyState();
+    transition(state, HttpDecodePhase.BODY_CHUNKED);
+    return;
+  }
+
+  const contentLengthValue = getHeaderValue(headers, 'content-length')?.[0];
+  const contentLength = contentLengthValue ? parseInteger(contentLengthValue) : 0;
+
+  if (contentLength > 0) {
+    state.bodyState = createFixedLengthBodyState(contentLength);
+    transition(state, HttpDecodePhase.BODY_FIXED_LENGTH);
+  } else {
+    transition(state, HttpDecodePhase.FINISHED);
   }
 }
 
@@ -153,43 +169,33 @@ function handleStartLinePhase(state: HttpState): void {
     raw: state.startLine.raw,
   });
 
+  addEvent(state, {
+    type: 'start-line-parsed',
+    version: state.startLine.version,
+    path: state.startLine.path,
+    method: state.startLine.method,
+  });
+
   transition(state, HttpDecodePhase.HEADERS);
-}
-
-function determineBodyPhase(state: HttpState, headersState: HeadersState): void {
-  const { headers } = headersState;
-
-  if (isChunked(headers)) {
-    state.bodyState = createChunkedBodyState();
-    transition(state, HttpDecodePhase.BODY_CHUNKED);
-    return;
-  }
-
-  const contentLengthValue = getHeaderValue(headers, 'content-length')?.[0];
-  const contentLength = contentLengthValue ? parseInteger(contentLengthValue) : 0;
-
-  if (contentLength > 0) {
-    state.bodyState = createFixedLengthBodyState(contentLength);
-    transition(state, HttpDecodePhase.BODY_FIXED_LENGTH);
-  } else {
-    transition(state, HttpDecodePhase.FINISHED);
-  }
 }
 
 function handleHeadersPhase(state: HttpState): void {
   if (!state.headersState) {
     state.headersState = createHeadersState(DEFAULT_HEADER_LIMITS);
   }
-  const headersState = decodeHeaders(state.headersState!, state.buffer);
+  const prevLineCount = state.headersState.rawHeaders.length;
+  state.headersState = decodeHeaders(state.headersState!, state.buffer);
 
-  const newLines: string[] = headersState.headersRaw.slice(state.headersState.headersRaw.length);
-  if (newLines.length > 0) {
+  for (let i = prevLineCount; i < state.headersState.rawHeaders.length; i++) {
+    const [headerName, headerValue] = state.headersState.rawHeaders[i];
+
     addEvent(state, {
-      type: 'headers-lines',
-      headersRaw: newLines,
+      type: 'header-line',
+      name: headerName,
+      value: headerValue,
+      index: i,
     });
   }
-  state.headersState = headersState;
 
   if (!isHeadersFinished(state.headersState)) {
     state.buffer = EMPTY_BUFFER;
@@ -198,16 +204,18 @@ function handleHeadersPhase(state: HttpState): void {
 
   addEvent(state, {
     type: 'headers-complete',
+    count: state.headersState.rawHeaders.length,
+  });
+
+  addEvent(state, {
+    type: 'headers-normalized',
     headers: state.headersState.headers,
   });
 
-  determineBodyPhase(state, headersState);
+  determineBodyPhase(state, state.headersState);
 
-  state.buffer = headersState.buffer;
-  state.headersState = {
-    ...headersState,
-    buffer: EMPTY_BUFFER,
-  };
+  state.buffer = state.headersState.buffer;
+  state.headersState.buffer = EMPTY_BUFFER;
 }
 
 function handleBodyPhase<T extends ChunkedBodyState | FixedLengthBodyState>(
@@ -223,8 +231,9 @@ function handleBodyPhase<T extends ChunkedBodyState | FixedLengthBodyState>(
   const delta = bodyState.decodedBodyBytes - previousSize;
   if (delta > 0) {
     addEvent(state, {
-      type: 'body-chunk',
+      type: 'body-data',
       size: delta,
+      offset: previousSize,
     });
   }
   if (!isBodyFinished(bodyState)) {

@@ -95,8 +95,9 @@ export function decodeHeaderLine(headerBuf: Buffer, limits: HeaderLimits): [stri
 
 export interface HeadersState {
   buffer: Buffer | null;
-  headers: Headers;
   phase: HeadersDecodePhase;
+  headers: Headers;
+  rawHeaders: [name: string, value: string],
   headersRaw: string[];
   receivedBytes: number;
   limits: HeaderLimits,
@@ -107,6 +108,7 @@ export function createHeadersState(limits: HeaderLimits = DEFAULT_HEADER_LIMITS)
     buffer: Buffer.alloc(0),
     headers: {},
     headersRaw: [],
+    rawHeaders: [],
     phase: HeadersDecodePhase.LINE,
     receivedBytes: 0,
     limits,
@@ -115,6 +117,7 @@ export function createHeadersState(limits: HeaderLimits = DEFAULT_HEADER_LIMITS)
 
 function addHeader(state: HeadersState, name: string, value: string): void {
   const existing = state.headers[name];
+  state.rawHeaders.push([name, value]);
   if (existing === undefined) {
     state.headers[name] = value;
   } else if (Array.isArray(existing)) {
@@ -137,6 +140,7 @@ export function decodeHeaders(
     buffer: prev.buffer.length === 0 ? input : Buffer.concat([prev.buffer, input]),
     headers: { ...prev.headers },
     headersRaw: [...prev.headersRaw],
+    rawHeaders: [...prev.rawHeaders],
   };
 
   let offset = 0;

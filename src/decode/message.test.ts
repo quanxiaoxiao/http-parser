@@ -382,12 +382,12 @@ describe('HTTP Decoder', () => {
       let state = decodeRequest(null, header);
 
       state = decodeRequest(state, Buffer.from('12345'));
-      const chunk1Events = state.events.filter(e => e.type === 'body-chunk');
+      const chunk1Events = state.events.filter(e => e.type === 'body-data');
       assert.strictEqual(chunk1Events.length, 1);
       assert.strictEqual(chunk1Events[0].size, 5);
 
       state = decodeRequest(state, Buffer.from('67890'));
-      const chunk2Events = state.events.filter(e => e.type === 'body-chunk');
+      const chunk2Events = state.events.filter(e => e.type === 'body-data');
       assert.strictEqual(chunk2Events.length, 1);
       assert.strictEqual(chunk2Events[0].size, 5);
 
@@ -404,7 +404,7 @@ describe('HTTP Decoder', () => {
       let state = decodeRequest(null, header);
 
       state = decodeRequest(state, Buffer.from('3\r\nabc\r\n'));
-      const chunkEvents = state.events.filter(e => e.type === 'body-chunk');
+      const chunkEvents = state.events.filter(e => e.type === 'body-data');
       assert.ok(chunkEvents.length > 0);
 
       state = decodeRequest(state, Buffer.from('4\r\ndefg\r\n0\r\n\r\n'));
