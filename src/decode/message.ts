@@ -47,7 +47,7 @@ function addEvent(state: HttpState, event: HttpDecodeEvent): void {
   state.events.push(event);
 }
 
-function cloneState(prev: HttpState): HttpState {
+function forkState(prev: HttpState): HttpState {
   return {
     ...prev,
     events: [],
@@ -293,7 +293,7 @@ function decodeHttp(
     throw new Error(`Decoding encountered error: "${prev.error.message}"`);
   }
 
-  const state = cloneState(prev);
+  const state = forkState(prev);
   if (input.length > 0) {
     state.buffer = Buffer.concat([state.buffer, input]);
   }
