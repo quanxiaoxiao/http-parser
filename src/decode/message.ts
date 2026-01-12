@@ -56,6 +56,14 @@ function forkState(prev: HttpState): HttpState {
   };
 }
 
+function takeBuffer<T extends { buffer: Buffer }>(
+  from: T,
+  to: { buffer: Buffer },
+) {
+  to.buffer = from.buffer;
+  from.buffer = EMPTY_BUFFER;
+}
+
 function transition(state: HttpState, next: HttpDecodePhase): void {
   if (state.phase === next) {
     return;
@@ -213,9 +221,7 @@ function handleHeadersPhase(state: HttpState): void {
   });
 
   determineBodyPhase(state, state.headersState);
-
-  state.buffer = state.headersState.buffer;
-  state.headersState.buffer = EMPTY_BUFFER;
+  takeBuffer(state.headersState, state);
 }
 
 function handleBodyPhase<T extends ChunkedBodyState | FixedLengthBodyState>(
@@ -247,11 +253,8 @@ function handleBodyPhase<T extends ChunkedBodyState | FixedLengthBodyState>(
     totalSize: bodyState.decodedBodyBytes,
   });
 
-  state.bodyState = {
-    ...bodyState,
-    buffer: EMPTY_BUFFER,
-  };
-  state.buffer = bodyState.buffer;
+  state.bodyState = bodyState;
+  takeBuffer(state.bodyState, state);
   transition(state, HttpDecodePhase.FINISHED);
 }
 
