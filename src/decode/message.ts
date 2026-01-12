@@ -175,14 +175,23 @@ function handleStartLinePhase(state: HttpState): void {
     raw: state.startLine.raw!,
   });
 
-  /*
-  addEvent(state, {
-    type: 'start-line-parsed',
-    version: state.startLine.version!,
-    path: state.startLine.path!,
-    method: state.startLine.method!,
-  });
- */
+  if (state.mode === 'request') {
+    const requestStartLine = state.startLine as RequestStartLine;
+    addEvent(state, {
+      type: 'start-line-parsed',
+      version: requestStartLine.version!,
+      path: requestStartLine.path!,
+      method: requestStartLine.method!,
+    });
+  } else {
+    const responseStartLine = state.startLine as ResponseStartLine;
+    addEvent(state, {
+      type: 'start-line-parsed',
+      version: responseStartLine.version!,
+      statusCode: responseStartLine.statusCode!,
+      statusText: responseStartLine.statusText!,
+    });
+  }
 
   transition(state, HttpDecodePhase.HEADERS);
 }
