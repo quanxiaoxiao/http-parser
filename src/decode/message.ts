@@ -76,8 +76,8 @@ function transition(state: HttpState, next: HttpDecodePhase): void {
   }
 }
 
-function determineBodyPhase(state: HttpState, headersState: HeadersState): void {
-  const { headers } = headersState;
+function decideBodyStrategy(state: HttpState): void {
+  const { headers } = state.headersState;
 
   if (isChunked(headers)) {
     state.bodyState = createChunkedBodyState();
@@ -229,7 +229,7 @@ function handleHeadersPhase(state: HttpState): void {
     headers: state.headersState.headers,
   });
 
-  determineBodyPhase(state, state.headersState);
+  decideBodyStrategy(state);
   takeBuffer(state.headersState, state);
 }
 
