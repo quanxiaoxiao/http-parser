@@ -259,28 +259,28 @@ export function decodeChunkedBody(
     throw new Error('Chunked decoding already finished');
   }
 
-  const state: ChunkedBodyState = {
+  const next: ChunkedBodyState = {
     ...prev,
     buffer: prev.buffer.length > 0 ? Buffer.concat([prev.buffer, input]) : input,
     chunks: [...prev.chunks],
     trailers: { ...prev.trailers },
   };
 
-  while (state.phase !== ChunkedBodyPhase.FINISHED) {
-    const prevPhase = state.phase;
-    const handler = phaseHandlers[state.phase];
+  while (next.phase !== ChunkedBodyPhase.FINISHED) {
+    const prevPhase = next.phase;
+    const handler = phaseHandlers[next.phase];
     if (!handler) {
-      throw new Error(`Unknown phase: ${state.phase}`);
+      throw new Error(`Unknown phase: ${next.phase}`);
     }
 
-    handler(state);
+    handler(next);
 
-    if (state.phase === prevPhase) {
+    if (next.phase === prevPhase) {
       break;
     }
   }
 
-  return state;
+  return next;
 }
 
 export function isChunkedBodyFinished(state: ChunkedBodyState) {
