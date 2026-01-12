@@ -249,6 +249,7 @@ const phaseHandlers: Record<ChunkedBodyPhase, (state: ChunkedBodyState) => void>
   [ChunkedBodyPhase.DATA]: handleDataPhase,
   [ChunkedBodyPhase.CRLF]: handleCRLFPhase,
   [ChunkedBodyPhase.TRAILER]: handleTrailerPhase,
+  [ChunkedBodyPhase.FINISHED]: () => {},
 } as const;
 
 export function decodeChunkedBody(

@@ -94,10 +94,10 @@ export function decodeHeaderLine(headerBuf: Buffer, limits: HeaderLimits): [stri
 }
 
 export interface HeadersState {
-  buffer: Buffer | null;
+  buffer: Buffer;
   phase: HeadersDecodePhase;
   headers: Headers;
-  rawHeaders: [name: string, value: string],
+  rawHeaders: Array<[name: string, value: string]>,
   headersRaw: string[];
   receivedBytes: number;
   limits: HeaderLimits,
@@ -107,8 +107,8 @@ export function createHeadersState(limits: HeaderLimits = DEFAULT_HEADER_LIMITS)
   return {
     buffer: Buffer.alloc(0),
     headers: {},
-    headersRaw: [],
     rawHeaders: [],
+    headersRaw: [],
     phase: HeadersDecodePhase.LINE,
     receivedBytes: 0,
     limits,
@@ -197,9 +197,6 @@ export function decodeHeaders(
       next.phase = HeadersDecodePhase.LINE;
       break;
     }
-    case HeadersDecodePhase.FINISHED:
-      next.buffer = next.buffer.subarray(offset);
-      return next;
     default:
       throw new Error('Invalid headers parse state');
     }

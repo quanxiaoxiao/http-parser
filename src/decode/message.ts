@@ -29,16 +29,10 @@ export type HttpDecodeEvent =
   | { type: 'message-complete' };
 
 function isBodyFinished(state: ChunkedBodyState | FixedLengthBodyState): boolean {
-  switch (state.type) {
-  case 'fixed':
-    return isFixedLengthBodyFinished(state);
-  case 'chunked':
-    return isChunkedBodyFinished(state);
-  default: {
-    const _exhaustive: never = state; // eslint-disable-line
-    throw new Error('Unreachable');
+  if (state.type === 'fixed') {
+    return isFixedLengthBodyFinished(state as FixedLengthBodyState);
   }
-  }
+  return isChunkedBodyFinished(state as ChunkedBodyState);
 }
 
 function formatError(error: unknown): string {
@@ -94,11 +88,13 @@ function determineBodyPhase(state: HttpState, headersState: HeadersState): void 
   const contentLengthValue = getHeaderValue(headers, 'content-length')?.[0];
   const contentLength = contentLengthValue ? parseInteger(contentLengthValue) : 0;
 
-  if (contentLength > 0) {
+  // validate content-length
+
+  if (contentLength === 0 || contentLength == null) {
+    transition(state, HttpDecodePhase.FINISHED);
+  } else {
     state.bodyState = createFixedLengthBodyState(contentLength);
     transition(state, HttpDecodePhase.BODY_FIXED_LENGTH);
-  } else {
-    transition(state, HttpDecodePhase.FINISHED);
   }
 }
 
@@ -176,15 +172,17 @@ function handleStartLinePhase(state: HttpState): void {
 
   addEvent(state, {
     type: 'start-line-complete',
-    raw: state.startLine.raw,
+    raw: state.startLine.raw!,
   });
 
+  /*
   addEvent(state, {
     type: 'start-line-parsed',
-    version: state.startLine.version,
-    path: state.startLine.path,
-    method: state.startLine.method,
+    version: state.startLine.version!,
+    path: state.startLine.path!,
+    method: state.startLine.method!,
   });
+ */
 
   transition(state, HttpDecodePhase.HEADERS);
 }
@@ -197,12 +195,12 @@ function handleHeadersPhase(state: HttpState): void {
   state.headersState = decodeHeaders(state.headersState!, state.buffer);
 
   for (let i = prevLineCount; i < state.headersState.rawHeaders.length; i++) {
-    const [headerName, headerValue] = state.headersState.rawHeaders[i];
+    const headerLine = state.headersState.rawHeaders[i]!;
 
     addEvent(state, {
       type: 'header-line',
-      name: headerName,
-      value: headerValue,
+      name: headerLine[0],
+      value: headerLine[1],
       index: i,
     });
   }
@@ -235,7 +233,7 @@ function handleBodyPhase<T extends ChunkedBodyState | FixedLengthBodyState>(
     state.buffer,
   );
 
-  const previousSize = state.bodyState.decodedBodyBytes;
+  const previousSize = state.bodyState!.decodedBodyBytes;
   const consumed = bodyState.decodedBodyBytes - previousSize;
   if (consumed > 0) {
     addEvent(state, {

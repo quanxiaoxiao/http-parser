@@ -10,7 +10,7 @@ export enum FixedLengthBodyPhase {
 export type FixedLengthBodyState = {
   type: BodyType;
   phase: FixedLengthBodyPhase,
-  buffer: Buffer | null;
+  buffer: Buffer;
   chunks: Buffer[];
   decodedBodyBytes: number;
   remainingBytes: number;

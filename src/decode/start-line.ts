@@ -25,7 +25,7 @@ function createErrorPreview(str: string, maxLength: number = ERROR_PREVIEW_LENGT
     : str;
 }
 
-function validateInput(str: string, type: 'request' | 'response'): string {
+function validateInput(str: string, type: 'request' | 'response') {
   if (!str || typeof str !== 'string') {
     throw new TypeError(`Invalid input: ${type} line must be a non-empty string`);
   }
@@ -60,7 +60,7 @@ export function decodeRequestStartLine(
   const [, method, path, versionStr] = matches;
   const version = validateHttpVersion(versionStr!);
 
-  if (path.length > limits.maxUriBytes) {
+  if (path!.length > limits.maxUriBytes) {
     throw new HttpDecodeError({
       code: HttpDecodeErrorCode.URI_TOO_LARGE,
       message: `Request start line URI too large: exceeds limit of ${limits.maxUriBytes} bytes`,
