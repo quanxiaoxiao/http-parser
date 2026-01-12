@@ -2,7 +2,7 @@ import { Buffer } from 'node:buffer';
 
 import { HttpDecodeError, HttpDecodeErrorCode } from '../errors.js';
 import { isChunked } from '../headers/header-predicates.js';
-import { getHeaderValue } from '../headers/headers.js';
+import { getHeaderValues } from '../headers/headers.js';
 import { DEFAULT_HEADER_LIMITS, DEFAULT_START_LINE_LIMITS, HttpDecodePhase } from '../specs.js';
 import type { Headers, RequestStartLine, ResponseStartLine } from '../types.js';
 import { parseInteger } from '../utils/number.js';
@@ -85,7 +85,7 @@ function decideBodyStrategy(state: HttpState): void {
     return;
   }
 
-  const contentLengthValue = getHeaderValue(headers, 'content-length')?.[0];
+  const contentLengthValue = getHeaderValues(headers, 'content-length')?.[0];
   const contentLength = contentLengthValue ? parseInteger(contentLengthValue) : 0;
 
   // validate content-length

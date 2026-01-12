@@ -1,4 +1,4 @@
-import { getHeaderValue } from '../headers/headers.js';
+import { getHeaderValues } from '../headers/headers.js';
 import { type HttpMessage } from '../types.js';
 
 export function isWebSocketRequest(httpMessage: HttpMessage): boolean {
@@ -6,12 +6,12 @@ export function isWebSocketRequest(httpMessage: HttpMessage): boolean {
     return false;
   }
 
-  const connectionValue = getHeaderValue(httpMessage.headers, 'connection');
+  const connectionValue = getHeaderValues(httpMessage.headers, 'connection');
   if (!connectionValue?.[0]) {
     return false;
   }
 
-  const upgradeValue = getHeaderValue(httpMessage.headers, 'upgrade');
+  const upgradeValue = getHeaderValues(httpMessage.headers, 'upgrade');
   if (!upgradeValue?.[0]) {
     return false;
   }

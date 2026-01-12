@@ -1,9 +1,9 @@
 import type { Headers, NormalizedHeaders } from '../types.js';
 import { parseInteger } from '../utils/number.js';
-import { getHeaderValue } from './headers.js';
+import { getHeaderValues } from './headers.js';
 
 export function isChunked(headers: Headers | NormalizedHeaders): boolean {
-  const te = getHeaderValue(headers, 'transfer-encoding');
+  const te = getHeaderValues(headers, 'transfer-encoding');
   if (!te) {
     return false;
   }
@@ -12,7 +12,7 @@ export function isChunked(headers: Headers | NormalizedHeaders): boolean {
 }
 
 export function hasBody(headers: Headers | NormalizedHeaders): boolean {
-  const contentLengthValue = getHeaderValue(headers, 'content-length');
+  const contentLengthValue = getHeaderValues(headers, 'content-length');
   if (contentLengthValue) {
     const length = parseInteger(contentLengthValue[0]!.trim());
     if (length != null && length > 0) {
@@ -24,7 +24,7 @@ export function hasBody(headers: Headers | NormalizedHeaders): boolean {
 }
 
 export function hasZeroContentLength(headers: Headers | NormalizedHeaders): boolean {
-  const cl = getHeaderValue(headers, 'content-length');
+  const cl = getHeaderValues(headers, 'content-length');
   if (!cl) {
     return false;
   }

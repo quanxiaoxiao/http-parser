@@ -4,44 +4,44 @@ import { describe, it } from 'node:test';
 import {
   appendHeader,
   deleteHeader,
-  getHeaderValue,
+  getHeaderValues,
   setHeader,
 } from './headers.js';
 
-describe('getHeaderValue', () => {
+describe('getHeaderValues', () => {
   it('应该返回存在的 header 值（字符串）', () => {
     const headers = { 'content-type': 'application/json' };
-    const result = getHeaderValue(headers, 'content-type');
+    const result = getHeaderValues(headers, 'content-type');
     assert.deepStrictEqual(result, ['application/json']);
   });
 
   it('应该返回存在的 header 值（数组）', () => {
     const headers = { 'set-cookie': ['cookie1=value1', 'cookie2=value2'] };
-    const result = getHeaderValue(headers, 'set-cookie');
+    const result = getHeaderValues(headers, 'set-cookie');
     assert.deepStrictEqual(result, ['cookie1=value1', 'cookie2=value2']);
   });
 
   it('应该对 key 进行大小写不敏感处理', () => {
     const headers = { 'content-type': 'text/html' };
-    const result = getHeaderValue(headers, 'Content-Type');
+    const result = getHeaderValues(headers, 'Content-Type');
     assert.deepStrictEqual(result, ['text/html']);
   });
 
   it('当 header 不存在时应该返回 undefined', () => {
     const headers = { 'content-type': 'application/json' };
-    const result = getHeaderValue(headers, 'authorization');
+    const result = getHeaderValues(headers, 'authorization');
     assert.strictEqual(result, undefined);
   });
 
   it('当 header 值为 null 时应该返回 undefined', () => {
     const headers = { 'x-custom': null };
-    const result = getHeaderValue(headers, 'x-custom');
+    const result = getHeaderValues(headers, 'x-custom');
     assert.strictEqual(result, undefined);
   });
 
   it('当 header 值为空数组时应该返回 undefined', () => {
     const headers = { 'x-empty': [] };
-    const result = getHeaderValue(headers, 'x-empty');
+    const result = getHeaderValues(headers, 'x-empty');
     assert.strictEqual(result, undefined);
   });
 });
@@ -163,17 +163,17 @@ describe('集成测试', () => {
     appendHeader(headers, 'Set-Cookie', 'user=john');
 
     // 获取值
-    assert.deepStrictEqual(getHeaderValue(headers, 'content-type'), [
+    assert.deepStrictEqual(getHeaderValues(headers, 'content-type'), [
       'application/json',
     ]);
-    assert.deepStrictEqual(getHeaderValue(headers, 'set-cookie'), [
+    assert.deepStrictEqual(getHeaderValues(headers, 'set-cookie'), [
       'session=abc',
       'user=john',
     ]);
 
     // 删除 header
     assert.strictEqual(deleteHeader(headers, 'Authorization'), true);
-    assert.strictEqual(getHeaderValue(headers, 'authorization'), undefined);
+    assert.strictEqual(getHeaderValues(headers, 'authorization'), undefined);
 
     // 验证最终状态
     assert.deepStrictEqual(headers, {

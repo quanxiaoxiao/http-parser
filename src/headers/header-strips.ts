@@ -1,6 +1,6 @@
 import type { NormalizedHeaders } from '../types.js';
 import { validateConnectionHeader } from './connection-header.js';
-import { getHeaderValue } from './headers.js';
+import { getHeaderValues } from './headers.js';
 
 const HOP_BY_HOP_HEADERS = [
   'connection',
@@ -37,7 +37,7 @@ export function stripFramingHeaders(headers: NormalizedHeaders): void {
 }
 
 export function sanitizeHeaders(headers: NormalizedHeaders): void {
-  const connectionValue = getHeaderValue(headers, 'connection');
+  const connectionValue = getHeaderValues(headers, 'connection');
   if (connectionValue) {
     const validation = validateConnectionHeader(connectionValue.join(','));
     stripHopByHopHeaders(headers);

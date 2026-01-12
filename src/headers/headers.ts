@@ -1,6 +1,6 @@
 import type { Headers, NormalizedHeaders } from '../types.js';
 
-export function getHeaderValue(
+export function getHeaderValues(
   headers: NormalizedHeaders | Headers,
   key: string,
 ): string[] | undefined {
