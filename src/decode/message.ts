@@ -177,6 +177,11 @@ export interface HttpState {
   phase: HttpDecodePhase;
   buffer: Buffer;
   error?: Error,
+  parsing: {
+    startLine: RequestStartLine | ResponseStartLine | null;
+    headers: HeadersState | null;
+    body: ChunkedBodyState | FixedLengthBodyState | null;
+  },
   startLine: RequestStartLine | ResponseStartLine | null;
   headersState: HeadersState | null;
   bodyState: ChunkedBodyState | FixedLengthBodyState | null;
@@ -206,6 +211,11 @@ export function createHttpState(messageType: 'request' | 'response'): HttpState 
     buffer: EMPTY_BUFFER,
     startLine: null,
     headersState: null,
+    parsing: {
+      startLine: null,
+      headers: null,
+      body: null,
+    },
     bodyState: null,
     events: [],
   };
