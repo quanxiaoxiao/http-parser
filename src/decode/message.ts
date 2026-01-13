@@ -14,8 +14,6 @@ import { decodeRequestStartLine, decodeResponseStartLine } from './start-line.js
 const CRLF_LENGTH = 2;
 const EMPTY_BUFFER = Buffer.alloc(0);
 
-type HttpDecodeMode = 'request' | 'response';
-
 interface BodyStrategy {
   type: 'chunked' | 'fixed' | 'none';
   length?: number;
@@ -166,7 +164,7 @@ export function decideBodyStrategy(state: HttpState): BodyStrategy {
 }
 
 export interface HttpState {
-  mode: HttpDecodeMode,
+  readonly messageType: 'request' | 'response';
   phase: HttpDecodePhase;
   buffer: Buffer;
   error?: Error,
@@ -177,16 +175,16 @@ export interface HttpState {
 }
 
 export interface HttpRequestState extends HttpState {
-  mode: 'request',
+  messageType: 'request',
   startLine: RequestStartLine | null;
 }
 
 export interface HttpResponseState extends HttpState {
-  mode: 'response',
+  messageType: 'response',
   startLine: ResponseStartLine | null;
 }
 
-export function createHttpState(mode: HttpDecodeMode): HttpState {
+export function createHttpState(messageType: 'request' | 'response'): HttpState {
   return {
     phase: HttpDecodePhase.START_LINE,
     buffer: EMPTY_BUFFER,
@@ -194,7 +192,7 @@ export function createHttpState(mode: HttpDecodeMode): HttpState {
     headersState: null,
     bodyState: null,
     events: [],
-    mode,
+    messageType,
   };
 };
 
@@ -207,7 +205,7 @@ export function createResponseState(): HttpResponseState {
 }
 
 function handleStartLinePhase(state: HttpState): void {
-  const parseLineFn = state.mode === 'request'
+  const parseLineFn = state.messageType === 'request'
     ? decodeRequestStartLine
     : decodeResponseStartLine;
   let lineBuf: Buffer | null;
@@ -242,7 +240,7 @@ function handleStartLinePhase(state: HttpState): void {
     raw: state.startLine.raw!,
   });
 
-  if (state.mode === 'request') {
+  if (state.messageType === 'request') {
     const requestStartLine = state.startLine as RequestStartLine;
     addEvent(state, {
       type: 'start-line-parsed',

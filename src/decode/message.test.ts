@@ -344,7 +344,7 @@ describe('HTTP Decoder', () => {
     test('should correctly initialize request state', () => {
       const state = createRequestState();
 
-      assert.strictEqual(state.mode, 'request');
+      assert.strictEqual(state.messageType, 'request');
       assert.strictEqual(state.phase, HttpDecodePhase.START_LINE);
       assert.strictEqual(state.startLine, null);
       assert.strictEqual(state.headersState, null);
@@ -355,7 +355,7 @@ describe('HTTP Decoder', () => {
     test('should correctly initialize response state', () => {
       const state = createResponseState();
 
-      assert.strictEqual(state.mode, 'response');
+      assert.strictEqual(state.messageType, 'response');
       assert.strictEqual(state.phase, HttpDecodePhase.START_LINE);
     });
 
