@@ -12,6 +12,16 @@ export enum HeadersDecodePhase {
   FINISHED = 'finished',
 }
 
+export interface HeadersState {
+  buffer: Buffer;
+  phase: HeadersDecodePhase;
+  headers: Headers;
+  rawHeaders: Array<[name: string, value: string]>,
+  headersRaw: string[];
+  receivedBytes: number;
+  limits: HeaderLimits,
+}
+
 function checkHeaderLimits(state: HeadersState, lineLength: number) {
   state.receivedBytes += lineLength;
 
@@ -93,21 +103,9 @@ export function decodeHeaderLine(headerBuf: Buffer, limits: HeaderLimits): [stri
   return [name.toLowerCase(), value];
 }
 
-export interface HeadersState {
-  buffer: Buffer;
-  phase: HeadersDecodePhase;
-  consumed: number;
-  headers: Headers;
-  rawHeaders: Array<[name: string, value: string]>,
-  headersRaw: string[];
-  receivedBytes: number;
-  limits: HeaderLimits,
-}
-
 export function createHeadersState(limits: HeaderLimits = DEFAULT_HEADER_LIMITS): HeadersState {
   return {
     buffer: Buffer.alloc(0),
-    consumed: 0,
     headers: {},
     rawHeaders: [],
     headersRaw: [],
@@ -129,6 +127,62 @@ function addHeader(state: HeadersState, name: string, value: string): void {
   }
 }
 
+function processHeaderLine(
+  state: HeadersState,
+  buffer: Buffer,
+  offset: number,
+): { offset: number; shouldContinue: boolean } {
+  let line;
+  try {
+    line = decodeHttpLine(
+      buffer.subarray(offset),
+      0,
+      state.limits.maxHeaderLineBytes,
+    );
+  } catch (error) {
+    if (error instanceof HttpDecodeError) {
+      if (error.code === HttpDecodeErrorCode.LINE_TOO_LARGE) {
+        throw new HttpDecodeError({
+          code: HttpDecodeErrorCode.HEADER_LINE_TOO_LARGE,
+          message: `HTTP header line too large: exceeds limit of ${state.limits.maxHeaderLineBytes} bytes`,
+        });
+      }
+      throw new HttpDecodeError({
+        code: HttpDecodeErrorCode.INVALID_HEADER,
+        message: error.message,
+      });
+    }
+    throw error;
+  }
+
+  if (!line) {
+    const remainingBytes = buffer.length - offset;
+    if (state.receivedBytes + remainingBytes > state.limits.maxHeaderBytes) {
+      throw new HttpDecodeError({
+        code: HttpDecodeErrorCode.HEADER_TOO_LARGE,
+        message: `Headers too large: exceeds limit of ${state.limits.maxHeaderBytes} bytes`,
+      });
+    }
+    return { offset, shouldContinue: false };
+  }
+
+  const lineLength = line.length + CRLF_LENGTH;
+  const newOffset = offset + lineLength;
+
+  if (line.length === 0) {
+    state.phase = HeadersDecodePhase.FINISHED;
+    return { offset: newOffset, shouldContinue: false };
+  }
+
+  checkHeaderLimits(state, lineLength);
+
+  const [headerName, headerValue] = decodeHeaderLine(line, state.limits);
+  addHeader(state, headerName, headerValue);
+  state.headersRaw.push(line.toString('ascii'));
+
+  return { offset: newOffset, shouldContinue: true };
+}
+
 export function decodeHeaders(
   prev: HeadersState,
   input: Buffer,
@@ -144,64 +198,18 @@ export function decodeHeaders(
 
   let offset = 0;
 
-  while (offset < next.buffer.length) {
-    if (next.phase === HeadersDecodePhase.FINISHED) {
+  while (offset < next.buffer.length && next.phase !== HeadersDecodePhase.FINISHED) {
+    const result = processHeaderLine(next, next.buffer, offset);
+    offset = result.offset;
+    if (!result.shouldContinue) {
       break;
-    }
-    switch (next.phase) {
-    case HeadersDecodePhase.LINE: {
-      let line;
-      try {
-        line = decodeHttpLine(next.buffer.subarray(offset), 0, next.limits.maxHeaderLineBytes);
-      } catch (error) {
-        if (error instanceof HttpDecodeError) {
-          if (error.code === HttpDecodeErrorCode.LINE_TOO_LARGE) {
-            throw new HttpDecodeError({
-              code: HttpDecodeErrorCode.HEADER_LINE_TOO_LARGE,
-              message: `HTTP header line too large: exceeds limit of ${next.limits.maxHeaderLineBytes} bytes`,
-            });
-          }
-          throw new HttpDecodeError({
-            code: HttpDecodeErrorCode.INVALID_HEADER,
-            message: error.message,
-          });
-        }
-        throw error;
-      }
-      if (!line) {
-        const remainingBytes = next.buffer.length - offset;
-        if (next.receivedBytes + remainingBytes > next.limits.maxHeaderBytes) {
-          throw new HttpDecodeError({
-            code: HttpDecodeErrorCode.HEADER_TOO_LARGE,
-            message: `Headers too large: exceeds limit of ${next.limits.maxHeaderBytes} bytes`,
-          });
-        }
-        next.buffer = next.buffer.subarray(offset);
-        return next;
-      }
-
-      const lineLength = line.length + CRLF_LENGTH;
-      offset += lineLength;
-
-      if (line.length === 0) {
-        next.phase = HeadersDecodePhase.FINISHED;
-        break;
-      }
-
-      checkHeaderLimits(next, lineLength);
-
-      const [headerName, headerValue] = decodeHeaderLine(line, next.limits);
-      addHeader(next, headerName, headerValue);
-      next.headersRaw.push(line.toString('ascii'));
-      next.phase = HeadersDecodePhase.LINE;
-      break;
-    }
-    default:
-      throw new Error('Invalid headers parse state');
     }
   }
 
-  next.buffer = next.buffer.subarray(offset);
+  if (offset > 0) {
+    next.buffer = next.buffer.subarray(offset);
+  }
+
   return next;
 }
 
