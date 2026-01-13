@@ -22,9 +22,7 @@ export interface HeadersState {
   limits: HeaderLimits,
 }
 
-function checkHeaderLimits(state: HeadersState, lineLength: number) {
-  state.receivedBytes += lineLength;
-
+function checkHeaderLimits(state: HeadersState) {
   if (state.receivedBytes > state.limits.maxHeaderBytes) {
     throw new HttpDecodeError({
       code: HttpDecodeErrorCode.HEADER_TOO_LARGE,
@@ -174,7 +172,9 @@ function processHeaderLine(
     return { offset: newOffset, shouldContinue: false };
   }
 
-  checkHeaderLimits(state, lineLength);
+  state.receivedBytes += lineLength;
+
+  checkHeaderLimits(state);
 
   const [headerName, headerValue] = decodeHeaderLine(line, state.limits);
   addHeader(state, headerName, headerValue);
