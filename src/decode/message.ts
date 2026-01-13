@@ -60,7 +60,7 @@ function forkState(prev: HttpState): HttpState {
   };
 }
 
-function takeBuffer<T extends { buffer: Buffer }>(
+function moveRemainingBuffer<T extends { buffer: Buffer }>(
   from: T,
   to: { buffer: Buffer },
 ) {
@@ -325,7 +325,7 @@ function handleHeadersPhase(state: HttpState): void {
     transition(state, HttpDecodePhase.FINISHED);
   }
   }
-  takeBuffer(state.parsing.headers, state);
+  moveRemainingBuffer(state.parsing.headers, state);
 }
 
 function handleBodyPhase<T extends ChunkedBodyState | FixedLengthBodyState>(
@@ -358,7 +358,7 @@ function handleBodyPhase<T extends ChunkedBodyState | FixedLengthBodyState>(
   });
 
   state.parsing.body = bodyState;
-  takeBuffer(state.parsing.body, state);
+  moveRemainingBuffer(state.parsing.body, state);
   transition(state, HttpDecodePhase.FINISHED);
 }
 
