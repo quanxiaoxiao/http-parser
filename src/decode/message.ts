@@ -162,9 +162,7 @@ export function decideBodyStrategy(state: HttpState): BodyStrategy {
     return handleContentLength(contentLengthValues, state);
   }
 
-  return {
-    type: 'none',
-  };
+  return { type: 'none' };
 }
 
 export interface HttpState {
