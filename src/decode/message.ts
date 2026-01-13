@@ -3,7 +3,7 @@ import { Buffer } from 'node:buffer';
 import { HttpDecodeError, HttpDecodeErrorCode } from '../errors.js';
 import { getHeaderValues } from '../headers/headers.js';
 import { DEFAULT_HEADER_LIMITS, DEFAULT_START_LINE_LIMITS, HttpDecodePhase } from '../specs.js';
-import type { Headers, RequestStartLine, ResponseStartLine } from '../types.js';
+import type { HeaderLimits, Headers, RequestStartLine, ResponseStartLine,StartLineLimits } from '../types.js';
 import { parseInteger } from '../utils/number.js';
 import { type ChunkedBodyState, createChunkedBodyState, decodeChunkedBody, isChunkedBodyFinished } from './chunked-body.js';
 import { createFixedLengthBodyState, decodeFixedLengthBody, type FixedLengthBodyState,isFixedLengthBodyFinished } from './fixed-length-body.js';
@@ -15,8 +15,14 @@ const CRLF_LENGTH = 2;
 const EMPTY_BUFFER = Buffer.alloc(0);
 
 interface BodyStrategy {
-  type: 'chunked' | 'fixed' | 'none';
+  type: 'chunked' | 'fixed' | 'close-delimited' | 'upgrade' | 'none';
   length?: number;
+  protocol?: string; // for Upgrade
+}
+
+interface HttpParserConfig {
+  headerLimits: HeaderLimits;
+  startLineLimits: StartLineLimits;
 }
 
 export type HttpDecodeEvent =
@@ -165,6 +171,7 @@ export function decideBodyStrategy(state: HttpState): BodyStrategy {
 
 export interface HttpState {
   readonly messageType: 'request' | 'response';
+  readonly config: HttpParserConfig;
   phase: HttpDecodePhase;
   buffer: Buffer;
   error?: Error,
@@ -189,6 +196,10 @@ export function createHttpState(messageType: 'request' | 'response'): HttpState 
     phase: HttpDecodePhase.START_LINE,
     buffer: EMPTY_BUFFER,
     startLine: null,
+    config: {
+      headerLimits: DEFAULT_HEADER_LIMITS,
+      startLineLimits: DEFAULT_START_LINE_LIMITS,
+    },
     headersState: null,
     bodyState: null,
     events: [],
@@ -210,7 +221,7 @@ function handleStartLinePhase(state: HttpState): void {
     : decodeResponseStartLine;
   let lineBuf: Buffer | null;
   try {
-    lineBuf = decodeHttpLine(state.buffer, 0, DEFAULT_START_LINE_LIMITS.maxStartLineBytes);
+    lineBuf = decodeHttpLine(state.buffer, 0, state.config.startLineLimits.maxStartLineBytes);
   } catch (error) {
     if (error instanceof HttpDecodeError) {
       if (error.code === HttpDecodeErrorCode.LINE_TOO_LARGE) {
@@ -263,7 +274,7 @@ function handleStartLinePhase(state: HttpState): void {
 
 function handleHeadersPhase(state: HttpState): void {
   if (!state.headersState) {
-    state.headersState = createHeadersState(DEFAULT_HEADER_LIMITS);
+    state.headersState = createHeadersState(state.config.headerLimits);
   }
   const prevLineCount = state.headersState.rawHeaders.length;
   state.headersState = decodeHeaders(state.headersState!, state.buffer);
