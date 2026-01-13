@@ -17,7 +17,7 @@ export interface HeadersState {
   phase: HeadersDecodePhase;
   headers: Headers;
   rawHeaders: Array<[name: string, value: string]>,
-  headersRaw: string[];
+  rawHeaderLines: string[];
   receivedBytes: number;
   limits: HeaderLimits,
 }
@@ -32,7 +32,7 @@ function checkHeaderLimits(state: HeadersState, lineLength: number) {
     });
   }
 
-  if (state.headersRaw.length >= state.limits.maxHeaderCount) {
+  if (state.rawHeaderLines.length >= state.limits.maxHeaderCount) {
     throw new HttpDecodeError({
       code: HttpDecodeErrorCode.HEADER_TOO_MANY,
       message: `Headers too many: exceeds limit of ${state.limits.maxHeaderCount} count`,
@@ -108,7 +108,7 @@ export function createHeadersState(limits: HeaderLimits = DEFAULT_HEADER_LIMITS)
     buffer: Buffer.alloc(0),
     headers: {},
     rawHeaders: [],
-    headersRaw: [],
+    rawHeaderLines: [],
     phase: HeadersDecodePhase.LINE,
     receivedBytes: 0,
     limits,
@@ -178,7 +178,7 @@ function processHeaderLine(
 
   const [headerName, headerValue] = decodeHeaderLine(line, state.limits);
   addHeader(state, headerName, headerValue);
-  state.headersRaw.push(line.toString('ascii'));
+  state.rawHeaderLines.push(line.toString('ascii'));
 
   return { offset: newOffset, shouldContinue: true };
 }

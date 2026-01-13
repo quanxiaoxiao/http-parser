@@ -11,7 +11,7 @@ describe('createHeadersState', () => {
 
     assert.strictEqual(state.buffer.length, 0);
     assert.deepStrictEqual(state.headers, {});
-    assert.deepStrictEqual(state.headersRaw, []);
+    assert.deepStrictEqual(state.rawHeaderLines, []);
     assert.strictEqual(state.receivedBytes, 0);
     assert.strictEqual(state.phase, HeadersDecodePhase.LINE);
   });
@@ -634,7 +634,7 @@ describe('decodeHeaders', () => {
 
     assert.strictEqual(result.phase, HeadersDecodePhase.FINISHED);
     assert.strictEqual(result.headers['content-type'], 'application/json');
-    assert.strictEqual(result.headersRaw.length, 1);
+    assert.strictEqual(result.rawHeaderLines.length, 1);
   });
 
   it('should parse multiple headers', () => {
@@ -652,7 +652,7 @@ describe('decodeHeaders', () => {
     assert.strictEqual(result.headers['content-type'], 'application/json');
     assert.strictEqual(result.headers['authorization'], 'Bearer token');
     assert.strictEqual(result.headers['accept'], '*/*');
-    assert.strictEqual(result.headersRaw.length, 3);
+    assert.strictEqual(result.rawHeaderLines.length, 3);
   });
 
   it('should handle multiple headers with same name', () => {
@@ -774,7 +774,7 @@ describe('decodeHeaders', () => {
 
     assert.strictEqual(result.phase, HeadersDecodePhase.FINISHED);
     assert.deepStrictEqual(result.headers, {});
-    assert.strictEqual(result.headersRaw.length, 0);
+    assert.strictEqual(result.rawHeaderLines.length, 0);
   });
 });
 
