@@ -79,23 +79,56 @@ function transition(state: HttpState, next: HttpDecodePhase): void {
 function decideBodyStrategy(state: HttpState): void {
   const { headers } = state.headersState;
 
-  if (isChunked(headers)) {
+  const contentLengthValues = getHeaderValues(headers, 'content-length');
+  const transferEncodingValues = getHeaderValues(headers, 'transfer-encoding');
+
+  if (transferEncodingValues && transferEncodingValues.length > 0) {
+    if (transferEncodingValues.length > 1) {
+      throw new HttpDecodeError({
+        code: HttpDecodeErrorCode.INVALID_SYNTAX,
+        message: 'multiple Transfer-Encoding headers',
+      });
+    }
+    const te = transferEncodingValues[0].toLowerCase();
+
+    if (te !== 'chunked') {
+      throw new HttpDecodeError({
+        code: HttpDecodeErrorCode.UNSUPPORTED_FEATURE,
+        message: `unsupported Transfer-Encoding: ${te}`,
+      });
+    }
+    if (contentLengthValues) {
+      throw new HttpDecodeError({
+        code: HttpDecodeErrorCode.INVALID_SYNTAX,
+        message: 'Content-Length with Transfer-Encoding',
+      });
+    }
     state.bodyState = createChunkedBodyState();
     transition(state, HttpDecodePhase.BODY_CHUNKED);
     return;
   }
 
-  const contentLengthValue = getHeaderValues(headers, 'content-length')?.[0];
-  const contentLength = contentLengthValue ? parseInteger(contentLengthValue) : 0;
-
-  // validate content-length
-
-  if (contentLength === 0 || contentLength == null) {
-    transition(state, HttpDecodePhase.FINISHED);
-  } else {
-    state.bodyState = createFixedLengthBodyState(contentLength);
-    transition(state, HttpDecodePhase.BODY_FIXED_LENGTH);
+  if (contentLengthValues) {
+    if (contentLengthValues.length !== 1) {
+      throw new HttpDecodeError({
+        code: HttpDecodeErrorCode.INVALID_SYNTAX,
+        message: 'multiple Content-Length headers',
+      });
+    }
+    const length = parseInteger(contentLengthValues[0]);
+    if (length == null || length < 0) {
+      throw new HttpDecodeError({
+        code: HttpDecodeErrorCode.INVALID_SYNTAX,
+        message: 'Content-Length invalid',
+      });
+    }
+    if (length > 0) {
+      state.bodyState = createFixedLengthBodyState(length);
+      transition(state, HttpDecodePhase.BODY_FIXED_LENGTH);
+      return;
+    }
   }
+  transition(state, HttpDecodePhase.FINISHED);
 }
 
 export interface HttpState {

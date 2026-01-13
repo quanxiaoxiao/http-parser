@@ -271,31 +271,6 @@ describe('decodeRequest', () => {
 
       assert.strictEqual(result.phase, HttpDecodePhase.BODY_CHUNKED);
     });
-
-    it('应该忽略无效的 Content-Length', () => {
-      const state = createRequestState();
-      const input = Buffer.from(
-        'POST /path HTTP/1.1\r\n' +
-        'Content-Length: invalid\r\n' +
-        '\r\n',
-      );
-
-      const result = decodeRequest(state, input);
-
-      assert.strictEqual(result.phase, HttpDecodePhase.FINISHED);
-    });
-
-    it('应该处理负数 Content-Length', () => {
-      const state = createRequestState();
-      const input = Buffer.from(
-        'POST /path HTTP/1.1\r\n' +
-        'Content-Length: -1\r\n' +
-        '\r\n',
-      );
-
-      const result = decodeRequest(state, input);
-      assert.strictEqual(result.phase, HttpDecodePhase.FINISHED);
-    });
   });
 });
 
@@ -612,21 +587,6 @@ describe('HTTP Request Parser', () => {
       const input2 = Buffer.from('GET / HTTP/1.1\r\n\r\n');
       const result2 = decodeRequest(state2, input2);
       assert.strictEqual(result2.startLine?.version, 1.1);
-    });
-
-    it('应该优先处理 Transfer-Encoding 而不是 Content-Length', () => {
-      const state = createRequestState();
-      const input = Buffer.from(
-        'POST / HTTP/1.1\r\n' +
-        'Content-Length: 100\r\n' +
-        'Transfer-Encoding: chunked\r\n' +
-        '\r\n' +
-        '0\r\n\r\n',
-      );
-
-      const result = decodeRequest(state, input);
-
-      assert.strictEqual(result.phase, HttpDecodePhase.FINISHED);
     });
   });
 });
