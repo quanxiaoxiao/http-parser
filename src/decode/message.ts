@@ -57,7 +57,6 @@ function forkState(prev: HttpState): HttpState {
   return {
     ...prev,
     events: [],
-    bodyState: prev.bodyState,
   };
 }
 
@@ -186,7 +185,6 @@ export interface HttpState<T extends 'request' | 'response' = 'request' | 'respo
     headers: HeadersState | null;
     body: ChunkedBodyState | FixedLengthBodyState | null;
   },
-  bodyState: ChunkedBodyState | FixedLengthBodyState | null;
   events: HttpDecodeEvent[];
 }
 
@@ -209,7 +207,6 @@ export function createHttpState(messageType: 'request' | 'response'): HttpState 
       headers: null,
       body: null,
     },
-    bodyState: null,
     events: [],
   };
 };
@@ -315,12 +312,12 @@ function handleHeadersPhase(state: HttpState): void {
   const bodyStrategy = decideBodyStrategy(state);
   switch (bodyStrategy.type) {
   case 'chunked': {
-    state.bodyState = createChunkedBodyState(state.config.chunkedbodylimits);
+    state.parsing.body = createChunkedBodyState(state.config.chunkedbodylimits);
     transition(state, HttpDecodePhase.BODY_CHUNKED);
     break;
   }
   case 'fixed': {
-    state.bodyState = createFixedLengthBodyState(bodyStrategy.length, state.config.fixedLengthBodyLimits);
+    state.parsing.body = createFixedLengthBodyState(bodyStrategy.length, state.config.fixedLengthBodyLimits);
     transition(state, HttpDecodePhase.BODY_FIXED_LENGTH);
     break;
   }
@@ -336,11 +333,11 @@ function handleBodyPhase<T extends ChunkedBodyState | FixedLengthBodyState>(
   parser: (bodyState: T, buffer: Buffer) => T,
 ): void {
   const bodyState = parser(
-    state.bodyState as T,
+    state.parsing.body as T,
     state.buffer,
   );
 
-  const previousSize = state.bodyState!.decodedBodyBytes;
+  const previousSize = state.parsing.body!.decodedBodyBytes;
   const consumed = bodyState.decodedBodyBytes - previousSize;
   if (consumed > 0) {
     addEvent(state, {
@@ -351,7 +348,7 @@ function handleBodyPhase<T extends ChunkedBodyState | FixedLengthBodyState>(
   }
   if (!isBodyFinished(bodyState)) {
     state.buffer = EMPTY_BUFFER;
-    state.bodyState = bodyState;
+    state.parsing.body = bodyState;
     return;
   }
 
@@ -360,8 +357,8 @@ function handleBodyPhase<T extends ChunkedBodyState | FixedLengthBodyState>(
     totalSize: bodyState.decodedBodyBytes,
   });
 
-  state.bodyState = bodyState;
-  takeBuffer(state.bodyState, state);
+  state.parsing.body = bodyState;
+  takeBuffer(state.parsing.body, state);
   transition(state, HttpDecodePhase.FINISHED);
 }
 

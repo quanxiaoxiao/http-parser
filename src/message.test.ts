@@ -56,7 +56,7 @@ describe('HTTP Request Encode Decode Tests', () => {
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
       assert.strictEqual(requestState.parsing.startLine.method, 'POST');
       assert.strictEqual(
-        Buffer.concat(requestState.bodyState.chunks).toString(),
+        Buffer.concat(requestState.parsing.body.chunks).toString(),
         bodyContent,
       );
     });
@@ -104,7 +104,7 @@ describe('HTTP Request Encode Decode Tests', () => {
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
       assert.strictEqual(requestState.parsing.startLine.method, 'PATCH');
       assert.strictEqual(
-        Buffer.concat(requestState.bodyState.chunks).toString(),
+        Buffer.concat(requestState.parsing.body.chunks).toString(),
         patchData,
       );
     });
@@ -169,7 +169,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         'utf-8',
       );
       assert.strictEqual(
-        Buffer.concat(requestState.bodyState.chunks).toString(),
+        Buffer.concat(requestState.parsing.body.chunks).toString(),
         expectedContent,
       );
     });
@@ -206,7 +206,7 @@ describe('HTTP Request Encode Decode Tests', () => {
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
       assert.strictEqual(
-        Buffer.concat(requestState.bodyState.chunks).toString(),
+        Buffer.concat(requestState.parsing.body.chunks).toString(),
         testData,
       );
 
@@ -245,7 +245,7 @@ describe('HTTP Request Encode Decode Tests', () => {
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
       assert.strictEqual(
-        Buffer.concat(requestState.bodyState.chunks).toString(),
+        Buffer.concat(requestState.parsing.body.chunks).toString(),
         'chunk1chunk2chunk3',
       );
     });
@@ -277,7 +277,7 @@ describe('HTTP Request Encode Decode Tests', () => {
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
       assert.strictEqual(
-        Buffer.concat(requestState.bodyState.chunks).toString(),
+        Buffer.concat(requestState.parsing.body.chunks).toString(),
         'startmiddleend',
       );
     });
@@ -306,7 +306,7 @@ describe('HTTP Request Encode Decode Tests', () => {
       }
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
-      assert.strictEqual(Buffer.concat(requestState.bodyState.chunks).length, 15000);
+      assert.strictEqual(Buffer.concat(requestState.parsing.body.chunks).length, 15000);
     });
 
     test('should correctly handle single chunk streaming data', async () => {
@@ -332,7 +332,7 @@ describe('HTTP Request Encode Decode Tests', () => {
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
       assert.strictEqual(
-        Buffer.concat(requestState.bodyState.chunks).toString(),
+        Buffer.concat(requestState.parsing.body.chunks).toString(),
         'single-chunk-data',
       );
     });
@@ -510,7 +510,7 @@ describe('HTTP Request Encode Decode Tests', () => {
       }
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
-      const receivedBody = Buffer.concat(requestState.bodyState.chunks).toString();
+      const receivedBody = Buffer.concat(requestState.parsing.body.chunks).toString();
       assert.deepStrictEqual(JSON.parse(receivedBody), bodyData);
     });
 
@@ -531,8 +531,8 @@ describe('HTTP Request Encode Decode Tests', () => {
       }
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
-      if (requestState.bodyState && requestState.bodyState.chunks) {
-        assert.strictEqual(requestState.bodyState.chunks.length, 0);
+      if (requestState.parsing.body && requestState.parsing.body.chunks) {
+        assert.strictEqual(requestState.parsing.body.chunks.length, 0);
       }
     });
 
@@ -577,7 +577,7 @@ describe('HTTP Request Encode Decode Tests', () => {
       }
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
-      const receivedBody = Buffer.concat(requestState.bodyState.chunks);
+      const receivedBody = Buffer.concat(requestState.parsing.body.chunks);
       assert.deepStrictEqual(receivedBody, binaryData);
     });
 
@@ -601,7 +601,7 @@ describe('HTTP Request Encode Decode Tests', () => {
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
       assert.strictEqual(
-        Buffer.concat(requestState.bodyState.chunks).toString(),
+        Buffer.concat(requestState.parsing.body.chunks).toString(),
         'test buffer data',
       );
       assert.strictEqual(requestState.parsing.headers.headers['content-length'], '16');
@@ -626,7 +626,7 @@ describe('HTTP Request Encode Decode Tests', () => {
       }
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
-      assert.strictEqual(Buffer.concat(requestState.bodyState.chunks).length, 10000);
+      assert.strictEqual(Buffer.concat(requestState.parsing.body.chunks).length, 10000);
       assert.strictEqual(requestState.parsing.headers.headers['content-length'], '10000');
     });
 
@@ -651,7 +651,7 @@ describe('HTTP Request Encode Decode Tests', () => {
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
       assert.strictEqual(
-        Buffer.concat(requestState.bodyState.chunks).toString(),
+        Buffer.concat(requestState.parsing.body.chunks).toString(),
         unicodeString,
       );
     });
@@ -688,7 +688,7 @@ describe('HTTP Request Encode Decode Tests', () => {
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
       const receivedBody = JSON.parse(
-        Buffer.concat(requestState.bodyState.chunks).toString(),
+        Buffer.concat(requestState.parsing.body.chunks).toString(),
       );
       assert.deepStrictEqual(receivedBody, complexData);
     });
@@ -885,7 +885,7 @@ describe('HTTP Request Encode Decode Tests', () => {
       }
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
-      assert.strictEqual(requestState.bodyState, null);
+      assert.strictEqual(requestState.parsing.body, null);
     });
 
     test('should correctly handle OPTIONS request with asterisk path', async () => {
@@ -1018,7 +1018,7 @@ describe('HTTP Request Encode Decode Tests', () => {
       }
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
-      const receivedData = Buffer.concat(requestState.bodyState.chunks).toString();
+      const receivedData = Buffer.concat(requestState.parsing.body.chunks).toString();
       assert.deepStrictEqual(JSON.parse(receivedData), { name: 'test', value: 123 });
     });
 
@@ -1042,7 +1042,7 @@ describe('HTTP Request Encode Decode Tests', () => {
       }
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
-      assert.strictEqual(Buffer.concat(requestState.bodyState.chunks).toString(), formData);
+      assert.strictEqual(Buffer.concat(requestState.parsing.body.chunks).toString(), formData);
     });
 
     test('should correctly handle simulated streaming file upload', async () => {
@@ -1071,7 +1071,7 @@ describe('HTTP Request Encode Decode Tests', () => {
       }
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
-      const uploaded = Buffer.concat(requestState.bodyState.chunks).toString();
+      const uploaded = Buffer.concat(requestState.parsing.body.chunks).toString();
       assert.ok(uploaded.includes('file-chunk-0-'));
       assert.ok(uploaded.includes('file-chunk-4-'));
     });
@@ -1100,7 +1100,7 @@ describe('HTTP Request Encode Decode Tests', () => {
       }
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
-      const received = JSON.parse(Buffer.concat(requestState.bodyState.chunks).toString());
+      const received = JSON.parse(Buffer.concat(requestState.parsing.body.chunks).toString());
       assert.deepStrictEqual(received, graphqlQuery);
     });
 
@@ -1128,7 +1128,7 @@ describe('HTTP Request Encode Decode Tests', () => {
       }
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
-      const received = JSON.parse(Buffer.concat(requestState.bodyState.chunks).toString());
+      const received = JSON.parse(Buffer.concat(requestState.parsing.body.chunks).toString());
       assert.deepStrictEqual(received, patchData);
     });
 
@@ -1241,7 +1241,7 @@ describe('HTTP Request Encode Decode Tests', () => {
       }
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
-      assert.strictEqual(Buffer.concat(requestState.bodyState.chunks).toString(), 'x');
+      assert.strictEqual(Buffer.concat(requestState.parsing.body.chunks).toString(), 'x');
     });
 
     test('should correctly handle very long header value', async () => {
@@ -1334,7 +1334,7 @@ describe('HTTP Request Encode Decode Tests', () => {
       }
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
-      assert.strictEqual(Buffer.concat(requestState.bodyState.chunks).length, 100000);
+      assert.strictEqual(Buffer.concat(requestState.parsing.body.chunks).length, 100000);
     });
 
     test('should correctly handle streaming with many chunks', async () => {
@@ -1389,7 +1389,7 @@ describe('HTTP Request Encode Decode Tests', () => {
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
       assert.strictEqual(
-        Buffer.concat(requestState.bodyState.chunks).toString(),
+        Buffer.concat(requestState.parsing.body.chunks).toString(),
         specialChars,
       );
     });
@@ -1413,7 +1413,7 @@ describe('HTTP Request Encode Decode Tests', () => {
       }
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
-      assert.strictEqual(Buffer.concat(requestState.bodyState.chunks).toString(), multiLang);
+      assert.strictEqual(Buffer.concat(requestState.parsing.body.chunks).toString(), multiLang);
     });
 
     test('should correctly handle emoji characters', async () => {
@@ -1435,7 +1435,7 @@ describe('HTTP Request Encode Decode Tests', () => {
       }
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
-      assert.strictEqual(Buffer.concat(requestState.bodyState.chunks).toString(), emojis);
+      assert.strictEqual(Buffer.concat(requestState.parsing.body.chunks).toString(), emojis);
     });
 
     test('should correctly handle body with newlines', async () => {
@@ -1457,7 +1457,7 @@ describe('HTTP Request Encode Decode Tests', () => {
       }
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
-      assert.strictEqual(Buffer.concat(requestState.bodyState.chunks).toString(), multiline);
+      assert.strictEqual(Buffer.concat(requestState.parsing.body.chunks).toString(), multiline);
     });
   });
 

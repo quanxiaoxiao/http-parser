@@ -12,7 +12,7 @@ describe('decodeRequest', () => {
       assert.strictEqual(state.phase, HttpDecodePhase.START_LINE);
       assert.strictEqual(state.parsing.startLine, null);
       assert.strictEqual(state.parsing.headers, null);
-      assert.strictEqual(state.bodyState, null);
+      assert.strictEqual(state.parsing.body, null);
     });
 
     it('已完成的请求应该抛出错误', () => {
@@ -124,7 +124,7 @@ describe('decodeRequest', () => {
       const result = decodeRequest(state, input);
 
       assert.strictEqual(result.phase, HttpDecodePhase.BODY_CHUNKED);
-      assert.ok(result.bodyState);
+      assert.ok(result.parsing.body);
     });
 
     it('应该解析完整的 chunked body', () => {
@@ -172,7 +172,7 @@ describe('decodeRequest', () => {
       const result = decodeRequest(state, input);
 
       assert.strictEqual(result.phase, HttpDecodePhase.BODY_FIXED_LENGTH);
-      assert.ok(result.bodyState);
+      assert.ok(result.parsing.body);
     });
 
     it('应该解析完整的 content-length body', () => {
@@ -252,8 +252,8 @@ describe('decodeRequest', () => {
       // 剩余 body
       state = decodeRequest(state, Buffer.from(' worldextra'));
       assert.strictEqual(state.phase, HttpDecodePhase.FINISHED);
-      assert.strictEqual(state.bodyState.chunks.length, 2);
-      assert.strictEqual(Buffer.concat(state.bodyState.chunks).toString(), 'hello world');
+      assert.strictEqual(state.parsing.body.chunks.length, 2);
+      assert.strictEqual(Buffer.concat(state.parsing.body.chunks).toString(), 'hello world');
       assert.strictEqual(state.buffer.toString(), 'extra');
     });
   });
@@ -282,7 +282,7 @@ describe('HTTP Request Parser', () => {
       assert.strictEqual(state.phase, HttpDecodePhase.START_LINE);
       assert.strictEqual(state.parsing.startLine, null);
       assert.strictEqual(state.parsing.headers, null);
-      assert.strictEqual(state.bodyState, null);
+      assert.strictEqual(state.parsing.body, null);
       assert.strictEqual(state.buffer.length, 0);
       assert.strictEqual(state.error, undefined);
     });

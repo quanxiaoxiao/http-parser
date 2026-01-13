@@ -348,7 +348,7 @@ describe('HTTP Decoder', () => {
       assert.strictEqual(state.phase, HttpDecodePhase.START_LINE);
       assert.strictEqual(state.parsing.startLine, null);
       assert.strictEqual(state.parsing.headers, null);
-      assert.strictEqual(state.bodyState, null);
+      assert.strictEqual(state.parsing.body, null);
       assert.strictEqual(state.events.length, 0);
     });
 
