@@ -2,10 +2,12 @@ import * as assert from 'node:assert';
 import { Buffer } from 'node:buffer';
 import { describe, test } from 'node:test';
 
+import { HttpDecodeError, HttpDecodeErrorCode } from '../errors.js';
 import { HttpDecodePhase } from '../specs.js';
 import {
   createRequestState,
   createResponseState,
+  decideBodyStrategy,
   decodeRequest,
   decodeResponse,
   type HttpRequestState,
@@ -465,5 +467,221 @@ describe('HTTP Decoder', () => {
       assert.strictEqual(state.phase, HttpDecodePhase.FINISHED);
       assert.ok(state.headersState?.headers);
     });
+  });
+});
+
+describe('decideBodyStrategy', () => {
+  test('应该返回 none 当没有 Transfer-Encoding 和 Content-Length 时', () => {
+    const state = {
+      headersState: {
+        headers: {
+          host: 'example.com',
+          'user-agent': 'test',
+        },
+      },
+    };
+    const result = decideBodyStrategy(state);
+    assert.deepStrictEqual(result, { type: 'none' });
+  });
+
+  test('应该返回 chunked 当 Transfer-Encoding 是 chunked 时', () => {
+    const state = {
+      headersState: {
+        headers: {
+          'transfer-encoding': 'chunked',
+        },
+      },
+    };
+    const result = decideBodyStrategy(state);
+    assert.deepStrictEqual(result, { type: 'chunked' });
+  });
+
+  test('应该返回 chunked 当 Transfer-Encoding 是 CHUNKED (大写) 时', () => {
+    const state = {
+      headersState: {
+        headers: {
+          'transfer-encoding': 'CHUNKED',
+        },
+      },
+    };
+    const result = decideBodyStrategy(state);
+    assert.deepStrictEqual(result, { type: 'chunked' });
+  });
+
+  test('应该抛出错误当有多个 Transfer-Encoding headers 时', () => {
+    const state = {
+      headersState: {
+        headers: {
+          'transfer-encoding': ['chunked', 'gzip'],
+        },
+      },
+    };
+    assert.throws(
+      () => decideBodyStrategy(state),
+      (err) => {
+        return (
+          err instanceof HttpDecodeError &&
+          err.code === HttpDecodeErrorCode.INVALID_SYNTAX &&
+          err.message === 'multiple Transfer-Encoding headers'
+        );
+      },
+    );
+  });
+
+  test('应该抛出错误当 Transfer-Encoding 不是 chunked 时', () => {
+    const state = {
+      headersState: {
+        headers: {
+          'transfer-encoding': 'gzip',
+        },
+      },
+    };
+    assert.throws(
+      () => decideBodyStrategy(state),
+      (err) => {
+        return (
+          err instanceof HttpDecodeError &&
+          err.code === HttpDecodeErrorCode.UNSUPPORTED_FEATURE &&
+          err.message === 'unsupported Transfer-Encoding: gzip'
+        );
+      },
+    );
+  });
+
+  test('应该抛出错误当同时有 Transfer-Encoding 和 Content-Length 时', () => {
+    const state = {
+      headersState: {
+        headers: {
+          'transfer-encoding': 'chunked',
+          'content-length': '100',
+        },
+      },
+    };
+    assert.throws(
+      () => decideBodyStrategy(state),
+      (err) => {
+        return (
+          err instanceof HttpDecodeError &&
+          err.code === HttpDecodeErrorCode.INVALID_SYNTAX &&
+          err.message === 'Content-Length with Transfer-Encoding'
+        );
+      },
+    );
+  });
+
+  test('应该返回 fixed 当 Content-Length 是有效数字时', () => {
+    const state = {
+      headersState: {
+        headers: {
+          'content-length': '1024',
+        },
+      },
+    };
+    const result = decideBodyStrategy(state);
+    assert.deepStrictEqual(result, { type: 'fixed', length: 1024 });
+  });
+
+  test('应该返回 none 当 Content-Length 是 0 时', () => {
+    const state = {
+      headersState: {
+        headers: {
+          'content-length': '0',
+        },
+      },
+    };
+    const result = decideBodyStrategy(state);
+    assert.deepStrictEqual(result, { type: 'none' });
+  });
+
+  test('应该抛出错误当有多个 Content-Length headers 时', () => {
+    const state = {
+      headersState: {
+        headers: {
+          'content-length': ['100', '200'],
+        },
+      },
+    };
+    assert.throws(
+      () => decideBodyStrategy(state),
+      (err) => {
+        return (
+          err instanceof HttpDecodeError &&
+          err.code === HttpDecodeErrorCode.INVALID_SYNTAX &&
+          err.message === 'multiple Content-Length headers'
+        );
+      },
+    );
+  });
+
+  test('应该抛出错误当 Content-Length 是负数时', () => {
+    const state = {
+      headersState: {
+        headers: {
+          'content-length': '-1',
+        },
+      },
+    };
+    assert.throws(
+      () => decideBodyStrategy(state),
+      (err) => {
+        return (
+          err instanceof HttpDecodeError &&
+          err.code === HttpDecodeErrorCode.INVALID_SYNTAX &&
+          err.message === 'Content-Length invalid'
+        );
+      },
+    );
+  });
+
+  test('应该抛出错误当 Content-Length 是无效字符串时', () => {
+    const state = {
+      headersState: {
+        headers: {
+          'content-length': 'invalid',
+        },
+      },
+    };
+    assert.throws(
+      () => decideBodyStrategy(state),
+      (err) => {
+        return (
+          err instanceof HttpDecodeError &&
+          err.code === HttpDecodeErrorCode.INVALID_SYNTAX &&
+          err.message === 'Content-Length invalid'
+        );
+      },
+    );
+  });
+
+  test('应该抛出错误当 Content-Length 超出安全整数范围时', () => {
+    const state = {
+      headersState: {
+        headers: {
+          'content-length': '9007199254740992',
+        },
+      },
+    };
+    assert.throws(
+      () => decideBodyStrategy(state),
+      (err) => {
+        return (
+          err instanceof HttpDecodeError &&
+          err.code === HttpDecodeErrorCode.MESSAGE_TOO_LARGE &&
+          err.message === 'Content-Length overflow'
+        );
+      },
+    );
+  });
+
+  test('应该优先处理 Transfer-Encoding 而非 Content-Length', () => {
+    const state = {
+      headersState: {
+        headers: {
+          'transfer-encoding': 'chunked',
+        },
+      },
+    };
+    const result = decideBodyStrategy(state);
+    assert.deepStrictEqual(result, { type: 'chunked' });
   });
 });
