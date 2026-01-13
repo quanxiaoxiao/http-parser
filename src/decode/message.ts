@@ -80,7 +80,7 @@ function transition(state: HttpState, next: HttpDecodePhase): void {
   }
 }
 
-function decideBodyStrategy(state: HttpState): void {
+function decideBodyStrategy(state: HttpState): BodyStrategy {
   const { headers } = state.headersState;
 
   const contentLengthValues = getHeaderValues(headers, 'content-length');
@@ -107,9 +107,9 @@ function decideBodyStrategy(state: HttpState): void {
         message: 'Content-Length with Transfer-Encoding',
       });
     }
-    state.bodyState = createChunkedBodyState();
-    transition(state, HttpDecodePhase.BODY_CHUNKED);
-    return;
+    return {
+      type: 'chunked',
+    };
   }
 
   if (contentLengthValues) {
@@ -135,10 +135,15 @@ function decideBodyStrategy(state: HttpState): void {
     if (length > 0) {
       state.bodyState = createFixedLengthBodyState(length);
       transition(state, HttpDecodePhase.BODY_FIXED_LENGTH);
-      return;
+      return {
+        type: 'fixed',
+        length,
+      };
     }
   }
-  transition(state, HttpDecodePhase.FINISHED);
+  return {
+    type: 'none',
+  };
 }
 
 export interface HttpState {
@@ -272,7 +277,22 @@ function handleHeadersPhase(state: HttpState): void {
     headers: state.headersState.headers,
   });
 
-  decideBodyStrategy(state);
+  const bodyStrategy = decideBodyStrategy(state);
+  switch (bodyStrategy.type) {
+  case 'chunked': {
+    state.bodyState = createChunkedBodyState();
+    transition(state, HttpDecodePhase.BODY_CHUNKED);
+    break;
+  }
+  case 'fixed': {
+    state.bodyState = createFixedLengthBodyState(bodyStrategy.length);
+    transition(state, HttpDecodePhase.BODY_FIXED_LENGTH);
+    break;
+  }
+  default: {
+    transition(state, HttpDecodePhase.FINISHED);
+  }
+  }
   takeBuffer(state.headersState, state);
 }
 
