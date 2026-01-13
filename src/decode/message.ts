@@ -1,7 +1,6 @@
 import { Buffer } from 'node:buffer';
 
 import { HttpDecodeError, HttpDecodeErrorCode } from '../errors.js';
-import { isChunked } from '../headers/header-predicates.js';
 import { getHeaderValues } from '../headers/headers.js';
 import { DEFAULT_HEADER_LIMITS, DEFAULT_START_LINE_LIMITS, HttpDecodePhase } from '../specs.js';
 import type { Headers, RequestStartLine, ResponseStartLine } from '../types.js';
@@ -16,6 +15,11 @@ const CRLF_LENGTH = 2;
 const EMPTY_BUFFER = Buffer.alloc(0);
 
 type HttpDecodeMode = 'request' | 'response';
+
+interface BodyStrategy {
+  type: 'chunked' | 'fixed' | 'none';
+  length?: number;
+}
 
 export type HttpDecodeEvent =
   | { type: 'phase-enter'; phase: HttpDecodePhase, reason?: string; value?: number; limits?: Record<string, number> }
@@ -120,6 +124,12 @@ function decideBodyStrategy(state: HttpState): void {
       throw new HttpDecodeError({
         code: HttpDecodeErrorCode.INVALID_SYNTAX,
         message: 'Content-Length invalid',
+      });
+    }
+    if (!Number.isSafeInteger(length)) {
+      throw new HttpDecodeError({
+        code: HttpDecodeErrorCode.MESSAGE_TOO_LARGE,
+        message: 'Content-Length overflow',
       });
     }
     if (length > 0) {
