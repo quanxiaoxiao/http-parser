@@ -538,7 +538,7 @@ describe('HTTP Request Parser', () => {
       assert.ok(state.error);
       assert.throws(() => {
         decodeRequest(state, Buffer.from('GET / HTTP/1.1\r\n'));
-      }, /Decoding encountered error:/);
+      }, /Decoding already finished/);
     });
   });
 

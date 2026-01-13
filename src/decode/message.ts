@@ -154,6 +154,7 @@ function handleContentLength(contentLengthValues: string[]): BodyStrategy {
 
 export function decideBodyStrategy(state: HttpState): BodyStrategy {
   const { headers } = state.parsing.headers;
+  const isResponse = state.messageType === 'response';
 
   const contentLengthValues = getHeaderValues(headers, 'content-length');
   const transferEncodingValues = getHeaderValues(headers, 'transfer-encoding');
@@ -164,6 +165,10 @@ export function decideBodyStrategy(state: HttpState): BodyStrategy {
 
   if (contentLengthValues?.length) {
     return handleContentLength(contentLengthValues);
+  }
+
+  if (isResponse) {
+    return { type: 'close-delimited' };
   }
 
   return { type: 'none' };
@@ -362,7 +367,7 @@ function handleBodyPhase<T extends ChunkedBodyState | FixedLengthBodyState>(
   transition(state, HttpDecodePhase.FINISHED);
 }
 
-const PHASE_HANDLERS: Record<HttpDecodePhase, (state: HttpState) => void> = {
+const PHASE_HANDLERS: { [K in HttpDecodePhase]: (state: HttpState) => void } = {
   [HttpDecodePhase.START_LINE]: handleStartLinePhase,
   [HttpDecodePhase.HEADERS]: handleHeadersPhase,
   [HttpDecodePhase.BODY_CHUNKED]: (state) => handleBodyPhase(state, decodeChunkedBody),
@@ -392,23 +397,24 @@ function decodeHttp(
     throw new Error(`Decoding encountered error: "${prev.error.message}"`);
   }
 
-  const state = forkState(prev);
+  const next: HttpState = forkState(prev);
   if (input.length > 0) {
-    state.buffer = Buffer.concat([state.buffer, input]);
+    next.buffer = Buffer.concat([next.buffer, input]);
   }
 
   try {
-    runStateMachine(state);
+    runStateMachine(next);
   } catch (error) {
-    state.error = error instanceof HttpDecodeError
+    next.error = error instanceof HttpDecodeError
       ? error
       : new HttpDecodeError({
         code: HttpDecodeErrorCode.INTERNAL_ERROR,
         message: error instanceof Error ? error.message : String(error),
       });
+    next.phase = HttpDecodePhase.FINISHED;
   }
 
-  return state;
+  return next;
 }
 
 export function decodeRequest(
