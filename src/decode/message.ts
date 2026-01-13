@@ -154,11 +154,25 @@ function handleContentLength(contentLengthValues: string[]): BodyStrategy {
 }
 
 export function decideBodyStrategy(state: HttpState): BodyStrategy {
-  const { headers } = state.parsing.headers!;
-  const isResponse = state.messageType === 'response';
+  const headersState = state.parsing.headers;
+  if (!headersState) {
+    throw new Error('decideBodyStrategy called before headers parsed');
+  }
 
+  const headers = headersState.headers;
   const contentLengthValues = getHeaderValues(headers, 'content-length');
   const transferEncodingValues = getHeaderValues(headers, 'transfer-encoding');
+
+  const isRequest = state.messageType === 'request';
+  const isResponse = state.messageType === 'response';
+
+  if (isResponse) {
+    const startLine = state.parsing.startLine as ResponseStartLine;
+    const statusCode = startLine.statusCode!;
+    if (statusCode === 101) {
+      return { type: 'upgrade' };
+    }
+  }
 
   if (transferEncodingValues?.length) {
     return handleTransferEncoding(transferEncodingValues, contentLengthValues);
@@ -171,7 +185,6 @@ export function decideBodyStrategy(state: HttpState): BodyStrategy {
   if (isResponse) {
     return { type: 'close-delimited' };
   }
-
   return { type: 'none' };
 }
 

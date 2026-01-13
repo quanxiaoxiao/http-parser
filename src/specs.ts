@@ -44,6 +44,7 @@ export enum HttpDecodePhase {
   HEADERS = 'headers',
   BODY_CHUNKED = 'body_chunked',
   BODY_FIXED_LENGTH = 'body_fixed_length',
+  BODY_CLOSE_DELIMITED = 'body_close_delimited',
   FINISHED = 'finished',
 }
 
