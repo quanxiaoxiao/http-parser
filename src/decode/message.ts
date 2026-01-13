@@ -2,8 +2,8 @@ import { Buffer } from 'node:buffer';
 
 import { HttpDecodeError, HttpDecodeErrorCode } from '../errors.js';
 import { getHeaderValues } from '../headers/headers.js';
-import { DEFAULT_HEADER_LIMITS, DEFAULT_START_LINE_LIMITS, HttpDecodePhase } from '../specs.js';
-import type { HeaderLimits, Headers, RequestStartLine, ResponseStartLine,StartLineLimits } from '../types.js';
+import { DEFAULT_CHUNKED_BODY_LIMITS, DEFAULT_FIXED_LENGTH_BODY_LIMITS, DEFAULT_HEADER_LIMITS, DEFAULT_START_LINE_LIMITS, HttpDecodePhase } from '../specs.js';
+import type { ChunkedBodyLimits, FixedLengthBodyLimits, HeaderLimits, Headers, RequestStartLine, ResponseStartLine,StartLineLimits } from '../types.js';
 import { parseInteger } from '../utils/number.js';
 import { type ChunkedBodyState, createChunkedBodyState, decodeChunkedBody, isChunkedBodyFinished } from './chunked-body.js';
 import { createFixedLengthBodyState, decodeFixedLengthBody, type FixedLengthBodyState,isFixedLengthBodyFinished } from './fixed-length-body.js';
@@ -23,6 +23,8 @@ interface BodyStrategy {
 interface HttpParserConfig {
   headerLimits: HeaderLimits;
   startLineLimits: StartLineLimits;
+  chunkedbodylimits: ChunkedBodyLimits;
+  fixedLengthBodyLimits: FixedLengthBodyLimits;
 }
 
 export type HttpDecodeEvent =
@@ -193,17 +195,19 @@ export interface HttpResponseState extends HttpState {
 
 export function createHttpState(messageType: 'request' | 'response'): HttpState {
   return {
+    messageType,
     phase: HttpDecodePhase.START_LINE,
-    buffer: EMPTY_BUFFER,
-    startLine: null,
     config: {
       headerLimits: DEFAULT_HEADER_LIMITS,
       startLineLimits: DEFAULT_START_LINE_LIMITS,
+      chunkedbodylimits: DEFAULT_CHUNKED_BODY_LIMITS,
+      fixedLengthBodyLimits: DEFAULT_FIXED_LENGTH_BODY_LIMITS,
     },
+    buffer: EMPTY_BUFFER,
+    startLine: null,
     headersState: null,
     bodyState: null,
     events: [],
-    messageType,
   };
 };
 
@@ -242,7 +246,7 @@ function handleStartLinePhase(state: HttpState): void {
     return;
   }
 
-  const startLine = parseLineFn(lineBuf.toString());
+  const startLine = parseLineFn(lineBuf.toString(), state.config.startLineLimits);
   state.startLine = startLine;
   state.buffer = state.buffer.subarray(lineBuf.length + CRLF_LENGTH);
 
@@ -308,12 +312,12 @@ function handleHeadersPhase(state: HttpState): void {
   const bodyStrategy = decideBodyStrategy(state);
   switch (bodyStrategy.type) {
   case 'chunked': {
-    state.bodyState = createChunkedBodyState();
+    state.bodyState = createChunkedBodyState(state.config.chunkedbodylimits);
     transition(state, HttpDecodePhase.BODY_CHUNKED);
     break;
   }
   case 'fixed': {
-    state.bodyState = createFixedLengthBodyState(bodyStrategy.length);
+    state.bodyState = createFixedLengthBodyState(bodyStrategy.length, state.config.fixedLengthBodyLimits);
     transition(state, HttpDecodePhase.BODY_FIXED_LENGTH);
     break;
   }
