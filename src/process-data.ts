@@ -67,7 +67,7 @@ async function processFile(filePath: string, options: ProcessOptions): Promise<P
     };
   }
 
-  if (requestState.bodyState) {
+  if (requestState.parsing.body) {
     console.log(requestState.events);
   }
 

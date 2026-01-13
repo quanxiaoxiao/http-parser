@@ -14,11 +14,12 @@ import { decodeRequestStartLine, decodeResponseStartLine } from './start-line.js
 const CRLF_LENGTH = 2;
 const EMPTY_BUFFER = Buffer.alloc(0);
 
-interface BodyStrategy {
-  type: 'chunked' | 'fixed' | 'close-delimited' | 'upgrade' | 'none';
-  length?: number;
-  protocol?: string; // for Upgrade
-}
+type BodyStrategy =
+  | { type: 'chunked' }
+  | { type: 'fixed'; length: number }
+  | { type: 'close-delimited' }
+  | { type: 'upgrade'; protocol?: string }
+  | { type: 'none' };
 
 interface HttpParserConfig {
   headerLimits: HeaderLimits;
@@ -95,7 +96,7 @@ function handleTransferEncoding(
     });
   }
 
-  const encoding = transferEncodingValues[0].toLowerCase();
+  const encoding = transferEncodingValues[0]!.toLowerCase();
 
   if (encoding !== 'chunked') {
     throw new HttpDecodeError({
@@ -138,7 +139,7 @@ function handleContentLength(contentLengthValues: string[]): BodyStrategy {
     });
   }
 
-  const length = parseInteger(contentLengthValues[0]);
+  const length = parseInteger(contentLengthValues[0] as string);
 
   validateContentLength(length);
 
@@ -153,7 +154,7 @@ function handleContentLength(contentLengthValues: string[]): BodyStrategy {
 }
 
 export function decideBodyStrategy(state: HttpState): BodyStrategy {
-  const { headers } = state.parsing.headers;
+  const { headers } = state.parsing.headers!;
   const isResponse = state.messageType === 'response';
 
   const contentLengthValues = getHeaderValues(headers, 'content-length');
