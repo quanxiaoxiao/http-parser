@@ -69,12 +69,11 @@ export function decodeFixedLengthBody(
     remainingBytes: newRemainingBytes,
     phase: newRemainingBytes === 0 ? FixedLengthBodyPhase.FINISHED : prev.phase,
     buffer: canAccept < inputSize ? input.subarray(canAccept) : Buffer.alloc(0),
-    chunks: [...prev.chunks],
   };
 
   if (canAccept > 0) {
     const validChunk = canAccept === inputSize ? input : input.subarray(0, canAccept);
-    next.chunks = [...prev.chunks, validChunk];
+    next.chunks.push(validChunk);
   }
 
   return next;

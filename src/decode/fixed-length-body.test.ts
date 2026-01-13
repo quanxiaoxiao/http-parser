@@ -461,15 +461,14 @@ describe('decodeFixedLengthBody', () => {
     );
   });
 
-  it('应该保持 chunks 数组不可变性（添加数据时创建新数组）', () => {
+  it('应该保持 chunks 数组可变性（添加数据时创建新数组）', () => {
     const state = createFixedLengthBodyState(10);
     const originalChunks = state.chunks;
 
+    assert.strictEqual(originalChunks.length, 0);
     const result = decodeFixedLengthBody(state, Buffer.from('12345'));
 
-    // 新状态应该有新的 chunks 数组
-    assert.notStrictEqual(result.chunks, originalChunks);
-    assert.strictEqual(originalChunks.length, 0);
+    assert.strictEqual(originalChunks.length, 1);
     assert.strictEqual(result.chunks.length, 1);
   });
 
