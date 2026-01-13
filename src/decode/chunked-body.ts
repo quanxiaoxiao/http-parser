@@ -263,8 +263,6 @@ export function decodeChunkedBody(
   const next: ChunkedBodyState = {
     ...prev,
     buffer: prev.buffer.length > 0 ? Buffer.concat([prev.buffer, input]) : input,
-    chunks: [...prev.chunks],
-    trailers: { ...prev.trailers },
   };
 
   while (next.phase !== ChunkedBodyPhase.FINISHED) {
