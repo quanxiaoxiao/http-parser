@@ -11,7 +11,7 @@ describe('decodeRequest', () => {
       const state = createRequestState();
       assert.strictEqual(state.phase, HttpDecodePhase.START_LINE);
       assert.strictEqual(state.parsing.startLine, null);
-      assert.strictEqual(state.headersState, null);
+      assert.strictEqual(state.parsing.headers, null);
       assert.strictEqual(state.bodyState, null);
     });
 
@@ -80,9 +80,9 @@ describe('decodeRequest', () => {
       const result = decodeRequest(state, input);
 
       assert.strictEqual(result.phase, HttpDecodePhase.FINISHED);
-      assert.ok(result.headersState?.headers);
-      assert.strictEqual(result.headersState.headers['host'], 'example.com');
-      assert.strictEqual(result.headersState.headers['user-agent'], 'test');
+      assert.ok(result.parsing.headers?.headers);
+      assert.strictEqual(result.parsing.headers.headers['host'], 'example.com');
+      assert.strictEqual(result.parsing.headers.headers['user-agent'], 'test');
     });
 
     it('应该处理多值 header', () => {
@@ -96,7 +96,7 @@ describe('decodeRequest', () => {
 
       const result = decodeRequest(state, input);
 
-      assert.ok(Array.isArray(result.headersState?.headers?.['accept']));
+      assert.ok(Array.isArray(result.parsing.headers?.headers?.['accept']));
     });
 
     it('不完整的 headers 应该等待更多数据', () => {
@@ -281,7 +281,7 @@ describe('HTTP Request Parser', () => {
 
       assert.strictEqual(state.phase, HttpDecodePhase.START_LINE);
       assert.strictEqual(state.parsing.startLine, null);
-      assert.strictEqual(state.headersState, null);
+      assert.strictEqual(state.parsing.headers, null);
       assert.strictEqual(state.bodyState, null);
       assert.strictEqual(state.buffer.length, 0);
       assert.strictEqual(state.error, undefined);
@@ -355,8 +355,8 @@ describe('HTTP Request Parser', () => {
       const result = decodeRequest(state, input);
 
       assert.strictEqual(result.phase, HttpDecodePhase.FINISHED);
-      assert.strictEqual(result.headersState?.headers['host'], 'example.com');
-      assert.strictEqual(result.headersState?.headers['user-agent'], 'test');
+      assert.strictEqual(result.parsing.headers?.headers['host'], 'example.com');
+      assert.strictEqual(result.parsing.headers?.headers['user-agent'], 'test');
     });
 
     it('应该解析多行 header 值', () => {
@@ -370,7 +370,7 @@ describe('HTTP Request Parser', () => {
 
       const result = decodeRequest(state, input);
 
-      assert.strictEqual(result.headersState?.headers['accept'], 'text/html,application/json');
+      assert.strictEqual(result.parsing.headers?.headers['accept'], 'text/html,application/json');
     });
 
     it('应该处理分块接收的 headers', () => {
@@ -381,7 +381,7 @@ describe('HTTP Request Parser', () => {
       state = decodeRequest(state, Buffer.from('Content-Length: 0\r\n\r\n'));
 
       assert.strictEqual(state.phase, HttpDecodePhase.FINISHED);
-      assert.strictEqual(state.headersState?.headers['host'], 'example.com');
+      assert.strictEqual(state.parsing.headers?.headers['host'], 'example.com');
     });
   });
 
@@ -434,7 +434,7 @@ describe('HTTP Request Parser', () => {
       const result = decodeRequest(state, input);
 
       assert.strictEqual(result.phase, HttpDecodePhase.FINISHED);
-      assert.strictEqual(result.headersState?.headers['content-type'], 'application/json');
+      assert.strictEqual(result.parsing.headers?.headers['content-type'], 'application/json');
     });
 
     it('应该处理大型请求体', () => {
@@ -574,7 +574,7 @@ describe('HTTP Request Parser', () => {
       const result = decodeRequest(state, input);
 
       assert.ok(result.parsing.startLine?.path);
-      assert.ok(result.headersState?.headers['host']);
+      assert.ok(result.parsing.headers?.headers['host']);
     });
 
     it('应该处理不同的 HTTP 版本', () => {

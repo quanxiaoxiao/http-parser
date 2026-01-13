@@ -29,7 +29,7 @@ describe('HTTP Decoder', () => {
       assert.strictEqual(state.parsing.startLine?.method, 'GET');
       assert.strictEqual(state.parsing.startLine?.path, '/path');
       assert.strictEqual(state.parsing.startLine?.version, 1.1);
-      assert.ok(state.headersState?.headers);
+      assert.ok(state.parsing.headers?.headers);
     });
 
     test('should decode request with query parameters', () => {
@@ -292,10 +292,10 @@ describe('HTTP Decoder', () => {
       const state = decodeResponse(null, input);
 
       assert.strictEqual(state.phase, HttpDecodePhase.FINISHED);
-      assert.ok(state.headersState?.headers);
+      assert.ok(state.parsing.headers?.headers);
 
       // 验证包含多个头部
-      const headerNames = Object.keys(state.headersState.headers);
+      const headerNames = Object.keys(state.parsing.headers.headers);
       assert.ok(headerNames.length >= 4);
     });
 
@@ -347,7 +347,7 @@ describe('HTTP Decoder', () => {
       assert.strictEqual(state.messageType, 'request');
       assert.strictEqual(state.phase, HttpDecodePhase.START_LINE);
       assert.strictEqual(state.parsing.startLine, null);
-      assert.strictEqual(state.headersState, null);
+      assert.strictEqual(state.parsing.headers, null);
       assert.strictEqual(state.bodyState, null);
       assert.strictEqual(state.events.length, 0);
     });
@@ -465,7 +465,7 @@ describe('HTTP Decoder', () => {
       const state = decodeResponse(null, input);
 
       assert.strictEqual(state.phase, HttpDecodePhase.FINISHED);
-      assert.ok(state.headersState?.headers);
+      assert.ok(state.parsing.headers?.headers);
     });
   });
 });
@@ -473,10 +473,12 @@ describe('HTTP Decoder', () => {
 describe('decideBodyStrategy', () => {
   test('应该返回 none 当没有 Transfer-Encoding 和 Content-Length 时', () => {
     const state = {
-      headersState: {
+      parsing: {
         headers: {
-          host: 'example.com',
-          'user-agent': 'test',
+          headers: {
+            host: 'example.com',
+            'user-agent': 'test',
+          },
         },
       },
     };
@@ -486,9 +488,11 @@ describe('decideBodyStrategy', () => {
 
   test('应该返回 chunked 当 Transfer-Encoding 是 chunked 时', () => {
     const state = {
-      headersState: {
+      parsing: {
         headers: {
-          'transfer-encoding': 'chunked',
+          headers: {
+            'transfer-encoding': 'chunked',
+          },
         },
       },
     };
@@ -498,9 +502,11 @@ describe('decideBodyStrategy', () => {
 
   test('应该返回 chunked 当 Transfer-Encoding 是 CHUNKED (大写) 时', () => {
     const state = {
-      headersState: {
+      parsing: {
         headers: {
-          'transfer-encoding': 'CHUNKED',
+          headers: {
+            'transfer-encoding': 'CHUNKED',
+          },
         },
       },
     };
@@ -510,9 +516,11 @@ describe('decideBodyStrategy', () => {
 
   test('应该抛出错误当有多个 Transfer-Encoding headers 时', () => {
     const state = {
-      headersState: {
+      parsing: {
         headers: {
-          'transfer-encoding': ['chunked', 'gzip'],
+          headers: {
+            'transfer-encoding': ['chunked', 'gzip'],
+          },
         },
       },
     };
@@ -530,9 +538,11 @@ describe('decideBodyStrategy', () => {
 
   test('应该抛出错误当 Transfer-Encoding 不是 chunked 时', () => {
     const state = {
-      headersState: {
+      parsing: {
         headers: {
-          'transfer-encoding': 'gzip',
+          headers: {
+            'transfer-encoding': 'gzip',
+          },
         },
       },
     };
@@ -550,10 +560,12 @@ describe('decideBodyStrategy', () => {
 
   test('应该抛出错误当同时有 Transfer-Encoding 和 Content-Length 时', () => {
     const state = {
-      headersState: {
+      parsing: {
         headers: {
-          'transfer-encoding': 'chunked',
-          'content-length': '100',
+          headers: {
+            'transfer-encoding': 'chunked',
+            'content-length': '100',
+          },
         },
       },
     };
@@ -571,9 +583,11 @@ describe('decideBodyStrategy', () => {
 
   test('应该返回 fixed 当 Content-Length 是有效数字时', () => {
     const state = {
-      headersState: {
+      parsing: {
         headers: {
-          'content-length': '1024',
+          headers: {
+            'content-length': '1024',
+          },
         },
       },
     };
@@ -583,9 +597,11 @@ describe('decideBodyStrategy', () => {
 
   test('应该返回 none 当 Content-Length 是 0 时', () => {
     const state = {
-      headersState: {
+      parsing: {
         headers: {
-          'content-length': '0',
+          headers: {
+            'content-length': '0',
+          },
         },
       },
     };
@@ -595,9 +611,11 @@ describe('decideBodyStrategy', () => {
 
   test('应该抛出错误当有多个 Content-Length headers 时', () => {
     const state = {
-      headersState: {
+      parsing: {
         headers: {
-          'content-length': ['100', '200'],
+          headers: {
+            'content-length': ['100', '200'],
+          },
         },
       },
     };
@@ -615,9 +633,11 @@ describe('decideBodyStrategy', () => {
 
   test('应该抛出错误当 Content-Length 是负数时', () => {
     const state = {
-      headersState: {
+      parsing: {
         headers: {
-          'content-length': '-1',
+          headers: {
+            'content-length': '-1',
+          },
         },
       },
     };
@@ -635,9 +655,11 @@ describe('decideBodyStrategy', () => {
 
   test('应该抛出错误当 Content-Length 是无效字符串时', () => {
     const state = {
-      headersState: {
+      parsing: {
         headers: {
-          'content-length': 'invalid',
+          headers: {
+            'content-length': 'invalid',
+          },
         },
       },
     };
@@ -655,9 +677,11 @@ describe('decideBodyStrategy', () => {
 
   test('应该抛出错误当 Content-Length 超出安全整数范围时', () => {
     const state = {
-      headersState: {
+      parsing: {
         headers: {
-          'content-length': '9007199254740992',
+          headers: {
+            'content-length': '9007199254740992',
+          },
         },
       },
     };
@@ -675,9 +699,11 @@ describe('decideBodyStrategy', () => {
 
   test('应该优先处理 Transfer-Encoding 而非 Content-Length', () => {
     const state = {
-      headersState: {
+      parsing: {
         headers: {
-          'transfer-encoding': 'chunked',
+          headers: {
+            'transfer-encoding': 'chunked',
+          },
         },
       },
     };

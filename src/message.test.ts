@@ -30,8 +30,8 @@ describe('HTTP Request Encode Decode Tests', () => {
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
       assert.strictEqual(requestState.parsing.startLine.raw, 'GET /api/users HTTP/1.1');
-      assert.strictEqual(requestState.headersState.headers.host, 'example.com');
-      assert.strictEqual(requestState.headersState.headers['user-agent'], 'TestClient/1.0');
+      assert.strictEqual(requestState.parsing.headers.headers.host, 'example.com');
+      assert.strictEqual(requestState.parsing.headers.headers['user-agent'], 'TestClient/1.0');
     });
 
     test('should correctly encode and decode POST request with string body', async () => {
@@ -128,7 +128,7 @@ describe('HTTP Request Encode Decode Tests', () => {
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
       assert.strictEqual(requestState.parsing.startLine.method, 'DELETE');
-      assert.strictEqual(requestState.headersState.headers.authorization, 'Bearer token123');
+      assert.strictEqual(requestState.parsing.headers.headers.authorization, 'Bearer token123');
     });
   });
 
@@ -161,8 +161,8 @@ describe('HTTP Request Encode Decode Tests', () => {
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
       assert.strictEqual(requestState.parsing.startLine.raw, 'POST /api/upload HTTP/1.1');
-      assert.deepStrictEqual(requestState.headersState.headers.host, 'example.com');
-      assert.strictEqual(requestState.headersState.headers['transfer-encoding'], 'chunked');
+      assert.deepStrictEqual(requestState.parsing.headers.headers.host, 'example.com');
+      assert.strictEqual(requestState.parsing.headers.headers['transfer-encoding'], 'chunked');
 
       const expectedContent = readFileSync(
         path.join(process.cwd(), 'package-lock.json'),
@@ -360,7 +360,7 @@ describe('HTTP Request Encode Decode Tests', () => {
       }
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
-      const headers = requestState.headersState.headers;
+      const headers = requestState.parsing.headers.headers;
       assert.strictEqual(headers.host, 'example.com');
       assert.strictEqual(headers['user-agent'], 'TestClient/1.0');
       assert.strictEqual(headers.accept, 'application/json');
@@ -406,9 +406,9 @@ describe('HTTP Request Encode Decode Tests', () => {
       }
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
-      assert.ok('host' in requestState.headersState.headers);
-      assert.ok('content-type' in requestState.headersState.headers);
-      assert.ok('accept-encoding' in requestState.headersState.headers);
+      assert.ok('host' in requestState.parsing.headers.headers);
+      assert.ok('content-type' in requestState.parsing.headers.headers);
+      assert.ok('accept-encoding' in requestState.parsing.headers.headers);
     });
 
     test('should correctly handle header values with special characters', async () => {
@@ -432,11 +432,11 @@ describe('HTTP Request Encode Decode Tests', () => {
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
       assert.strictEqual(
-        requestState.headersState.headers['x-special'],
+        requestState.parsing.headers.headers['x-special'],
         'value-with-dashes_and_underscores',
       );
-      assert.strictEqual(requestState.headersState.headers['x-numbers'], '12345');
-      assert.strictEqual(requestState.headersState.headers['x-mixed'], 'ABC123-xyz_789');
+      assert.strictEqual(requestState.parsing.headers.headers['x-numbers'], '12345');
+      assert.strictEqual(requestState.parsing.headers.headers['x-mixed'], 'ABC123-xyz_789');
     });
 
     test('should correctly handle many custom headers', async () => {
@@ -459,9 +459,9 @@ describe('HTTP Request Encode Decode Tests', () => {
       }
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
-      assert.strictEqual(requestState.headersState.headers.host, 'example.com');
-      assert.strictEqual(requestState.headersState.headers['x-custom-header-0'], 'value-0');
-      assert.strictEqual(requestState.headersState.headers['x-custom-header-49'], 'value-49');
+      assert.strictEqual(requestState.parsing.headers.headers.host, 'example.com');
+      assert.strictEqual(requestState.parsing.headers.headers['x-custom-header-0'], 'value-0');
+      assert.strictEqual(requestState.parsing.headers.headers['x-custom-header-49'], 'value-49');
     });
 
     test('should correctly handle header values with spaces', async () => {
@@ -483,7 +483,7 @@ describe('HTTP Request Encode Decode Tests', () => {
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
       assert.strictEqual(
-        requestState.headersState.headers['x-description'],
+        requestState.parsing.headers.headers['x-description'],
         'This is a header value with spaces',
       );
     });
@@ -554,7 +554,7 @@ describe('HTTP Request Encode Decode Tests', () => {
       }
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
-      assert.deepStrictEqual(requestState.headersState.headers['content-length'], '0');
+      assert.deepStrictEqual(requestState.parsing.headers.headers['content-length'], '0');
     });
 
     test('should correctly handle binary body', async () => {
@@ -604,7 +604,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         Buffer.concat(requestState.bodyState.chunks).toString(),
         'test buffer data',
       );
-      assert.strictEqual(requestState.headersState.headers['content-length'], '16');
+      assert.strictEqual(requestState.parsing.headers.headers['content-length'], '16');
     });
 
     test('should correctly handle large Buffer body', async () => {
@@ -627,7 +627,7 @@ describe('HTTP Request Encode Decode Tests', () => {
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
       assert.strictEqual(Buffer.concat(requestState.bodyState.chunks).length, 10000);
-      assert.strictEqual(requestState.headersState.headers['content-length'], '10000');
+      assert.strictEqual(requestState.parsing.headers.headers['content-length'], '10000');
     });
 
     test('should correctly handle UTF-8 encoded string body', async () => {
@@ -942,7 +942,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         }
 
         assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
-        assert.strictEqual(requestState.headersState.headers['content-type'], contentType);
+        assert.strictEqual(requestState.parsing.headers.headers['content-type'], contentType);
       });
     });
 
@@ -966,7 +966,7 @@ describe('HTTP Request Encode Decode Tests', () => {
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
       assert.strictEqual(
-        requestState.headersState.headers['content-type'],
+        requestState.parsing.headers.headers['content-type'],
         'text/html; charset=utf-8',
       );
     });
@@ -991,7 +991,7 @@ describe('HTTP Request Encode Decode Tests', () => {
       }
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
-      assert.strictEqual(requestState.headersState.headers['content-type'], contentType);
+      assert.strictEqual(requestState.parsing.headers.headers['content-type'], contentType);
     });
   });
 
@@ -1151,8 +1151,8 @@ describe('HTTP Request Encode Decode Tests', () => {
       }
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
-      assert.ok(requestState.headersState.headers.authorization.startsWith('Bearer'));
-      assert.strictEqual(requestState.headersState.headers['x-api-key'], 'abc123xyz');
+      assert.ok(requestState.parsing.headers.headers.authorization.startsWith('Bearer'));
+      assert.strictEqual(requestState.parsing.headers.headers['x-api-key'], 'abc123xyz');
     });
   });
 
@@ -1263,7 +1263,7 @@ describe('HTTP Request Encode Decode Tests', () => {
       }
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
-      assert.strictEqual(requestState.headersState.headers['x-long-header'], longValue);
+      assert.strictEqual(requestState.parsing.headers.headers['x-long-header'], longValue);
     });
 
     test('should correctly handle multiple custom headers with same type but different values', async () => {
@@ -1286,9 +1286,9 @@ describe('HTTP Request Encode Decode Tests', () => {
       }
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
-      assert.strictEqual(requestState.headersState.headers['x-request-id'], '123');
-      assert.strictEqual(requestState.headersState.headers['x-session-id'], '456');
-      assert.strictEqual(requestState.headersState.headers['x-trace-id'], '789');
+      assert.strictEqual(requestState.parsing.headers.headers['x-request-id'], '123');
+      assert.strictEqual(requestState.parsing.headers.headers['x-session-id'], '456');
+      assert.strictEqual(requestState.parsing.headers.headers['x-trace-id'], '789');
     });
   });
 
@@ -1480,7 +1480,7 @@ describe('HTTP Request Encode Decode Tests', () => {
       }
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
-      assert.strictEqual(requestState.headersState.headers['content-length'], '9');
+      assert.strictEqual(requestState.parsing.headers.headers['content-length'], '9');
     });
 
     test('should use Transfer-Encoding: chunked for AsyncIterable body', async () => {
@@ -1505,7 +1505,7 @@ describe('HTTP Request Encode Decode Tests', () => {
       }
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
-      assert.strictEqual(requestState.headersState.headers['transfer-encoding'], 'chunked');
+      assert.strictEqual(requestState.parsing.headers.headers['transfer-encoding'], 'chunked');
     });
 
     test('should set Content-Length to 0 for empty Buffer', async () => {
@@ -1526,7 +1526,7 @@ describe('HTTP Request Encode Decode Tests', () => {
       }
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
-      assert.strictEqual(requestState.headersState.headers['content-length'], '0');
+      assert.strictEqual(requestState.parsing.headers.headers['content-length'], '0');
     });
   });
 });

@@ -57,7 +57,6 @@ function forkState(prev: HttpState): HttpState {
   return {
     ...prev,
     events: [],
-    headersState: prev.headersState,
     bodyState: prev.bodyState,
   };
 }
@@ -155,7 +154,7 @@ function handleContentLength(contentLengthValues: string[]): BodyStrategy {
 }
 
 export function decideBodyStrategy(state: HttpState): BodyStrategy {
-  const { headers } = state.headersState;
+  const { headers } = state.parsing.headers;
 
   const contentLengthValues = getHeaderValues(headers, 'content-length');
   const transferEncodingValues = getHeaderValues(headers, 'transfer-encoding');
@@ -187,7 +186,6 @@ export interface HttpState<T extends 'request' | 'response' = 'request' | 'respo
     headers: HeadersState | null;
     body: ChunkedBodyState | FixedLengthBodyState | null;
   },
-  headersState: HeadersState | null;
   bodyState: ChunkedBodyState | FixedLengthBodyState | null;
   events: HttpDecodeEvent[];
 }
@@ -206,7 +204,6 @@ export function createHttpState(messageType: 'request' | 'response'): HttpState 
       fixedLengthBodyLimits: DEFAULT_FIXED_LENGTH_BODY_LIMITS,
     },
     buffer: EMPTY_BUFFER,
-    headersState: null,
     parsing: {
       startLine: null,
       headers: null,
@@ -283,14 +280,14 @@ function handleStartLinePhase(state: HttpState): void {
 }
 
 function handleHeadersPhase(state: HttpState): void {
-  if (!state.headersState) {
-    state.headersState = createHeadersState(state.config.headerLimits);
+  if (!state.parsing.headers) {
+    state.parsing.headers = createHeadersState(state.config.headerLimits);
   }
-  const prevLineCount = state.headersState.rawHeaders.length;
-  state.headersState = decodeHeaders(state.headersState!, state.buffer);
+  const prevLineCount = state.parsing.headers.rawHeaders.length;
+  state.parsing.headers = decodeHeaders(state.parsing.headers!, state.buffer);
 
-  for (let i = prevLineCount; i < state.headersState.rawHeaders.length; i++) {
-    const headerLine = state.headersState.rawHeaders[i]!;
+  for (let i = prevLineCount; i < state.parsing.headers.rawHeaders.length; i++) {
+    const headerLine = state.parsing.headers.rawHeaders[i]!;
 
     addEvent(state, {
       type: 'header-line',
@@ -300,19 +297,19 @@ function handleHeadersPhase(state: HttpState): void {
     });
   }
 
-  if (!isHeadersFinished(state.headersState)) {
+  if (!isHeadersFinished(state.parsing.headers)) {
     state.buffer = EMPTY_BUFFER;
     return;
   }
 
   addEvent(state, {
     type: 'headers-complete',
-    count: state.headersState.rawHeaders.length,
+    count: state.parsing.headers.rawHeaders.length,
   });
 
   addEvent(state, {
     type: 'headers-normalized',
-    headers: state.headersState.headers,
+    headers: state.parsing.headers.headers,
   });
 
   const bodyStrategy = decideBodyStrategy(state);
@@ -331,7 +328,7 @@ function handleHeadersPhase(state: HttpState): void {
     transition(state, HttpDecodePhase.FINISHED);
   }
   }
-  takeBuffer(state.headersState, state);
+  takeBuffer(state.parsing.headers, state);
 }
 
 function handleBodyPhase<T extends ChunkedBodyState | FixedLengthBodyState>(
