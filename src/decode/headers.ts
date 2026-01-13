@@ -7,6 +7,11 @@ const CRLF_LENGTH = 2;
 const COLON = 0x3a;
 const INVALID_HEADER_NAME = /[^!#$%&'*+\-.^_`|~0-9a-z]/i;
 
+export enum HeadersDecodePhase {
+  LINE = 'line',
+  FINISHED = 'finished',
+}
+
 function checkHeaderLimits(state: HeadersState, lineLength: number) {
   state.receivedBytes += lineLength;
 
@@ -23,11 +28,6 @@ function checkHeaderLimits(state: HeadersState, lineLength: number) {
       message: `Headers too many: exceeds limit of ${state.limits.maxHeaderCount} count`,
     });
   }
-}
-
-export enum HeadersDecodePhase {
-  LINE = 'line',
-  FINISHED = 'finished',
 }
 
 export function decodeHeaderLine(headerBuf: Buffer, limits: HeaderLimits): [string, string] {
@@ -96,6 +96,7 @@ export function decodeHeaderLine(headerBuf: Buffer, limits: HeaderLimits): [stri
 export interface HeadersState {
   buffer: Buffer;
   phase: HeadersDecodePhase;
+  consumed: number;
   headers: Headers;
   rawHeaders: Array<[name: string, value: string]>,
   headersRaw: string[];
@@ -106,6 +107,7 @@ export interface HeadersState {
 export function createHeadersState(limits: HeaderLimits = DEFAULT_HEADER_LIMITS): HeadersState {
   return {
     buffer: Buffer.alloc(0),
+    consumed: 0,
     headers: {},
     rawHeaders: [],
     headersRaw: [],
@@ -138,9 +140,6 @@ export function decodeHeaders(
   const next: HeadersState = {
     ...prev,
     buffer: prev.buffer.length === 0 ? input : Buffer.concat([prev.buffer, input]),
-    headers: { ...prev.headers },
-    headersRaw: [...prev.headersRaw],
-    rawHeaders: [...prev.rawHeaders],
   };
 
   let offset = 0;
