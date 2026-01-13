@@ -159,7 +159,7 @@ export function decideBodyStrategy(state: HttpState): BodyStrategy {
   }
 
   if (contentLengthValues?.length) {
-    return handleContentLength(contentLengthValues, state);
+    return handleContentLength(contentLengthValues);
   }
 
   return { type: 'none' };
