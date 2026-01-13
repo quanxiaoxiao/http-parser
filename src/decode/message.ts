@@ -80,67 +80,88 @@ function transition(state: HttpState, next: HttpDecodePhase): void {
   }
 }
 
-function decideBodyStrategy(state: HttpState): BodyStrategy {
+function handleTransferEncoding(
+  transferEncodingValues: string[],
+  contentLengthValues: string[] | undefined,
+): BodyStrategy {
+  if (transferEncodingValues.length > 1) {
+    throw new HttpDecodeError({
+      code: HttpDecodeErrorCode.INVALID_SYNTAX,
+      message: 'multiple Transfer-Encoding headers',
+    });
+  }
+
+  const encoding = transferEncodingValues[0].toLowerCase();
+
+  if (encoding !== 'chunked') {
+    throw new HttpDecodeError({
+      code: HttpDecodeErrorCode.UNSUPPORTED_FEATURE,
+      message: `unsupported Transfer-Encoding: ${encoding}`,
+    });
+  }
+
+  if (contentLengthValues?.length) {
+    throw new HttpDecodeError({
+      code: HttpDecodeErrorCode.INVALID_SYNTAX,
+      message: 'Content-Length with Transfer-Encoding',
+    });
+  }
+
+  return { type: 'chunked' };
+}
+
+function validateContentLength(length: number | null): asserts length is number {
+  if (length == null || length < 0) {
+    throw new HttpDecodeError({
+      code: HttpDecodeErrorCode.INVALID_SYNTAX,
+      message: 'Content-Length invalid',
+    });
+  }
+
+  if (!Number.isSafeInteger(length)) {
+    throw new HttpDecodeError({
+      code: HttpDecodeErrorCode.MESSAGE_TOO_LARGE,
+      message: 'Content-Length overflow',
+    });
+  }
+}
+
+function handleContentLength(contentLengthValues: string[]): BodyStrategy {
+  if (contentLengthValues.length !== 1) {
+    throw new HttpDecodeError({
+      code: HttpDecodeErrorCode.INVALID_SYNTAX,
+      message: 'multiple Content-Length headers',
+    });
+  }
+
+  const length = parseInteger(contentLengthValues[0]);
+
+  validateContentLength(length);
+
+  if (length === 0) {
+    return { type: 'none' };
+  }
+
+  return {
+    type: 'fixed',
+    length,
+  };
+}
+
+export function decideBodyStrategy(state: HttpState): BodyStrategy {
   const { headers } = state.headersState;
 
   const contentLengthValues = getHeaderValues(headers, 'content-length');
   const transferEncodingValues = getHeaderValues(headers, 'transfer-encoding');
 
-  if (transferEncodingValues && transferEncodingValues.length > 0) {
-    if (transferEncodingValues.length > 1) {
-      throw new HttpDecodeError({
-        code: HttpDecodeErrorCode.INVALID_SYNTAX,
-        message: 'multiple Transfer-Encoding headers',
-      });
-    }
-    const te = transferEncodingValues[0].toLowerCase();
-
-    if (te !== 'chunked') {
-      throw new HttpDecodeError({
-        code: HttpDecodeErrorCode.UNSUPPORTED_FEATURE,
-        message: `unsupported Transfer-Encoding: ${te}`,
-      });
-    }
-    if (contentLengthValues) {
-      throw new HttpDecodeError({
-        code: HttpDecodeErrorCode.INVALID_SYNTAX,
-        message: 'Content-Length with Transfer-Encoding',
-      });
-    }
-    return {
-      type: 'chunked',
-    };
+  if (transferEncodingValues?.length) {
+    return handleTransferEncoding(transferEncodingValues, contentLengthValues);
   }
 
-  if (contentLengthValues) {
-    if (contentLengthValues.length !== 1) {
-      throw new HttpDecodeError({
-        code: HttpDecodeErrorCode.INVALID_SYNTAX,
-        message: 'multiple Content-Length headers',
-      });
-    }
-    const length = parseInteger(contentLengthValues[0]);
-    if (length == null || length < 0) {
-      throw new HttpDecodeError({
-        code: HttpDecodeErrorCode.INVALID_SYNTAX,
-        message: 'Content-Length invalid',
-      });
-    }
-    if (!Number.isSafeInteger(length)) {
-      throw new HttpDecodeError({
-        code: HttpDecodeErrorCode.MESSAGE_TOO_LARGE,
-        message: 'Content-Length overflow',
-      });
-    }
-    if (length > 0) {
-      state.bodyState = createFixedLengthBodyState(length);
-      transition(state, HttpDecodePhase.BODY_FIXED_LENGTH);
-      return {
-        type: 'fixed',
-        length,
-      };
-    }
+  if (contentLengthValues?.length) {
+    return handleContentLength(contentLengthValues, state);
   }
+
   return {
     type: 'none',
   };
