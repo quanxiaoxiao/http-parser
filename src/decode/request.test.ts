@@ -10,7 +10,7 @@ describe('decodeRequest', () => {
     it('应该创建初始状态', () => {
       const state = createRequestState();
       assert.strictEqual(state.phase, HttpDecodePhase.START_LINE);
-      assert.strictEqual(state.startLine, null);
+      assert.strictEqual(state.parsing.startLine, null);
       assert.strictEqual(state.headersState, null);
       assert.strictEqual(state.bodyState, null);
     });
@@ -41,10 +41,10 @@ describe('decodeRequest', () => {
       const result = decodeRequest(state, input);
 
       assert.strictEqual(result.phase, HttpDecodePhase.HEADERS);
-      assert.ok(result.startLine);
-      assert.strictEqual(result.startLine.method, 'GET');
-      assert.strictEqual(result.startLine.path, '/path');
-      assert.strictEqual(result.startLine.version, 1.1);
+      assert.ok(result.parsing.startLine);
+      assert.strictEqual(result.parsing.startLine.method, 'GET');
+      assert.strictEqual(result.parsing.startLine.path, '/path');
+      assert.strictEqual(result.parsing.startLine.version, 1.1);
     });
 
     it('应该解析 POST 请求行', () => {
@@ -53,8 +53,8 @@ describe('decodeRequest', () => {
 
       const result = decodeRequest(state, input);
 
-      assert.strictEqual(result.startLine.method, 'POST');
-      assert.strictEqual(result.startLine.path, '/api/users');
+      assert.strictEqual(result.parsing.startLine.method, 'POST');
+      assert.strictEqual(result.parsing.startLine.path, '/api/users');
     });
 
     it('不完整的请求行应该保持在 START_LINE 阶段', () => {
@@ -280,7 +280,7 @@ describe('HTTP Request Parser', () => {
       const state = createRequestState();
 
       assert.strictEqual(state.phase, HttpDecodePhase.START_LINE);
-      assert.strictEqual(state.startLine, null);
+      assert.strictEqual(state.parsing.startLine, null);
       assert.strictEqual(state.headersState, null);
       assert.strictEqual(state.bodyState, null);
       assert.strictEqual(state.buffer.length, 0);
@@ -296,9 +296,9 @@ describe('HTTP Request Parser', () => {
       const result = decodeRequest(state, input);
 
       assert.strictEqual(result.phase, HttpDecodePhase.HEADERS);
-      assert.strictEqual(result.startLine?.method, 'GET');
-      assert.strictEqual(result.startLine?.path, '/path');
-      assert.strictEqual(result.startLine?.version, 1.1);
+      assert.strictEqual(result.parsing.startLine?.method, 'GET');
+      assert.strictEqual(result.parsing.startLine?.path, '/path');
+      assert.strictEqual(result.parsing.startLine?.version, 1.1);
     });
 
     it('应该解析 POST 请求行', () => {
@@ -307,8 +307,8 @@ describe('HTTP Request Parser', () => {
 
       const result = decodeRequest(state, input);
 
-      assert.strictEqual(result.startLine?.method, 'POST');
-      assert.strictEqual(result.startLine?.path, '/api/users');
+      assert.strictEqual(result.parsing.startLine?.method, 'POST');
+      assert.strictEqual(result.parsing.startLine?.path, '/api/users');
     });
 
     it('应该处理带查询参数的请求行', () => {
@@ -317,7 +317,7 @@ describe('HTTP Request Parser', () => {
 
       const result = decodeRequest(state, input);
 
-      assert.strictEqual(result.startLine?.path, '/search?q=test&limit=10');
+      assert.strictEqual(result.parsing.startLine?.path, '/search?q=test&limit=10');
     });
 
     it('应该等待不完整的请求行', () => {
@@ -327,7 +327,7 @@ describe('HTTP Request Parser', () => {
       const result = decodeRequest(state, input);
 
       assert.strictEqual(result.phase, HttpDecodePhase.START_LINE);
-      assert.ok(!result.startLine?.method);
+      assert.ok(!result.parsing.startLine?.method);
     });
 
     it('应该支持分块接收请求行', () => {
@@ -338,7 +338,7 @@ describe('HTTP Request Parser', () => {
 
       state = decodeRequest(state, Buffer.from('th HTTP/1.1\r\n'));
       assert.strictEqual(state.phase, HttpDecodePhase.HEADERS);
-      assert.strictEqual(state.startLine?.path, '/path');
+      assert.strictEqual(state.parsing.startLine?.path, '/path');
     });
   });
 
@@ -573,7 +573,7 @@ describe('HTTP Request Parser', () => {
 
       const result = decodeRequest(state, input);
 
-      assert.ok(result.startLine?.path);
+      assert.ok(result.parsing.startLine?.path);
       assert.ok(result.headersState?.headers['host']);
     });
 
@@ -581,12 +581,12 @@ describe('HTTP Request Parser', () => {
       const state1 = createRequestState();
       const input1 = Buffer.from('GET / HTTP/1.0\r\n\r\n');
       const result1 = decodeRequest(state1, input1);
-      assert.strictEqual(result1.startLine?.version, 1.0);
+      assert.strictEqual(result1.parsing.startLine?.version, 1.0);
 
       const state2 = createRequestState();
       const input2 = Buffer.from('GET / HTTP/1.1\r\n\r\n');
       const result2 = decodeRequest(state2, input2);
-      assert.strictEqual(result2.startLine?.version, 1.1);
+      assert.strictEqual(result2.parsing.startLine?.version, 1.1);
     });
   });
 });

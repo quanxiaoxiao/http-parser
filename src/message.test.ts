@@ -29,7 +29,7 @@ describe('HTTP Request Encode Decode Tests', () => {
       }
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
-      assert.strictEqual(requestState.startLine.raw, 'GET /api/users HTTP/1.1');
+      assert.strictEqual(requestState.parsing.startLine.raw, 'GET /api/users HTTP/1.1');
       assert.strictEqual(requestState.headersState.headers.host, 'example.com');
       assert.strictEqual(requestState.headersState.headers['user-agent'], 'TestClient/1.0');
     });
@@ -54,7 +54,7 @@ describe('HTTP Request Encode Decode Tests', () => {
       }
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
-      assert.strictEqual(requestState.startLine.method, 'POST');
+      assert.strictEqual(requestState.parsing.startLine.method, 'POST');
       assert.strictEqual(
         Buffer.concat(requestState.bodyState.chunks).toString(),
         bodyContent,
@@ -78,8 +78,8 @@ describe('HTTP Request Encode Decode Tests', () => {
       }
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
-      assert.strictEqual(requestState.startLine.method, 'PUT');
-      assert.strictEqual(requestState.startLine.path, '/api/resource/123');
+      assert.strictEqual(requestState.parsing.startLine.method, 'PUT');
+      assert.strictEqual(requestState.parsing.startLine.path, '/api/resource/123');
     });
 
     test('should correctly handle PATCH request', async () => {
@@ -102,7 +102,7 @@ describe('HTTP Request Encode Decode Tests', () => {
       }
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
-      assert.strictEqual(requestState.startLine.method, 'PATCH');
+      assert.strictEqual(requestState.parsing.startLine.method, 'PATCH');
       assert.strictEqual(
         Buffer.concat(requestState.bodyState.chunks).toString(),
         patchData,
@@ -127,7 +127,7 @@ describe('HTTP Request Encode Decode Tests', () => {
       }
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
-      assert.strictEqual(requestState.startLine.method, 'DELETE');
+      assert.strictEqual(requestState.parsing.startLine.method, 'DELETE');
       assert.strictEqual(requestState.headersState.headers.authorization, 'Bearer token123');
     });
   });
@@ -160,7 +160,7 @@ describe('HTTP Request Encode Decode Tests', () => {
       }
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
-      assert.strictEqual(requestState.startLine.raw, 'POST /api/upload HTTP/1.1');
+      assert.strictEqual(requestState.parsing.startLine.raw, 'POST /api/upload HTTP/1.1');
       assert.deepStrictEqual(requestState.headersState.headers.host, 'example.com');
       assert.strictEqual(requestState.headersState.headers['transfer-encoding'], 'chunked');
 
@@ -383,7 +383,7 @@ describe('HTTP Request Encode Decode Tests', () => {
       }
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
-      assert.strictEqual(requestState.startLine.method, 'GET');
+      assert.strictEqual(requestState.parsing.startLine.method, 'GET');
     });
 
     test('should correctly handle case-insensitive header names', async () => {
@@ -712,7 +712,7 @@ describe('HTTP Request Encode Decode Tests', () => {
       }
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
-      assert.strictEqual(requestState.startLine.path, '/api/search?q=test&limit=10');
+      assert.strictEqual(requestState.parsing.startLine.path, '/api/search?q=test&limit=10');
     });
 
     test('should correctly handle root path', async () => {
@@ -732,7 +732,7 @@ describe('HTTP Request Encode Decode Tests', () => {
       }
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
-      assert.strictEqual(requestState.startLine.path, '/');
+      assert.strictEqual(requestState.parsing.startLine.path, '/');
     });
 
     test('should correctly handle complex path', async () => {
@@ -753,7 +753,7 @@ describe('HTTP Request Encode Decode Tests', () => {
       }
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
-      assert.strictEqual(requestState.startLine.path, complexPath);
+      assert.strictEqual(requestState.parsing.startLine.path, complexPath);
     });
 
     test('should correctly handle path with encoded characters', async () => {
@@ -774,7 +774,7 @@ describe('HTTP Request Encode Decode Tests', () => {
       }
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
-      assert.strictEqual(requestState.startLine.path, encodedPath);
+      assert.strictEqual(requestState.parsing.startLine.path, encodedPath);
     });
 
     test('should correctly handle path with fragment', async () => {
@@ -795,7 +795,7 @@ describe('HTTP Request Encode Decode Tests', () => {
       }
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
-      assert.strictEqual(requestState.startLine.path, pathWithFragment);
+      assert.strictEqual(requestState.parsing.startLine.path, pathWithFragment);
     });
 
     test('should correctly handle very long path', async () => {
@@ -816,7 +816,7 @@ describe('HTTP Request Encode Decode Tests', () => {
       }
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
-      assert.ok(requestState.startLine.raw.includes(longPath));
+      assert.ok(requestState.parsing.startLine.raw.includes(longPath));
     });
 
     test('should correctly handle complex query parameters', async () => {
@@ -838,7 +838,7 @@ describe('HTTP Request Encode Decode Tests', () => {
       }
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
-      assert.strictEqual(requestState.startLine.path, complexQuery);
+      assert.strictEqual(requestState.parsing.startLine.path, complexQuery);
     });
   });
 
@@ -863,8 +863,8 @@ describe('HTTP Request Encode Decode Tests', () => {
         }
 
         assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
-        assert.strictEqual(requestState.startLine.raw, `${method} /api/test HTTP/1.1`);
-        assert.strictEqual(requestState.startLine.method, method);
+        assert.strictEqual(requestState.parsing.startLine.raw, `${method} /api/test HTTP/1.1`);
+        assert.strictEqual(requestState.parsing.startLine.method, method);
       });
     });
 
@@ -905,7 +905,7 @@ describe('HTTP Request Encode Decode Tests', () => {
       }
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
-      assert.strictEqual(requestState.startLine.path, '*');
+      assert.strictEqual(requestState.parsing.startLine.path, '*');
     });
   });
 
@@ -1172,7 +1172,7 @@ describe('HTTP Request Encode Decode Tests', () => {
       }
 
       assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
-      assert.strictEqual(requestState.startLine.raw, 'GET / HTTP/1.1');
+      assert.strictEqual(requestState.parsing.startLine.raw, 'GET / HTTP/1.1');
     });
 
     test('should correctly handle incremental decoding', async () => {
@@ -1311,7 +1311,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         }
 
         assert.strictEqual(requestState.phase, HttpDecodePhase.FINISHED);
-        assert.strictEqual(requestState.startLine.path, `/api/test/${i}`);
+        assert.strictEqual(requestState.parsing.startLine.path, `/api/test/${i}`);
       }
     });
 

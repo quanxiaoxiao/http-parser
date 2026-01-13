@@ -171,32 +171,29 @@ export function decideBodyStrategy(state: HttpState): BodyStrategy {
   return { type: 'none' };
 }
 
-export interface HttpState {
-  readonly messageType: 'request' | 'response';
+type StartLineMap = {
+  request: RequestStartLine;
+  response: ResponseStartLine;
+};
+
+export interface HttpState<T extends 'request' | 'response' = 'request' | 'response'> {
+  readonly messageType: T;
   readonly config: HttpParserConfig;
   phase: HttpDecodePhase;
   buffer: Buffer;
   error?: Error,
   parsing: {
-    startLine: RequestStartLine | ResponseStartLine | null;
+    startLine: StartLineMap[T] | null;
     headers: HeadersState | null;
     body: ChunkedBodyState | FixedLengthBodyState | null;
   },
-  startLine: RequestStartLine | ResponseStartLine | null;
   headersState: HeadersState | null;
   bodyState: ChunkedBodyState | FixedLengthBodyState | null;
   events: HttpDecodeEvent[];
 }
 
-export interface HttpRequestState extends HttpState {
-  messageType: 'request',
-  startLine: RequestStartLine | null;
-}
-
-export interface HttpResponseState extends HttpState {
-  messageType: 'response',
-  startLine: ResponseStartLine | null;
-}
+export type HttpRequestState = HttpState<'request'>;
+export type HttpResponseState = HttpState<'response'>;
 
 export function createHttpState(messageType: 'request' | 'response'): HttpState {
   return {
@@ -209,7 +206,6 @@ export function createHttpState(messageType: 'request' | 'response'): HttpState 
       fixedLengthBodyLimits: DEFAULT_FIXED_LENGTH_BODY_LIMITS,
     },
     buffer: EMPTY_BUFFER,
-    startLine: null,
     headersState: null,
     parsing: {
       startLine: null,
@@ -257,16 +253,16 @@ function handleStartLinePhase(state: HttpState): void {
   }
 
   const startLine = parseLineFn(lineBuf.toString(), state.config.startLineLimits);
-  state.startLine = startLine;
+  state.parsing.startLine = startLine;
   state.buffer = state.buffer.subarray(lineBuf.length + CRLF_LENGTH);
 
   addEvent(state, {
     type: 'start-line-complete',
-    raw: state.startLine.raw!,
+    raw: startLine.raw!,
   });
 
   if (state.messageType === 'request') {
-    const requestStartLine = state.startLine as RequestStartLine;
+    const requestStartLine = state.parsing.startLine as RequestStartLine;
     addEvent(state, {
       type: 'start-line-parsed',
       version: requestStartLine.version!,
@@ -274,7 +270,7 @@ function handleStartLinePhase(state: HttpState): void {
       method: requestStartLine.method!,
     });
   } else {
-    const responseStartLine = state.startLine as ResponseStartLine;
+    const responseStartLine = state.parsing.startLine as ResponseStartLine;
     addEvent(state, {
       type: 'start-line-parsed',
       version: responseStartLine.version!,

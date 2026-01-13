@@ -26,9 +26,9 @@ describe('HTTP Decoder', () => {
       const state = decodeRequest(null, input);
 
       assert.strictEqual(state.phase, HttpDecodePhase.FINISHED);
-      assert.strictEqual(state.startLine?.method, 'GET');
-      assert.strictEqual(state.startLine?.path, '/path');
-      assert.strictEqual(state.startLine?.version, 1.1);
+      assert.strictEqual(state.parsing.startLine?.method, 'GET');
+      assert.strictEqual(state.parsing.startLine?.path, '/path');
+      assert.strictEqual(state.parsing.startLine?.version, 1.1);
       assert.ok(state.headersState?.headers);
     });
 
@@ -43,7 +43,7 @@ describe('HTTP Decoder', () => {
       const state = decodeRequest(null, input);
 
       assert.strictEqual(state.phase, HttpDecodePhase.FINISHED);
-      assert.strictEqual(state.startLine?.path, '/path?query=value&foo=bar');
+      assert.strictEqual(state.parsing.startLine?.path, '/path?query=value&foo=bar');
     });
 
     test('should decode POST request (Content-Length)', () => {
@@ -59,7 +59,7 @@ describe('HTTP Decoder', () => {
 
       const state = decodeRequest(null, input);
 
-      assert.strictEqual(state.startLine?.method, 'POST');
+      assert.strictEqual(state.parsing.startLine?.method, 'POST');
       assert.strictEqual(state.phase, HttpDecodePhase.FINISHED);
 
       const bodyCompleteEvent = state.events.find(e => e.type === 'body-complete');
@@ -83,7 +83,7 @@ describe('HTTP Decoder', () => {
 
       assert.ok(state);
       assert.strictEqual(state.phase, HttpDecodePhase.FINISHED);
-      assert.strictEqual(state.startLine?.method, 'GET');
+      assert.strictEqual(state.parsing.startLine?.method, 'GET');
     });
 
     test('should handle segmented start line', () => {
@@ -92,7 +92,7 @@ describe('HTTP Decoder', () => {
 
       const state2 = decodeRequest(state1, Buffer.from('th HTTP/1.1\r\n\r\n'));
       assert.strictEqual(state2.phase, HttpDecodePhase.FINISHED);
-      assert.strictEqual(state2.startLine?.path, '/path');
+      assert.strictEqual(state2.parsing.startLine?.path, '/path');
     });
 
     test('should handle segmented request body', () => {
@@ -152,7 +152,7 @@ describe('HTTP Decoder', () => {
       const state = decodeRequest(null, input);
 
       assert.strictEqual(state.phase, HttpDecodePhase.FINISHED);
-      assert.strictEqual(state.startLine?.method, 'DELETE');
+      assert.strictEqual(state.parsing.startLine?.method, 'DELETE');
 
       // 应该没有 body 相关的事件
       const bodyEvents = state.events.filter(e =>
@@ -199,9 +199,9 @@ describe('HTTP Decoder', () => {
       const state = decodeResponse(null, input);
 
       assert.strictEqual(state.phase, HttpDecodePhase.FINISHED);
-      assert.strictEqual(state.startLine?.version, 1.1);
-      assert.strictEqual(state.startLine?.statusCode, 200);
-      assert.strictEqual(state.startLine?.statusText, 'OK');
+      assert.strictEqual(state.parsing.startLine?.version, 1.1);
+      assert.strictEqual(state.parsing.startLine?.statusCode, 200);
+      assert.strictEqual(state.parsing.startLine?.statusText, 'OK');
     });
 
     test('should decode 404 response', () => {
@@ -215,8 +215,8 @@ describe('HTTP Decoder', () => {
       const state = decodeResponse(null, input);
 
       assert.strictEqual(state.phase, HttpDecodePhase.FINISHED);
-      assert.strictEqual(state.startLine?.statusCode, 404);
-      assert.strictEqual(state.startLine?.statusText, 'Not Found');
+      assert.strictEqual(state.parsing.startLine?.statusCode, 404);
+      assert.strictEqual(state.parsing.startLine?.statusText, 'Not Found');
     });
 
     test('should decode POST response with body', () => {
@@ -232,7 +232,7 @@ describe('HTTP Decoder', () => {
       const state = decodeResponse(null, input);
 
       assert.strictEqual(state.phase, HttpDecodePhase.FINISHED);
-      assert.strictEqual(state.startLine?.statusCode, 201);
+      assert.strictEqual(state.parsing.startLine?.statusCode, 201);
 
       const bodyCompleteEvent = state.events.find(e => e.type === 'body-complete');
       assert.strictEqual(bodyCompleteEvent?.totalSize, body.length);
@@ -275,7 +275,7 @@ describe('HTTP Decoder', () => {
 
       assert.ok(state);
       assert.strictEqual(state.phase, HttpDecodePhase.FINISHED);
-      assert.strictEqual(state.startLine?.statusCode, 200);
+      assert.strictEqual(state.parsing.startLine?.statusCode, 200);
     });
 
     test('should handle multiple header fields', () => {
@@ -309,7 +309,7 @@ describe('HTTP Decoder', () => {
       const state = decodeResponse(null, input);
 
       assert.strictEqual(state.phase, HttpDecodePhase.FINISHED);
-      assert.strictEqual(state.startLine?.statusCode, 204);
+      assert.strictEqual(state.parsing.startLine?.statusCode, 204);
 
       const bodyEvents = state.events.filter(e =>
         e.type === 'body-chunk' || e.type === 'body-complete',
@@ -346,7 +346,7 @@ describe('HTTP Decoder', () => {
 
       assert.strictEqual(state.messageType, 'request');
       assert.strictEqual(state.phase, HttpDecodePhase.START_LINE);
-      assert.strictEqual(state.startLine, null);
+      assert.strictEqual(state.parsing.startLine, null);
       assert.strictEqual(state.headersState, null);
       assert.strictEqual(state.bodyState, null);
       assert.strictEqual(state.events.length, 0);
@@ -451,7 +451,7 @@ describe('HTTP Decoder', () => {
       const state = decodeRequest(null, input);
 
       assert.strictEqual(state.phase, HttpDecodePhase.FINISHED);
-      assert.strictEqual(state.startLine?.path, longPath);
+      assert.strictEqual(state.parsing.startLine?.path, longPath);
     });
 
     test('should handle multi-line header values', () => {
