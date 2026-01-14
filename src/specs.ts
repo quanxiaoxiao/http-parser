@@ -45,12 +45,9 @@ export enum HttpDecodePhase {
   BODY_CHUNKED = 'body_chunked',
   BODY_FIXED_LENGTH = 'body_fixed_length',
   BODY_CLOSE_DELIMITED = 'body_close_delimited',
-  FINISHED = 'finished',
+  UPGRADE = 'upgrade', // HTTP framing 终止，协议移交
+  FINISHED = 'finished', // HTTP message 完整结束
 }
-
-export const MAX_CHUNK_SIZE = 8 * 1024 * 1024;
-export const MAX_CHUNK_COUNT = 10_000;
-export const MAX_CHUNK_DURATION = 30_000;
 
 export const DEFAULT_HEADER_LIMITS: HeaderLimits = {
   maxHeaderCount: 100,
