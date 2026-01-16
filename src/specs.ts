@@ -1,4 +1,4 @@
-import type { ChunkedBodyLimits, FixedLengthBodyLimits, HeaderLimits, StartLineLimits } from './types.js';
+import type { ChunkedBodyLimits, FixedLengthBodyLimits, HeaderLimits, HttpLineLimits, StartLineLimits } from './types.js';
 
 export const REQUEST_ONLY_HEADERS = [
   'host', 'expect', 'if-match', 'if-none-match', 'if-modified-since',
@@ -82,4 +82,8 @@ export const DEFAULT_CHUNKED_BODY_LIMITS: ChunkedBodyLimits = {
   maxChunks: 1024,
   maxTrailers: 32,
   maxTrailerSize: 8 * 1024,
+} as const;
+
+export const HTTP_LINE_LIMINTS: HttpLineLimits = {
+  maxLineLength: 16 * 1024,
 } as const;

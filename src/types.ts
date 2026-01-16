@@ -94,3 +94,12 @@ export interface ChunkedBodyLimits extends BodyLimits {
   maxTrailers: number;
   maxTrailerSize: number;
 }
+
+export interface DecodeLineResult {
+  line: Buffer;
+  bytesConsumed: number;
+}
+
+export interface HttpLineLimits {
+  maxLineLength: number;
+}
