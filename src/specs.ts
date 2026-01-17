@@ -86,6 +86,6 @@ export const DEFAULT_CHUNKED_BODY_LIMITS: ChunkedBodyLimits = {
   maxTrailerSize: 8 * 1024,
 } as const;
 
-export const HTTP_LINE_LIMINTS: HttpLineLimits = {
+export const DEFAULT_HTTP_LINE_LIMINTS: HttpLineLimits = {
   maxLineLength: 16 * 1024,
 } as const;

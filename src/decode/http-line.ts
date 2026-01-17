@@ -6,7 +6,7 @@ import {
 } from '../errors.js';
 import {
   CR,
-  DEFAULT_HEADER_LIMITS,
+  DEFAULT_HTTP_LINE_LIMINTS,
   LF,
 } from '../specs.js';
 import type {
@@ -22,7 +22,7 @@ const enum HttpLineState {
 export function validateParameters(
   buffer: Buffer,
   offset: number,
-  limits: HttpLineLimits = DEFAULT_HEADER_LIMITS,
+  limits: HttpLineLimits = DEFAULT_HTTP_LINE_LIMINTS,
 ): void {
   if (!Number.isInteger(offset) || offset < 0) {
     throw new TypeError('offset must be a non-negative integer');
@@ -53,7 +53,7 @@ export function validateParameters(
 export function decodeHttpLine(
   buffer: Buffer,
   offset: number,
-  limits: HttpLineLimits,
+  limits: HttpLineLimits = DEFAULT_HTTP_LINE_LIMINTS,
 ): DecodeLineResult | null {
   validateParameters(buffer, offset, limits);
 
