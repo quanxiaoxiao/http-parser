@@ -1,7 +1,5 @@
 /* eslint no-use-before-define: 0 */
-import {
-  Buffer,
-} from 'node:buffer';
+import type { Buffer } from 'node:buffer';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
@@ -15,9 +13,7 @@ import {
   isMessageFinished,
 } from './decode/message.js';
 import validateHeaders from './utils/validateHeaders.js';
-import {
-  validateRequestCookie,
-} from './utils/validateRequestCookie.js';
+import { validateRequestCookie } from './utils/validateRequestCookie.js';
 
 interface ProcessFileResult {
   success: boolean;

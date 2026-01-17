@@ -161,23 +161,23 @@ export function mapDecodeErrorToStatus(
   error: HttpDecodeError,
 ): number {
   switch (error.code) {
-  case HttpDecodeErrorCode.HEADER_TOO_LARGE:
-  case HttpDecodeErrorCode.MESSAGE_TOO_LARGE:
-    return 431; // or 413
+    case HttpDecodeErrorCode.HEADER_TOO_LARGE:
+    case HttpDecodeErrorCode.MESSAGE_TOO_LARGE:
+      return 431; // or 413
 
-  case HttpDecodeErrorCode.INVALID_START_LINE:
-  case HttpDecodeErrorCode.INVALID_HEADER:
-  case HttpDecodeErrorCode.INVALID_CONTENT_LENGTH:
-  case HttpDecodeErrorCode.INVALID_CHUNKED_ENCODING:
-    return 400;
+    case HttpDecodeErrorCode.INVALID_START_LINE:
+    case HttpDecodeErrorCode.INVALID_HEADER:
+    case HttpDecodeErrorCode.INVALID_CONTENT_LENGTH:
+    case HttpDecodeErrorCode.INVALID_CHUNKED_ENCODING:
+      return 400;
 
-  case HttpDecodeErrorCode.UNSUPPORTED_HTTP_VERSION:
-    return 505;
+    case HttpDecodeErrorCode.UNSUPPORTED_HTTP_VERSION:
+      return 505;
 
-  case HttpDecodeErrorCode.UNSUPPORTED_FEATURE:
-    return 501;
+    case HttpDecodeErrorCode.UNSUPPORTED_FEATURE:
+      return 501;
 
-  default:
-    return 400;
+    default:
+      return 400;
   }
 }

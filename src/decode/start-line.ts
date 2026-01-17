@@ -2,12 +2,8 @@ import {
   HttpDecodeError,
   HttpDecodeErrorCode,
 } from '../errors.js';
-import {
-  DEFAULT_START_LINE_LIMITS,
-} from '../specs.js';
-import {
-  STATUS_CODES,
-} from '../status-codes.js';
+import { DEFAULT_START_LINE_LIMITS } from '../specs.js';
+import { STATUS_CODES } from '../status-codes.js';
 import type {
   HttpMethod,
   HttpVersion,
@@ -15,9 +11,7 @@ import type {
   ResponseStartLine,
   StartLineLimits,
 } from '../types.js';
-import {
-  parseInteger,
-} from '../utils/number.js';
+import { parseInteger } from '../utils/number.js';
 
 const REQUEST_STARTLINE_REG = /^(\w+)\s+(\S+)\s+(HTTP\/1\.[01])$/i;
 const RESPONSE_STARTLINE_REG = /^(HTTP\/1\.[01])\s+(\d{3})(?:\s+(.*))?$/i;

@@ -1,6 +1,4 @@
-import {
-  STATUS_CODES,
-} from './status-codes.js';
+import { STATUS_CODES } from './status-codes.js';
 
 export class HttpError extends Error {
   public readonly statusCode: number;

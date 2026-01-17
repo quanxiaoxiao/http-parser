@@ -1,14 +1,10 @@
-import {
-  Buffer,
-} from 'node:buffer';
+import { Buffer } from 'node:buffer';
 
 import {
   HttpDecodeError,
   HttpDecodeErrorCode,
 } from '../errors.js';
-import {
-  getHeaderValues,
-} from '../headers/headers.js';
+import { getHeaderValues } from '../headers/headers.js';
 import {
   DEFAULT_CHUNKED_BODY_LIMITS,
   DEFAULT_FIXED_LENGTH_BODY_LIMITS,
@@ -26,9 +22,7 @@ import type {
   ResponseStartLine,
   StartLineLimits,
 } from '../types.js';
-import {
-  parseInteger,
-} from '../utils/number.js';
+import { parseInteger } from '../utils/number.js';
 import {
   type ChunkedBodyState,
   createChunkedBodyState,
@@ -47,9 +41,7 @@ import {
   type HeadersState,
   isHeadersFinished,
 } from './headers.js';
-import {
-  decodeHttpLine,
-} from './http-line.js';
+import { decodeHttpLine } from './http-line.js';
 import {
   decodeRequestStartLine,
   decodeResponseStartLine,
@@ -374,19 +366,19 @@ function handleHeadersPhase(state: HttpState): void {
 
   const bodyStrategy = decideBodyStrategy(state);
   switch (bodyStrategy.type) {
-  case 'chunked': {
-    state.parsing.body = createChunkedBodyState(state.config.chunkedbodylimits);
-    transition(state, HttpDecodePhase.BODY_CHUNKED);
-    break;
-  }
-  case 'fixed': {
-    state.parsing.body = createFixedLengthBodyState(bodyStrategy.length, state.config.fixedLengthBodyLimits);
-    transition(state, HttpDecodePhase.BODY_FIXED_LENGTH);
-    break;
-  }
-  default: {
-    transition(state, HttpDecodePhase.FINISHED);
-  }
+    case 'chunked': {
+      state.parsing.body = createChunkedBodyState(state.config.chunkedbodylimits);
+      transition(state, HttpDecodePhase.BODY_CHUNKED);
+      break;
+    }
+    case 'fixed': {
+      state.parsing.body = createFixedLengthBodyState(bodyStrategy.length, state.config.fixedLengthBodyLimits);
+      transition(state, HttpDecodePhase.BODY_FIXED_LENGTH);
+      break;
+    }
+    default: {
+      transition(state, HttpDecodePhase.FINISHED);
+    }
   }
   moveRemainingBuffer(state.parsing.headers, state);
 }

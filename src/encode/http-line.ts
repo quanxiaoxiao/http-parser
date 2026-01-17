@@ -1,6 +1,4 @@
-import {
-  Buffer,
-} from 'node:buffer';
+import { Buffer } from 'node:buffer';
 
 import {
   CR,

@@ -1,9 +1,5 @@
-import type {
-  NormalizedHeaders,
-} from '../types.js';
-import {
-  setHeader,
-} from './headers.js';
+import type { NormalizedHeaders } from '../types.js';
+import { setHeader } from './headers.js';
 
 export function applyHostHeader(
   headers: NormalizedHeaders,

@@ -1,6 +1,4 @@
-import {
-  Buffer,
-} from 'node:buffer';
+import type { Buffer } from 'node:buffer';
 
 export type Headers = Record<string, string | string[]>;
 

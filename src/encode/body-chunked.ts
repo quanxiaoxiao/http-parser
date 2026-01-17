@@ -1,10 +1,6 @@
-import {
-  Buffer,
-} from 'node:buffer';
+import { Buffer } from 'node:buffer';
 
-import {
-  type TrailerHeaders,
-} from '../types.js';
+import { type TrailerHeaders } from '../types.js';
 
 const CRLF = Buffer.from('\r\n');
 const FINAL_CHUNK = Buffer.from('0\r\n');

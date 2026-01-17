@@ -1,6 +1,4 @@
-import {
-  Buffer,
-} from 'node:buffer';
+import { Buffer } from 'node:buffer';
 
 import {
   HttpDecodeError,
@@ -17,9 +15,7 @@ import type {
   ChunkedBodyLimits,
   TrailerHeaders,
 } from '../types.js';
-import {
-  decodeHttpLine,
-} from './http-line.js';
+import { decodeHttpLine } from './http-line.js';
 
 export enum ChunkedBodyPhase {
   SIZE = 'size',

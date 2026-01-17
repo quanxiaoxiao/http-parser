@@ -1,12 +1,6 @@
-import {
-  readBodyLength,
-} from '../body/body.js';
-import {
-  isStreamBody,
-} from '../body/body-predicates.js';
-import {
-  stripHopByHopHeaders,
-} from '../headers/header-strips.js';
+import { readBodyLength } from '../body/body.js';
+import { isStreamBody } from '../body/body-predicates.js';
+import { stripHopByHopHeaders } from '../headers/header-strips.js';
 import {
   appendHeader,
   deleteHeader,

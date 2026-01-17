@@ -50,17 +50,17 @@ export function validateConnectionHeader(
     const lower = token.toLowerCase();
     normalized.push(lower);
     switch (lower) {
-    case 'close':
-      result.hasClose = true;
-      break;
-    case 'keep-alive':
-      result.hasKeepAlive = true;
-      break;
-    case 'upgrade':
-      result.hasUpgrade = true;
-      break;
-    default:
-      result.hopByHopHeaders.push(lower);
+      case 'close':
+        result.hasClose = true;
+        break;
+      case 'keep-alive':
+        result.hasKeepAlive = true;
+        break;
+      case 'upgrade':
+        result.hasUpgrade = true;
+        break;
+      default:
+        result.hopByHopHeaders.push(lower);
     }
   }
 

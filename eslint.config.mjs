@@ -6,77 +6,87 @@ import tseslint from 'typescript-eslint';
 export default [
   {
     ignores: [
-      'node_modules/*',
+      'node_modules/**',
+      'dist/**',
+      'build/**',
+      '*.config.js',
+      'coverage/**',
     ],
   },
+
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
+
   {
+    files: [
+      'src/**/*.ts',
+      'eslint.config.mjs',
+    ],
+
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module',
       globals: {
         ...globals.node,
+        ...globals.es2022,
+      },
+      parserOptions: {
+        project: './tsconfig.json',
       },
     },
-
-    files: [
-      'src/**/*.ts',
-      'eslint.config.mjs',
-    ],
 
     plugins: {
       'simple-import-sort': simpleImportSort,
     },
 
     rules: {
+      // ===== Import 相关 =====
       'simple-import-sort/imports': 'error',
       'simple-import-sort/exports': 'error',
-      'no-duplicate-imports': 2,
-      'array-callback-return': 2,
-      'prefer-const': 2,
-      'no-multi-spaces': 2,
-      eqeqeq: ['error', 'always', { null: 'ignore' }],
-      'block-scoped-var': 2,
-      'consistent-return': 2,
-      'default-case': 2,
-      'no-shadow': 2,
-      'object-shorthand': 2,
-      'quote-props': ['error', 'as-needed'],
-      quotes: [
-        'error',
-        'single',
+      'no-duplicate-imports': 'error',
+
+      // ===== 代码质量 =====
+      'array-callback-return': 'error',
+      'block-scoped-var': 'error',
+      'consistent-return': 'error',
+      'default-case': 'error',
+      'eqeqeq': ['error', 'always', { null: 'ignore' }],
+      'no-else-return': ['error', { allowElseIf: false }],
+      'no-multi-assign': 'error',
+      'no-use-before-define': 'off', // TypeScript 会处理
+      'prefer-const': 'error',
+
+      // ===== 变量命名 =====
+      'no-shadow': 'off', // 使用 TS 版本
+      '@typescript-eslint/no-shadow': 'error',
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        { 
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+        },
       ],
+
+      // ===== 对象和数组 =====
+      'object-shorthand': ['error', 'always'],
+      'quote-props': ['error', 'as-needed'],
+      'object-curly-spacing': ['error', 'always'],
+      'array-bracket-spacing': ['error', 'never'],
       'object-curly-newline': [
         'error',
         {
-          ImportDeclaration: {
-            multiline: true,
-            minProperties: 1,
-          },
+          ObjectExpression: { multiline: true, consistent: true },
+          ObjectPattern: { multiline: true, consistent: true },
+          ImportDeclaration: { multiline: true, minProperties: 3 },
+          ExportDeclaration: { multiline: true, minProperties: 3 },
         },
       ],
-      'no-multi-assign': 2,
-      'no-else-return': 2,
-      'no-undef': 'error',
-      indent: [
-        'error',
-        2,
-      ],
-      'keyword-spacing': 2,
-      'no-multiple-empty-lines': ['error', { max: 1, maxEOF: 0 }],
-      'space-infix-ops': 2,
-      'eol-last': 2,
-      'space-in-parens': 2,
-      'array-bracket-spacing': 2,
-      'object-curly-spacing': ['error', 'always'],
-      'block-spacing': 2,
-      'key-spacing': 2,
-      // 'no-unused-vars': ['error', { caughtErrors: 'none' }],
-      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
-      'no-trailing-spaces': 2,
-      'comma-style': 2,
-      'no-use-before-define': 2,
+
+      // ===== 格式化 =====
+      'indent': ['error', 2, { SwitchCase: 1 }],
+      'quotes': ['error', 'single', { avoidEscape: true }],
+      'semi': ['error', 'always'],
       'comma-dangle': [
         'error',
         {
@@ -87,17 +97,42 @@ export default [
           functions: 'always-multiline',
         },
       ],
-      semi: 2,
-      'no-console': 0,
-      'max-len': 0,
-      'no-continue': 0,
-      'no-bitwise': 0,
-      'no-mixed-operators': 0,
-      'no-underscore-dangle': 0,
-      'import/prefer-default-export': 0,
-      'class-methods-use-this': 0,
-      'no-plusplus': 0,
-      'global-require': 0,
+      'comma-style': ['error', 'last'],
+      'eol-last': ['error', 'always'],
+      'no-multi-spaces': 'error',
+      'no-multiple-empty-lines': ['error', { max: 1, maxEOF: 0, maxBOF: 0 }],
+      'no-trailing-spaces': 'error',
+      'keyword-spacing': ['error', { before: true, after: true }],
+      'space-infix-ops': 'error',
+      'space-in-parens': ['error', 'never'],
+      'block-spacing': ['error', 'always'],
+      'key-spacing': ['error', { beforeColon: false, afterColon: true }],
+
+      // ===== TypeScript 特定 =====
+      '@typescript-eslint/explicit-function-return-type': 'off',
+      '@typescript-eslint/explicit-module-boundary-types': 'off',
+      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/consistent-type-imports': [
+        'error',
+        { prefer: 'type-imports' },
+      ],
+
+      // ===== 关闭的规则 =====
+      'no-console': 'off',
+      'no-undef': 'off', // TypeScript 会检查
+      'max-len': 'off',
+      'no-continue': 'off',
+      'no-bitwise': 'off',
+      'no-mixed-operators': 'off',
+      'no-underscore-dangle': 'off',
+      'no-plusplus': 'off',
+    },
+  },
+  {
+    files: ['**/*.test.ts', '**/*.spec.ts'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+      'no-console': 'off',
     },
   },
 ];

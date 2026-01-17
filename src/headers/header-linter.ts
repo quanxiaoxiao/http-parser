@@ -1,6 +1,4 @@
-import {
-  STANDARD_HEADERS,
-} from '../specs.js';
+import { STANDARD_HEADERS } from '../specs.js';
 
 const HEADER_NAME_REGEX = /^([A-Z][a-z0-9]*)(-[A-Z][a-z0-9]*)*$/;
 const FORBIDDEN_PREFIX = /^X-/i;

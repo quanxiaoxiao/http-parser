@@ -1,9 +1,5 @@
-import {
-  STATUS_CODES,
-} from '../status-codes.js';
-import type {
-  RequestStartLine, ResponseStartLine,
-} from '../types.js';
+import { STATUS_CODES } from '../status-codes.js';
+import type { RequestStartLine, ResponseStartLine } from '../types.js';
 
 export function encodeRequestLine(startLine: RequestStartLine = {
   method: 'GET',

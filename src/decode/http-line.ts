@@ -1,6 +1,4 @@
-import {
-  Buffer,
-} from 'node:buffer';
+import type { Buffer } from 'node:buffer';
 
 import {
   HttpDecodeError,
