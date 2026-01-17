@@ -15,9 +15,8 @@ import type {
 } from '../types.js';
 
 const enum HttpLineState {
-  DATA,
-  CR,
-  DONE,
+  DATA = 'data',
+  CR = 'cr', // eslint-disable-line
 }
 
 export function validateParameters(
@@ -57,46 +56,52 @@ export function decodeHttpLine(
   limits: HttpLineLimits,
 ): DecodeLineResult | null {
   validateParameters(buffer, offset, limits);
+
   let state = HttpLineState.DATA;
   let lineLength = 0;
+
   const { maxLineLength } = limits;
   const bufferLength = buffer.length;
 
   for (let cursor = offset; cursor < bufferLength; cursor++) {
     const byte = buffer[cursor];
 
-    if (state === HttpLineState.DATA) {
-      if (byte === CR) {
-        state = HttpLineState.CR;
-        continue;
-      }
+    switch (state) {
+      case HttpLineState.DATA:
+        if (byte === CR) {
+          state = HttpLineState.CR;
+          continue;
+        }
 
-      if (byte === LF) {
-        throw new HttpDecodeError({
-          code: HttpDecodeErrorCode.INVALID_LINE_ENDING,
-          message: 'LF without preceding CR',
-        });
-      }
+        if (byte === LF) {
+          throw new HttpDecodeError({
+            code: HttpDecodeErrorCode.INVALID_LINE_ENDING,
+            message: 'LF without preceding CR',
+          });
+        }
 
-      if (++lineLength > maxLineLength) {
-        throw new HttpDecodeError({
-          code: HttpDecodeErrorCode.LINE_TOO_LARGE,
-          message: 'HTTP line exceeds maximum length',
-        });
-      }
-    } else if (state === HttpLineState.CR) {
-      if (byte !== LF) {
-        throw new HttpDecodeError({
-          code: HttpDecodeErrorCode.INVALID_LINE_ENDING,
-          message: 'CR not followed by LF',
-        });
-      }
+        if (++lineLength > maxLineLength) {
+          throw new HttpDecodeError({
+            code: HttpDecodeErrorCode.LINE_TOO_LARGE,
+            message: `HTTP line exceeds maximum length (${maxLineLength})`,
+          });
+        }
+        break;
 
-      const lineEnd = cursor - 1;
-      return {
-        line: buffer.subarray(offset, lineEnd),
-        bytesConsumed: cursor - offset + 1,
-      };
+      case HttpLineState.CR:
+        if (byte !== LF) {
+          throw new HttpDecodeError({
+            code: HttpDecodeErrorCode.INVALID_LINE_ENDING,
+            message: 'CR not followed by LF',
+          });
+        }
+
+        return {
+          line: buffer.subarray(offset, cursor - 1),
+          bytesConsumed: cursor - offset + 1,
+        };
+      default:
+        throw new Error('unreachable state');
     }
   }
 
