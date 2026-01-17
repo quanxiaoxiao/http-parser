@@ -104,36 +104,6 @@ export enum HttpDecodeErrorCode {
   INTERNAL_ERROR = 'INTERNAL_ERROR',
 }
 
-function createCustomError(code: string, defaultMessage: string) {
-  return class extends Error {
-    public readonly code: string;
-
-    constructor(message?: string) {
-      super(message ?? defaultMessage);
-      this.name = this.constructor.name;
-      this.code = code;
-      if (Error.captureStackTrace) {
-        Error.captureStackTrace(this, this.constructor);
-      }
-    }
-  };
-}
-
-export class HttpUrlParseError extends createCustomError(
-  'ERR_HTTP_URL_PARSE',
-  'Http Url Parse Error',
-) {};
-
-export class EncodeHttpError extends createCustomError(
-  'ERR_ENCODE_HTTP',
-  'Encode Http Error',
-) {};
-
-export class DecodeHttpError extends createCustomError(
-  'ERR_DECODE_HTTP',
-  'Decode Http Error',
-) {};
-
 export class HttpDecodeError extends Error {
   readonly code: HttpDecodeErrorCode;
   // readonly phase: HttpDecodePhase;
@@ -154,30 +124,5 @@ export class HttpDecodeError extends Error {
     if (options.cause) {
       this.cause = options.cause;
     }
-  }
-}
-
-export function mapDecodeErrorToStatus(
-  error: HttpDecodeError,
-): number {
-  switch (error.code) {
-    case HttpDecodeErrorCode.HEADER_TOO_LARGE:
-    case HttpDecodeErrorCode.MESSAGE_TOO_LARGE:
-      return 431; // or 413
-
-    case HttpDecodeErrorCode.INVALID_START_LINE:
-    case HttpDecodeErrorCode.INVALID_HEADER:
-    case HttpDecodeErrorCode.INVALID_CONTENT_LENGTH:
-    case HttpDecodeErrorCode.INVALID_CHUNKED_ENCODING:
-      return 400;
-
-    case HttpDecodeErrorCode.UNSUPPORTED_HTTP_VERSION:
-      return 505;
-
-    case HttpDecodeErrorCode.UNSUPPORTED_FEATURE:
-      return 501;
-
-    default:
-      return 400;
   }
 }
