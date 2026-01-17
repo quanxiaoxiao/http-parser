@@ -198,7 +198,7 @@ export function decideBodyStrategy(state: HttpState): BodyStrategy {
   const contentLengthValues = getHeaderValues(headers, 'content-length');
   const transferEncodingValues = getHeaderValues(headers, 'transfer-encoding');
 
-  const isRequest = state.messageType === 'request';
+  // const isRequest = state.messageType === 'request';
   const isResponse = state.messageType === 'response';
 
   if (isResponse) {
