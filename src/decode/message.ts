@@ -422,6 +422,18 @@ const PHASE_HANDLERS: { [K in HttpDecodePhase]: (state: HttpState) => void } = {
   [HttpDecodePhase.HEADERS]: handleHeadersPhase,
   [HttpDecodePhase.BODY_CHUNKED]: (state) => handleBodyPhase(state, decodeChunkedBody),
   [HttpDecodePhase.BODY_FIXED_LENGTH]: (state) => handleBodyPhase(state, decodeFixedLengthBody),
+  [HttpDecodePhase.BODY_CLOSE_DELIMITED]: () => {
+    throw new HttpDecodeError({
+      code: HttpDecodeErrorCode.UNSUPPORTED_FEATURE,
+      message: 'Body close-delimited not implemented',
+    });
+  },
+  [HttpDecodePhase.UPGRADE]: () => {
+    throw new HttpDecodeError({
+      code: HttpDecodeErrorCode.UNSUPPORTED_FEATURE,
+      message: 'Upgrade protocol not implemented',
+    });
+  },
   [HttpDecodePhase.FINISHED]: () => {},
 };
 
