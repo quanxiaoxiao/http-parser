@@ -1,14 +1,8 @@
 import * as assert from 'node:assert';
-import {
-  describe, test,
-} from 'node:test';
+import { describe, test } from 'node:test';
 
-import type {
-  HttpMessage,
-} from '../types.js';
-import {
-  isWebSocketRequest,
-} from './message-predicates.js';
+import type { HttpMessage } from '../types.js';
+import { isWebSocketRequest } from './message-predicates.js';
 
 describe('isWebSocketRequest', () => {
   test('应该识别有效的 WebSocket 请求', () => {

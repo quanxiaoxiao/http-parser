@@ -1,14 +1,8 @@
 import * as assert from 'node:assert';
-import {
-  Buffer,
-} from 'node:buffer';
-import {
-  describe, it,
-} from 'node:test';
+import { Buffer } from 'node:buffer';
+import { describe, it } from 'node:test';
 
-import {
-  readBodyLength,
-} from './body.js';
+import { readBodyLength } from './body.js';
 
 describe('readBodyLength', () => {
   describe('When passed Buffer type', () => {

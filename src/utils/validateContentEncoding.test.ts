@@ -1,16 +1,12 @@
 import * as assert from 'node:assert';
-import {
-  describe, it,
-} from 'node:test';
+import { describe, it } from 'node:test';
 
-import {
-  validateContentEncoding,
-} from './validateContentEncoding.js';
+import { validateContentEncoding } from './validateContentEncoding.js';
 
 describe('validateContentEncoding', () => {
   describe('基本格式验证', () => {
     it('应该拒绝非字符串输入', () => {
-      const result = validateContentEncoding(123 as any); // eslint-disable-line
+      const result = validateContentEncoding(123 as any);
       assert.strictEqual(result.valid, false);
       if (!result.valid) {
         assert.strictEqual(result.reason, 'Content-Encoding is not a string');

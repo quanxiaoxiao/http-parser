@@ -1,11 +1,7 @@
 import * as assert from 'node:assert';
-import {
-  describe, it,
-} from 'node:test';
+import { describe, it } from 'node:test';
 
-import {
-  applyHostHeader,
-} from './header-applys.js';
+import { applyHostHeader } from './header-applys.js';
 
 describe('applyHostHeader', () => {
   it('应该设置 Host header', () => {

@@ -1,15 +1,9 @@
 import * as assert from 'node:assert';
-import {
-  Buffer,
-} from 'node:buffer';
-import {
-  describe, it,
-} from 'node:test';
+import { Buffer } from 'node:buffer';
+import { describe, it } from 'node:test';
 
-import {
-  HttpDecodeError,
-  HttpDecodeErrorCode,
-} from '../errors.js';
+import type { HttpDecodeError } from '../errors.js';
+import { HttpDecodeErrorCode } from '../errors.js';
 import {
   decodeHttpLine,
   validateParameters,

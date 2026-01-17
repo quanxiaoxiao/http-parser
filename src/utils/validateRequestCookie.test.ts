@@ -1,11 +1,7 @@
 import * as assert from 'node:assert';
-import {
-  describe, it,
-} from 'node:test';
+import { describe, it } from 'node:test';
 
-import {
-  validateRequestCookie,
-} from './validateRequestCookie.js';
+import { validateRequestCookie } from './validateRequestCookie.js';
 
 describe('validateRequestCookie', () => {
   describe('基本验证', () => {

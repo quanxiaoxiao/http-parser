@@ -1,18 +1,12 @@
 import * as assert from 'node:assert';
-import {
-  Buffer,
-} from 'node:buffer';
-import {
-  describe, test,
-} from 'node:test';
+import { Buffer } from 'node:buffer';
+import { describe, test } from 'node:test';
 
 import {
   HttpDecodeError,
   HttpDecodeErrorCode,
 } from '../errors.js';
-import {
-  HttpDecodePhase,
-} from '../specs.js';
+import { HttpDecodePhase } from '../specs.js';
 import {
   createRequestState,
   createResponseState,

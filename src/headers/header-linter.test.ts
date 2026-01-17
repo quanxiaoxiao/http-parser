@@ -1,11 +1,7 @@
 import * as assert from 'node:assert';
-import {
-  describe, it,
-} from 'node:test';
+import { describe, it } from 'node:test';
 
-import {
-  lintHeaderName,
-} from './header-linter.js';
+import { lintHeaderName } from './header-linter.js';
 
 describe('HTTP Header Name Linter', () => {
 

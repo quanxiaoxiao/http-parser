@@ -1,7 +1,5 @@
 import * as assert from 'node:assert';
-import {
-  describe,test,
-} from 'node:test';
+import { describe,test } from 'node:test';
 
 import createHttpError, {
   createBadRequest,
@@ -111,7 +109,7 @@ describe('createHttpError', () => {
 
   test('should throw TypeError for non-numeric status code', () => {
     assert.throws(
-      () => createHttpError('404' as any), // eslint-disable-line
+      () => createHttpError('404' as any),
       TypeError,
     );
   });

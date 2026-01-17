@@ -1,15 +1,11 @@
 import * as assert from 'node:assert';
-import {
-  describe, it,
-} from 'node:test';
+import { describe, it } from 'node:test';
 
 import {
   HttpDecodeError,
   HttpDecodeErrorCode,
 } from '../errors.js';
-import {
-  DEFAULT_START_LINE_LIMITS,
-} from '../specs.js';
+import { DEFAULT_START_LINE_LIMITS } from '../specs.js';
 import {
   decodeRequestStartLine,
   decodeResponseStartLine,

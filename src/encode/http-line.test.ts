@@ -1,10 +1,6 @@
 import * as assert from 'node:assert';
-import {
-  Buffer,
-} from 'node:buffer';
-import {
-  describe, test,
-} from 'node:test';
+import { Buffer } from 'node:buffer';
+import { describe, test } from 'node:test';
 
 import {
   encodeHttpLine,

@@ -1,27 +1,13 @@
 import * as assert from 'node:assert';
-import {
-  readFileSync, writeFileSync,
-} from 'node:fs';
-import {
-  open,
-} from 'node:fs/promises';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { open } from 'node:fs/promises';
 import * as path from 'node:path';
-import {
-  describe, test,
-} from 'node:test';
-import {
-  setTimeout,
-} from 'node:timers/promises';
+import { describe, test } from 'node:test';
+import { setTimeout } from 'node:timers/promises';
 
-import {
-  decodeRequest,
-} from './decode/message.js';
-import {
-  encodeRequest,
-} from './encode/message.js';
-import {
-  HttpDecodePhase,
-} from './specs.js';
+import { decodeRequest } from './decode/message.js';
+import { encodeRequest } from './encode/message.js';
+import { HttpDecodePhase } from './specs.js';
 
 describe('HTTP Request Encode Decode Tests', () => {
   describe('Basic Functionality Tests', () => {

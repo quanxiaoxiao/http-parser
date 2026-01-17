@@ -1,11 +1,7 @@
 import * as assert from 'node:assert';
-import {
-  describe, test,
-} from 'node:test';
+import { describe, test } from 'node:test';
 
-import {
-  parseRange,
-} from './range-header.js';
+import { parseRange } from './range-header.js';
 
 describe('parseRange - HTTP Range 请求解析器', () => {
 
@@ -326,35 +322,35 @@ describe('parseRange - HTTP Range 请求解析器', () => {
     describe('类型错误', () => {
       test('非字符串输入: 数字', () => {
         assert.throws(
-          () => parseRange(123 as any, 1000), // eslint-disable-line
+          () => parseRange(123 as any, 1000),
           { message: 'Range header must be a string' },
         );
       });
 
       test('null 输入', () => {
         assert.throws(
-          () => parseRange(null as any, 1000), // eslint-disable-line
+          () => parseRange(null as any, 1000),
           { message: 'Range header must be a string' },
         );
       });
 
       test('undefined 输入', () => {
         assert.throws(
-          () => parseRange(undefined as any, 1000), // eslint-disable-line
+          () => parseRange(undefined as any, 1000),
           { message: 'Range header must be a string' },
         );
       });
 
       test('对象输入', () => {
         assert.throws(
-          () => parseRange({} as any, 1000), // eslint-disable-line
+          () => parseRange({} as any, 1000),
           { message: 'Range header must be a string' },
         );
       });
 
       test('数组输入', () => {
         assert.throws(
-          () => parseRange(['bytes=0-100'] as any, 1000), // eslint-disable-line
+          () => parseRange(['bytes=0-100'] as any, 1000),
           { message: 'Range header must be a string' },
         );
       });
@@ -480,28 +476,28 @@ describe('parseRange - HTTP Range 请求解析器', () => {
     describe('内容大小类型错误', () => {
       test('内容大小为字符串', () => {
         assert.throws(
-          () => parseRange('bytes=0-100', '1000' as any), // eslint-disable-line
+          () => parseRange('bytes=0-100', '1000' as any),
           { message: 'Content size must be a non-negative integer' },
         );
       });
 
       test('内容大小为 null', () => {
         assert.throws(
-          () => parseRange('bytes=0-100', null as any), // eslint-disable-line
+          () => parseRange('bytes=0-100', null as any),
           { message: 'Content size must be a non-negative integer' },
         );
       });
 
       test('内容大小为 undefined', () => {
         assert.throws(
-          () => parseRange('bytes=0-100', undefined as any), // eslint-disable-line
+          () => parseRange('bytes=0-100', undefined as any),
           { message: 'Content size must be a non-negative integer' },
         );
       });
 
       test('内容大小为对象', () => {
         assert.throws(
-          () => parseRange('bytes=0-100', {} as any), // eslint-disable-line
+          () => parseRange('bytes=0-100', {} as any),
           { message: 'Content size must be a non-negative integer' },
         );
       });

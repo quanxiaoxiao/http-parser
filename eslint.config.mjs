@@ -30,9 +30,6 @@ export default [
         ...globals.node,
         ...globals.es2022,
       },
-      parserOptions: {
-        project: './tsconfig.json',
-      },
     },
 
     plugins: {
@@ -50,7 +47,6 @@ export default [
       'block-scoped-var': 'error',
       'consistent-return': 'error',
       'default-case': 'error',
-      'eqeqeq': ['error', 'always', { null: 'ignore' }],
       'no-else-return': ['error', { allowElseIf: false }],
       'no-multi-assign': 'error',
       'no-use-before-define': 'off', // TypeScript 会处理
@@ -61,7 +57,7 @@ export default [
       '@typescript-eslint/no-shadow': 'error',
       '@typescript-eslint/no-unused-vars': [
         'warn',
-        { 
+        {
           argsIgnorePattern: '^_',
           varsIgnorePattern: '^_',
           caughtErrorsIgnorePattern: '^_',
@@ -84,9 +80,6 @@ export default [
       ],
 
       // ===== 格式化 =====
-      'indent': ['error', 2, { SwitchCase: 1 }],
-      'quotes': ['error', 'single', { avoidEscape: true }],
-      'semi': ['error', 'always'],
       'comma-dangle': [
         'error',
         {

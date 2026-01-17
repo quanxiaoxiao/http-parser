@@ -1,11 +1,7 @@
 import * as assert from 'node:assert';
-import {
-  describe, it,
-} from 'node:test';
+import { describe, it } from 'node:test';
 
-import {
-  type Headers,
-} from '../types.js';
+import { type Headers } from '../types.js';
 import validateHeaders from './validateHeaders.js';
 
 describe('HTTP Headers Validator', () => {
@@ -16,8 +12,8 @@ describe('HTTP Headers Validator', () => {
     });
 
     it('应该接受 null 或 undefined', () => {
-      assert.equal(validateHeaders(null as any).length, 0); // eslint-disable-line
-      assert.equal(validateHeaders(undefined as any).length, 0); // eslint-disable-line
+      assert.equal(validateHeaders(null as any).length, 0);
+      assert.equal(validateHeaders(undefined as any).length, 0);
     });
 
     it('应该接受有效的简单头部', () => {
@@ -54,7 +50,7 @@ describe('HTTP Headers Validator', () => {
   describe('头部值类型验证', () => {
     it('应该拒绝非字符串类型的值', () => {
       const headers: Headers = {
-        'content-length': 123 as any,// eslint-disable-line
+        'content-length': 123 as any,
       };
       const errors = validateHeaders(headers);
       assert.equal(errors.length, 1);

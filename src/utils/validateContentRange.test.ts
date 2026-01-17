@@ -1,11 +1,7 @@
 import * as assert from 'node:assert';
-import {
-  describe, test,
-} from 'node:test';
+import { describe, test } from 'node:test';
 
-import {
-  validateContentRange,
-} from './validateContentRange.js';
+import { validateContentRange } from './validateContentRange.js';
 
 describe('validateContentRange', () => {
   describe('输入验证', () => {
