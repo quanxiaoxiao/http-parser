@@ -1,9 +1,8 @@
 import * as assert from 'node:assert';
 import { Buffer } from 'node:buffer';
-import { describe, it } from 'node:test';
+import { describe, it, test } from 'node:test';
 
-import type { HttpDecodeError } from '../errors.js';
-import { HttpDecodeErrorCode } from '../errors.js';
+import { HttpDecodeError, HttpDecodeErrorCode } from '../errors.js';
 import {
   decodeHttpLine,
   validateParameters,
@@ -217,7 +216,7 @@ describe('decodeHttpLine', () => {
     it('应该拒绝以 LF 开头的 buffer', () => {
       assert.throws(
         () => decodeHttpLine(Buffer.from('\ntest'), 0, { maxLineLength: 100 }),
-        (err: HttpDecodeError) => {
+        (err) => {
           return err.code === HttpDecodeErrorCode.INVALID_LINE_ENDING;
         },
       );
@@ -226,7 +225,7 @@ describe('decodeHttpLine', () => {
     it('应该拒绝包含 bare LF 的行', () => {
       assert.throws(
         () => decodeHttpLine(Buffer.from('test\nmore'), 0, { maxLineLength: 100 }),
-        (err: HttpDecodeError) => {
+        (err) => {
           return err.code === HttpDecodeErrorCode.INVALID_LINE_ENDING;
         },
       );
@@ -235,7 +234,7 @@ describe('decodeHttpLine', () => {
     it('应该拒绝 LF 前没有 CR 的情况', () => {
       assert.throws(
         () => decodeHttpLine(Buffer.from('Hello\nWorld\r\n'), 0, { maxLineLength: 100 }),
-        (err: HttpDecodeError) => {
+        (err) => {
           return err.code === HttpDecodeErrorCode.INVALID_LINE_ENDING;
         },
       );
@@ -246,7 +245,7 @@ describe('decodeHttpLine', () => {
     it('应该拒绝 CR 后没有 LF 的情况', () => {
       assert.throws(
         () => decodeHttpLine(Buffer.from('test\rmore'), 0, { maxLineLength: 100 }),
-        (err: HttpDecodeError) => {
+        (err) => {
           return err.code === HttpDecodeErrorCode.INVALID_LINE_ENDING;
         },
       );
@@ -255,7 +254,7 @@ describe('decodeHttpLine', () => {
     it('应该拒绝 CR 后跟其他字符的情况', () => {
       assert.throws(
         () => decodeHttpLine(Buffer.from('Hello\rWorld'), 0, { maxLineLength: 100 }),
-        (err: HttpDecodeError) => {
+        (err) => {
           return err.code === HttpDecodeErrorCode.INVALID_LINE_ENDING;
         },
       );
@@ -264,7 +263,7 @@ describe('decodeHttpLine', () => {
     it('应该拒绝行尾只有 CR 的情况', () => {
       assert.throws(
         () => decodeHttpLine(Buffer.from('test\rmore\r\n'), 0, { maxLineLength: 100 }),
-        (err: HttpDecodeError) => {
+        (err) => {
           return err.code === HttpDecodeErrorCode.INVALID_LINE_ENDING;
         },
       );
@@ -285,7 +284,7 @@ describe('decodeHttpLine', () => {
       const buf = Buffer.from('A'.repeat(1000) + '\r\n');
       assert.throws(
         () => decodeHttpLine(buf, 0, { maxLineLength: 100 }),
-        (err: HttpDecodeError) => {
+        (err) => {
           return (
             err.code === HttpDecodeErrorCode.LINE_TOO_LARGE &&
             err.message.includes('HTTP line exceeds maximum length')
@@ -298,7 +297,7 @@ describe('decodeHttpLine', () => {
       const buf = Buffer.from('A'.repeat(200));
       assert.throws(
         () => decodeHttpLine(buf, 0, { maxLineLength: 100 }),
-        (err: HttpDecodeError) => {
+        (err) => {
           return err.code === HttpDecodeErrorCode.LINE_TOO_LARGE;
         },
       );
@@ -430,4 +429,113 @@ describe('decodeHttpLine', () => {
       assert.strictEqual(result.line.length, 3);
     });
   });
+});
+
+const buf = (s: string) => Buffer.from(s, 'ascii');
+
+test('decodeHttpLine - basic CRLF line', () => {
+  const buffer = buf('GET / HTTP/1.1\r\n');
+
+  const result = decodeHttpLine(buffer, 0, { maxLineLength: 1024 });
+
+  assert.ok(result);
+  assert.strictEqual(result.bytesConsumed, buffer.length);
+  assert.strictEqual(
+    result.line.toString(),
+    'GET / HTTP/1.1',
+  );
+});
+
+test('decodeHttpLine - offset works correctly', () => {
+  const buffer = buf('XXXGET / HTTP/1.1\r\n');
+
+  const result = decodeHttpLine(buffer, 3, { maxLineLength: 1024 });
+
+  assert.ok(result);
+  assert.strictEqual(
+    result.line.toString(),
+    'GET / HTTP/1.1',
+  );
+});
+
+test('decodeHttpLine - incomplete line returns null', () => {
+  const buffer = buf('GET / HTTP/1.1\r');
+
+  const result = decodeHttpLine(buffer, 0, { maxLineLength: 1024 });
+
+  assert.strictEqual(result, null);
+});
+
+test('decodeHttpLine - LF without CR throws', () => {
+  const buffer = buf('GET / HTTP/1.1\n');
+
+  assert.throws(
+    () => decodeHttpLine(buffer, 0, { maxLineLength: 1024 }),
+    (err: unknown) => {
+      assert.ok(err instanceof HttpDecodeError);
+      assert.strictEqual(
+        err.code,
+        HttpDecodeErrorCode.INVALID_LINE_ENDING,
+      );
+      return true;
+    },
+  );
+});
+
+test('decodeHttpLine - CR not followed by LF throws', () => {
+  const buffer = buf('GET / HTTP/1.1\rX');
+
+  assert.throws(
+    () => decodeHttpLine(buffer, 0, { maxLineLength: 1024 }),
+    (err: unknown) => {
+      assert.ok(err instanceof HttpDecodeError);
+      assert.strictEqual(
+        err.code,
+        HttpDecodeErrorCode.INVALID_LINE_ENDING,
+      );
+      return true;
+    },
+  );
+});
+
+test('decodeHttpLine - line too long throws', () => {
+  const buffer = buf('A'.repeat(5) + '\r\n');
+
+  assert.throws(
+    () => decodeHttpLine(buffer, 0, { maxLineLength: 4 }),
+    (err: unknown) => {
+      assert.ok(err instanceof HttpDecodeError);
+      assert.strictEqual(
+        err.code,
+        HttpDecodeErrorCode.LINE_TOO_LARGE,
+      );
+      return true;
+    },
+  );
+});
+
+test('decodeHttpLine - empty buffer with offset 0 returns null', () => {
+  const buffer = Buffer.alloc(0);
+
+  const result = decodeHttpLine(buffer, 0, { maxLineLength: 1024 });
+
+  assert.strictEqual(result, null);
+});
+
+test('decodeHttpLine - offset out of range throws', () => {
+  const buffer = buf('GET / HTTP/1.1\r\n');
+
+  assert.throws(
+    () => decodeHttpLine(buffer, buffer.length, { maxLineLength: 1024 }),
+    RangeError,
+  );
+});
+
+test('decodeHttpLine - invalid maxLineLength throws', () => {
+  const buffer = buf('GET / HTTP/1.1\r\n');
+
+  assert.throws(
+    () => decodeHttpLine(buffer, 0, { maxLineLength: 0 }),
+    TypeError,
+  );
 });
