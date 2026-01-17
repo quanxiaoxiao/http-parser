@@ -159,14 +159,14 @@ function handleSizePhase(state: ChunkedBodyState): void {
   const maxChunkSizeLineLength = limits.maxChunkExtensionLength === 0
     ? limits.maxChunkSizeHexDigits
     : limits.maxChunkSizeHexDigits + 1 + limits.maxChunkExtensionLength;
-  const lineBuf = decodeHttpLine(state.buffer, 0, maxChunkSizeLineLength);
+  const lineResult = decodeHttpLine(state.buffer, 0, { maxLineLength: maxChunkSizeLineLength });
 
-  if (!lineBuf) {
+  if (!lineResult) {
     return;
   }
 
-  const line = lineBuf.toString('ascii');
-  const consumed = lineBuf.length + CRLF_LENGTH;
+  const line = lineResult.line.toString('ascii');
+  const consumed = lineResult.bytesConsumed;
   const size = parseChunkSize(line, state.limits);
 
   state.buffer = state.buffer.subarray(consumed);
@@ -209,14 +209,15 @@ function handleCRLFPhase(state: ChunkedBodyState): void {
 function handleTrailerPhase(state: ChunkedBodyState): void {
   const { buffer, limits } = state;
   const { maxTrailerSize } = limits;
-  const firstLine = decodeHttpLine(buffer, 0, maxTrailerSize);
+  const firstLineResult = decodeHttpLine(buffer, 0, { maxLineLength: maxTrailerSize });
 
-  if (!firstLine) {
+  if (!firstLineResult) {
     return;
   }
 
+  const firstLine = firstLineResult.line;
   if (firstLine.length === 0) {
-    state.buffer = buffer.subarray(CRLF_LENGTH);
+    state.buffer = buffer.subarray(firstLineResult.bytesConsumed);
     state.phase = ChunkedBodyPhase.FINISHED;
     return;
   }

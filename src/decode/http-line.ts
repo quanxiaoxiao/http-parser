@@ -1,89 +1,94 @@
 import { Buffer } from 'node:buffer';
 
 import { HttpDecodeError, HttpDecodeErrorCode } from '../errors.js';
-import { CR, LF, MAX_LINE_SIZE } from '../specs.js';
+import { CR, LF } from '../specs.js';
+import type { DecodeLineResult, HttpLineLimits } from '../types.js';
 
-function validateParameters(buf: Buffer, start: number, limit: number): void {
-  if (!Number.isInteger(start) || start < 0) {
-    throw new TypeError('start must be a non-negative integer');
-  }
-
-  if (!Number.isInteger(limit) || limit <= 0) {
-    throw new TypeError('limit must be a positive integer');
-  }
-
-  const len = buf.length;
-
-  if (len === 0) {
-    if (start !== 0) {
-      throw new RangeError('start must be 0 for empty buffer');
-    }
-  }
-
-  if (len > 0 && start > len - 1) {
-    throw new RangeError(`start (${start}) exceeds buffer length (${len})`);
-  }
+const enum HttpLineState {
+  DATA,
+  CR,
+  DONE,
 }
 
-function findLineEnd(
-  buf: Buffer,
-  start: number,
-  limit: number,
-  len: number,
-): Buffer | null {
-  const searchEnd = Math.min(len, start + limit + 1);
-
-  for (let i = start + 1; i < searchEnd; i++) {
-    if (buf[i] === LF) {
-      if (buf[i - 1] !== CR) {
-        throw new HttpDecodeError({
-          code: HttpDecodeErrorCode.BARE_LF,
-          message: 'LF without preceding CR',
-        });
-      }
-      return buf.subarray(start, i - 1);
-    }
-    if (buf[i] === CR && i + 1 < searchEnd && buf[i + 1] !== LF) {
-      throw new HttpDecodeError({
-        code: HttpDecodeErrorCode.BARE_CR,
-        message: 'CR without following LF',
-      });
-    }
+export function validateParameters(
+  buffer: Buffer,
+  offset: number,
+  limits: HttpLineLimits,
+): void {
+  if (!Number.isInteger(offset) || offset < 0) {
+    throw new TypeError('offset must be a non-negative integer');
   }
 
-  if (len - start > limit) {
-    throw new HttpDecodeError({
-      code: HttpDecodeErrorCode.LINE_TOO_LARGE,
-      message: `line length exceeds limit of ${limit} bytes`,
-    });
+  if (!Number.isInteger(limits.maxLineLength) || limits.maxLineLength <= 0) {
+    throw new TypeError('maxLineLength must be a positive integer');
   }
 
-  return null;
+  const len = buffer.length;
+
+  if (len === 0) {
+    if (offset !== 0) {
+      throw new RangeError('offset must be 0 for empty buffer');
+    }
+    return;
+  }
+
+  if (offset > len - 1) {
+    throw new RangeError(`offset (${offset}) exceeds buffer length (${len})`);
+  }
+
+  if (offset === len) {
+    throw new RangeError(`offset (${offset}) equals buffer length (${len})`);
+  }
 }
 
 export function decodeHttpLine(
-  buf: Buffer,
-  start: number = 0,
-  limit: number = MAX_LINE_SIZE,
-): Buffer | null {
-  validateParameters(buf, start, limit);
+  buffer: Buffer,
+  offset: number,
+  limits: HttpLineLimits,
+): DecodeLineResult | null {
+  validateParameters(buffer, offset, limits);
+  let state = HttpLineState.DATA;
+  let lineLength = 0;
+  const { maxLineLength } = limits;
+  const bufferLength = buffer.length;
 
-  const len = buf.length;
+  for (let cursor = offset; cursor < bufferLength; cursor++) {
+    const byte = buffer[cursor];
 
-  if (len === 0) {
-    return null;
+    if (state === HttpLineState.DATA) {
+      if (byte === CR) {
+        state = HttpLineState.CR;
+        continue;
+      }
+
+      if (byte === LF) {
+        throw new HttpDecodeError({
+          code: HttpDecodeErrorCode.INVALID_LINE_ENDING,
+          message: 'LF without preceding CR',
+        });
+      }
+
+      if (++lineLength > maxLineLength) {
+        throw new HttpDecodeError({
+          code: HttpDecodeErrorCode.LINE_TOO_LARGE,
+          message: 'HTTP line exceeds maximum length',
+        });
+      }
+    } else if (state === HttpLineState.CR) {
+      if (byte !== LF) {
+        throw new HttpDecodeError({
+          code: HttpDecodeErrorCode.INVALID_LINE_ENDING,
+          message: 'CR not followed by LF',
+        });
+      }
+
+      const lineEnd = cursor - 1;
+      return {
+        line: buffer.subarray(offset, lineEnd),
+        bytesConsumed: cursor - offset + 1,
+      };
+    }
   }
 
-  if (buf[start] === LF) {
-    throw new HttpDecodeError({
-      code: HttpDecodeErrorCode.BARE_LF,
-      message: 'Line starts with bare LF',
-    });
-  }
-
-  if (len === 1) {
-    return null;
-  }
-
-  return findLineEnd(buf, start, limit, len);
+  return null;
 }

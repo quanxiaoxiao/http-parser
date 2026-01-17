@@ -15,6 +15,7 @@ export enum HttpDecodeErrorCode {
   // Line / CRLF
   // =========================
   LINE_TOO_LARGE = 'LINE_TOO_LARGE',
+  INVALID_LINE_ENDING = 'INVALID_LINE_ENDING',
   UNEXPECTED_LF = 'UNEXPECTED_LF',
   BARE_CR = 'BARE_CR',
   BARE_LF = 'BARE_LF',

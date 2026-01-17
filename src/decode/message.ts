@@ -3,7 +3,7 @@ import { Buffer } from 'node:buffer';
 import { HttpDecodeError, HttpDecodeErrorCode } from '../errors.js';
 import { getHeaderValues } from '../headers/headers.js';
 import { DEFAULT_CHUNKED_BODY_LIMITS, DEFAULT_FIXED_LENGTH_BODY_LIMITS, DEFAULT_HEADER_LIMITS, DEFAULT_START_LINE_LIMITS, HttpDecodePhase } from '../specs.js';
-import type { ChunkedBodyLimits, FixedLengthBodyLimits, HeaderLimits, Headers, RequestStartLine, ResponseStartLine,StartLineLimits } from '../types.js';
+import type { ChunkedBodyLimits, DecodeLineResult, FixedLengthBodyLimits, HeaderLimits, Headers, RequestStartLine, ResponseStartLine,StartLineLimits } from '../types.js';
 import { parseInteger } from '../utils/number.js';
 import { type ChunkedBodyState, createChunkedBodyState, decodeChunkedBody, isChunkedBodyFinished } from './chunked-body.js';
 import { createFixedLengthBodyState, decodeFixedLengthBody, type FixedLengthBodyState,isFixedLengthBodyFinished } from './fixed-length-body.js';
@@ -11,7 +11,6 @@ import { createHeadersState, decodeHeaders, type HeadersState,isHeadersFinished 
 import { decodeHttpLine } from './http-line.js';
 import { decodeRequestStartLine, decodeResponseStartLine } from './start-line.js';
 
-const CRLF_LENGTH = 2;
 const EMPTY_BUFFER = Buffer.alloc(0);
 
 type BodyStrategy =
@@ -242,9 +241,9 @@ function handleStartLinePhase(state: HttpState): void {
   const parseLineFn = state.messageType === 'request'
     ? decodeRequestStartLine
     : decodeResponseStartLine;
-  let lineBuf: Buffer | null;
+  let lineResult: DecodeLineResult | null;
   try {
-    lineBuf = decodeHttpLine(state.buffer, 0, state.config.startLineLimits.maxStartLineBytes);
+    lineResult = decodeHttpLine(state.buffer, 0, { maxLineLength: state.config.startLineLimits.maxStartLineBytes });
   } catch (error) {
     if (error instanceof HttpDecodeError) {
       if (error.code === HttpDecodeErrorCode.LINE_TOO_LARGE) {
@@ -261,13 +260,14 @@ function handleStartLinePhase(state: HttpState): void {
     });
   }
 
-  if (!lineBuf) {
+  if (!lineResult) {
     return;
   }
 
+  const lineBuf = lineResult.line;
   const startLine = parseLineFn(lineBuf.toString(), state.config.startLineLimits);
   state.parsing.startLine = startLine;
-  state.buffer = state.buffer.subarray(lineBuf.length + CRLF_LENGTH);
+  state.buffer = state.buffer.subarray(lineResult.bytesConsumed);
 
   addEvent(state, {
     type: 'start-line-complete',

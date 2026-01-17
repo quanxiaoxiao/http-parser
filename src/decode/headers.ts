@@ -1,6 +1,6 @@
 import { HttpDecodeError, HttpDecodeErrorCode } from '../errors.js';
 import { DEFAULT_HEADER_LIMITS } from '../specs.js';
-import type { HeaderLimits, Headers } from '../types.js';
+import type { DecodeLineResult, HeaderLimits, Headers } from '../types.js';
 import { decodeHttpLine } from './http-line.js';
 
 const CRLF_LENGTH = 2;
@@ -130,12 +130,12 @@ function processHeaderLine(
   buffer: Buffer,
   offset: number,
 ): { offset: number; shouldContinue: boolean } {
-  let line;
+  let lineResult: DecodeLineResult | null;
   try {
-    line = decodeHttpLine(
+    lineResult = decodeHttpLine(
       buffer.subarray(offset),
       0,
-      state.limits.maxHeaderLineBytes,
+      { maxLineLength: state.limits.maxHeaderLineBytes },
     );
   } catch (error) {
     if (error instanceof HttpDecodeError) {
@@ -153,6 +153,7 @@ function processHeaderLine(
     throw error;
   }
 
+  const line = lineResult?.line;
   if (!line) {
     const remainingBytes = buffer.length - offset;
     if (state.receivedBytes + remainingBytes > state.limits.maxHeaderBytes) {

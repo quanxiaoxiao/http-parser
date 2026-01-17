@@ -3,7 +3,7 @@ import { Buffer } from 'node:buffer';
 import { describe, it } from 'node:test';
 
 import { HttpDecodeError, HttpDecodeErrorCode } from '../errors.js';
-import { decodeHttpLine } from './http-line.js';
+import { decodeHttpLine, validateParameters } from './http-line.js';
 
 const CR = 0x0d;
 const LF = 0x0a;
@@ -12,52 +12,52 @@ describe('decodeHttpLine', () => {
   describe('参数验证', () => {
     const validBuffer = Buffer.from('test\r\n');
 
-    describe('start 参数', () => {
-      it('应该拒绝非整数的 start', () => {
+    describe('offset 参数', () => {
+      it('应该拒绝非整数的 offset', () => {
         assert.throws(
-          () => decodeHttpLine(validBuffer, 1.5),
+          () => validateParameters(validBuffer, 1.5, { maxLineLength: 100 }),
           {
             name: 'TypeError',
-            message: 'start must be a non-negative integer',
+            message: 'offset must be a non-negative integer',
           },
         );
       });
 
-      it('应该拒绝负数的 start', () => {
+      it('应该拒绝负数的 offset', () => {
         assert.throws(
-          () => decodeHttpLine(validBuffer, -1),
+          () => validateParameters(validBuffer, -1, { maxLineLength: 100 }),
           {
             name: 'TypeError',
-            message: 'start must be a non-negative integer',
+            message: 'offset must be a non-negative integer',
           },
         );
       });
 
-      it('应该拒绝超出 buffer 范围的 start', () => {
+      it('应该拒绝超出 buffer 范围的 offset', () => {
         assert.throws(
-          () => decodeHttpLine(validBuffer, 100),
+          () => validateParameters(validBuffer, 100, { maxLineLength: 100 }),
           {
             name: 'RangeError',
-            message: /start \(100\) exceeds buffer length/,
+            message: /offset \(100\) exceeds buffer length/,
           },
         );
       });
 
-      it('应该接受 start 为 0', () => {
-        const result = decodeHttpLine(validBuffer, 0);
-        assert.strictEqual(result?.toString(), 'test');
+      it('应该接受 offset 为 0', () => {
+        const result = decodeHttpLine(validBuffer, 0, { maxLineLength: 100 });
+        assert.strictEqual(result?.line.toString(), 'test');
       });
 
-      it('应该接受有效的 start 值', () => {
+      it('应该接受有效的 offset 值', () => {
         const buf = Buffer.from('abc\r\ntest\r\n');
-        const result = decodeHttpLine(buf, 5);
-        assert.strictEqual(result?.toString(), 'test');
+        const result = decodeHttpLine(buf, 5, { maxLineLength: 100 });
+        assert.strictEqual(result?.line.toString(), 'test');
       });
 
-      it('应该拒绝 start 等于 buffer.length', () => {
+      it('应该拒绝 offset 等于 buffer.length', () => {
         const buf = Buffer.from('test\r\n');
         assert.throws(
-          () => decodeHttpLine(buf, buf.length),
+          () => validateParameters(buf, buf.length, { maxLineLength: 100 }),
           {
             name: 'RangeError',
           },
@@ -66,170 +66,173 @@ describe('decodeHttpLine', () => {
     });
 
     describe('limit 参数', () => {
-      it('应该拒绝 limit 为 0', () => {
+      it('应该拒绝 maxLineLength 为 0', () => {
         assert.throws(
-          () => decodeHttpLine(validBuffer, 0, 0),
+          () => validateParameters(validBuffer, 0, { maxLineLength: 0 }),
           {
             name: 'TypeError',
-            message: 'limit must be a positive integer',
+            message: 'maxLineLength must be a positive integer',
           },
         );
       });
 
-      it('应该拒绝负数的 limit', () => {
+      it('应该拒绝负数的 maxLineLength', () => {
         assert.throws(
-          () => decodeHttpLine(validBuffer, 0, -10),
+          () => validateParameters(validBuffer, 0, { maxLineLength: -10 }),
           {
             name: 'TypeError',
-            message: 'limit must be a positive integer',
+            message: 'maxLineLength must be a positive integer',
           },
         );
       });
 
-      it('应该拒绝非整数的 limit', () => {
+      it('应该拒绝非整数的 maxLineLength', () => {
         assert.throws(
-          () => decodeHttpLine(validBuffer, 0, 10.5),
+          () => validateParameters(validBuffer, 0, { maxLineLength: 10.5 }),
           {
             name: 'TypeError',
-            message: 'limit must be a positive integer',
+            message: 'maxLineLength must be a positive integer',
           },
         );
       });
 
-      it('应该接受有效的 limit 值', () => {
+      it('应该接受有效的 maxLineLength 值', () => {
         const buf = Buffer.from('test\r\n');
-        const result = decodeHttpLine(buf, 0, 100);
-        assert.strictEqual(result?.toString(), 'test');
+        const result = decodeHttpLine(buf, 0, { maxLineLength: 100 });
+        assert.strictEqual(result?.line.toString(), 'test');
       });
     });
   });
 
   describe('边界情况', () => {
     it('应该对空 buffer 返回 null', () => {
-      const result = decodeHttpLine(Buffer.alloc(0));
+      const result = decodeHttpLine(Buffer.alloc(0), 0, { maxLineLength: 100 });
       assert.strictEqual(result, null);
     });
 
-    it('应该在空 buffer 但 start 不为 0 时抛出 RangeError', () => {
+    it('应该在空 buffer 但 offset 不为 0 时抛出 RangeError', () => {
       assert.throws(
-        () => decodeHttpLine(Buffer.alloc(0), 1),
+        () => validateParameters(Buffer.alloc(0), 1, { maxLineLength: 100 }),
         { name: 'RangeError' },
       );
     });
 
     it('应该对单字节 buffer 返回 null', () => {
-      assert.strictEqual(decodeHttpLine(Buffer.from('a')), null);
+      const result = decodeHttpLine(Buffer.from('a'), 0, { maxLineLength: 100 });
+      assert.strictEqual(result, null);
     });
 
     it('应该对不完整的行返回 null', () => {
-      assert.strictEqual(decodeHttpLine(Buffer.from('incomplete line')), null);
+      const result = decodeHttpLine(Buffer.from('incomplete line'), 0, { maxLineLength: 100 });
+      assert.strictEqual(result, null);
     });
 
     it('应该对只有 CR 的 buffer 返回 null', () => {
-      assert.strictEqual(decodeHttpLine(Buffer.from('test\r')), null);
+      const result = decodeHttpLine(Buffer.from('test\r'), 0, { maxLineLength: 100 });
+      assert.strictEqual(result, null);
     });
 
     it('应该处理最小的有效行', () => {
       const buf = Buffer.from('a\r\n');
-      const result = decodeHttpLine(buf);
+      const result = decodeHttpLine(buf, 0, { maxLineLength: 100 });
       assert.ok(result);
-      assert.strictEqual(result.toString(), 'a');
+      assert.strictEqual(result.line.toString(), 'a');
     });
   });
 
   describe('CRLF 正常解析', () => {
     it('应该解码简单的 CRLF 结尾的行', () => {
-      const result = decodeHttpLine(Buffer.from('Hello World\r\n'));
+      const result = decodeHttpLine(Buffer.from('Hello World\r\n'), 0, { maxLineLength: 100 });
       assert.ok(result);
-      assert.strictEqual(result.toString(), 'Hello World');
+      assert.strictEqual(result.line.toString(), 'Hello World');
     });
 
     it('应该解码空行（仅 CRLF）', () => {
-      const result = decodeHttpLine(Buffer.from('\r\n'));
+      const result = decodeHttpLine(Buffer.from('\r\n'), 0, { maxLineLength: 100 });
       assert.ok(result);
-      assert.strictEqual(result.length, 0);
-      assert.strictEqual(result.toString(), '');
+      assert.strictEqual(result.line.length, 0);
+      assert.strictEqual(result.line.toString(), '');
     });
 
     it('应该解码包含特殊字符的行', () => {
-      const result = decodeHttpLine(Buffer.from('Content-Type: application/json; charset=utf-8\r\n'));
-      assert.strictEqual(result?.toString(), 'Content-Type: application/json; charset=utf-8');
+      const result = decodeHttpLine(Buffer.from('Content-Type: application/json; charset=utf-8\r\n'), 0, { maxLineLength: 200 });
+      assert.strictEqual(result?.line.toString(), 'Content-Type: application/json; charset=utf-8');
     });
 
     it('应该解码包含中文的行', () => {
-      const result = decodeHttpLine(Buffer.from('你好世界\r\n'));
-      assert.strictEqual(result?.toString(), '你好世界');
+      const result = decodeHttpLine(Buffer.from('你好世界\r\n'), 0, { maxLineLength: 100 });
+      assert.strictEqual(result?.line.toString(), '你好世界');
     });
 
     it('应该解码包含二进制数据的行', () => {
       const buf = Buffer.from([0x01, 0x02, 0x03, CR, LF]);
-      const result = decodeHttpLine(buf);
+      const result = decodeHttpLine(buf, 0, { maxLineLength: 100 });
       assert.ok(result);
-      assert.strictEqual(result.length, 3);
-      assert.deepStrictEqual([...result], [0x01, 0x02, 0x03]);
+      assert.strictEqual(result.line.length, 3);
+      assert.deepStrictEqual([...result.line], [0x01, 0x02, 0x03]);
     });
 
     it('应该处理多行数据，仅返回第一行', () => {
-      const result = decodeHttpLine(Buffer.from('Line1\r\nLine2\r\nLine3\r\n'));
-      assert.strictEqual(result?.toString(), 'Line1');
+      const result = decodeHttpLine(Buffer.from('Line1\r\nLine2\r\nLine3\r\n'), 0, { maxLineLength: 100 });
+      assert.strictEqual(result?.line.toString(), 'Line1');
     });
   });
 
   describe('从指定位置开始解析', () => {
-    it('应该从指定的 start 位置开始解析', () => {
+    it('应该从指定的 offset 位置开始解析', () => {
       const buf = Buffer.from('skip\r\nHello\r\n');
-      const result = decodeHttpLine(buf, 6);
-      assert.strictEqual(result?.toString(), 'Hello');
+      const result = decodeHttpLine(buf, 6, { maxLineLength: 100 });
+      assert.strictEqual(result?.line.toString(), 'Hello');
     });
 
-    it('应该正确处理不同的 start 偏移量', () => {
+    it('应该正确处理不同的 offset 偏移量', () => {
       const buf = Buffer.from('abc\r\n');
-      assert.strictEqual(decodeHttpLine(buf, 1)?.toString(), 'bc');
-      assert.strictEqual(decodeHttpLine(buf, 2)?.toString(), 'c');
-      assert.strictEqual(decodeHttpLine(buf, 3)?.toString(), '');
+      assert.strictEqual(decodeHttpLine(buf, 1, { maxLineLength: 100 })?.line.toString(), 'bc');
+      assert.strictEqual(decodeHttpLine(buf, 2, { maxLineLength: 100 })?.line.toString(), 'c');
+      assert.strictEqual(decodeHttpLine(buf, 3, { maxLineLength: 100 })?.line.toString(), '');
     });
 
     it('应该能够连续读取多行', () => {
       const buf = Buffer.from('Line1\r\nLine2\r\nLine3\r\n');
 
-      const line1 = decodeHttpLine(buf, 0);
+      const line1 = decodeHttpLine(buf, 0, { maxLineLength: 100 });
       assert.ok(line1);
-      assert.strictEqual(line1.toString(), 'Line1');
+      assert.strictEqual(line1.line.toString(), 'Line1');
 
-      const line2 = decodeHttpLine(buf, 7);
+      const line2 = decodeHttpLine(buf, line1.bytesConsumed, { maxLineLength: 100 });
       assert.ok(line2);
-      assert.strictEqual(line2.toString(), 'Line2');
+      assert.strictEqual(line2.line.toString(), 'Line2');
 
-      const line3 = decodeHttpLine(buf, 14);
+      const line3 = decodeHttpLine(buf, line1.bytesConsumed + line2.bytesConsumed, { maxLineLength: 100 });
       assert.ok(line3);
-      assert.strictEqual(line3.toString(), 'Line3');
+      assert.strictEqual(line3.line.toString(), 'Line3');
     });
   });
 
   describe('协议错误检测 - Bare LF', () => {
     it('应该拒绝以 LF 开头的 buffer', () => {
       assert.throws(
-        () => decodeHttpLine(Buffer.from('\ntest')),
+        () => decodeHttpLine(Buffer.from('\ntest'), 0, { maxLineLength: 100 }),
         (err: HttpDecodeError) => {
-          return err.code === HttpDecodeErrorCode.BARE_LF;
+          return err.code === HttpDecodeErrorCode.INVALID_LINE_ENDING;
         },
       );
     });
 
     it('应该拒绝包含 bare LF 的行', () => {
       assert.throws(
-        () => decodeHttpLine(Buffer.from('test\nmore')),
+        () => decodeHttpLine(Buffer.from('test\nmore'), 0, { maxLineLength: 100 }),
         (err: HttpDecodeError) => {
-          return err.code === HttpDecodeErrorCode.BARE_LF;
+          return err.code === HttpDecodeErrorCode.INVALID_LINE_ENDING;
         },
       );
     });
 
     it('应该拒绝 LF 前没有 CR 的情况', () => {
       assert.throws(
-        () => decodeHttpLine(Buffer.from('Hello\nWorld\r\n')),
+        () => decodeHttpLine(Buffer.from('Hello\nWorld\r\n'), 0, { maxLineLength: 100 }),
         (err: HttpDecodeError) => {
-          return err.code === HttpDecodeErrorCode.BARE_LF;
+          return err.code === HttpDecodeErrorCode.INVALID_LINE_ENDING;
         },
       );
     });
@@ -238,27 +241,27 @@ describe('decodeHttpLine', () => {
   describe('协议错误检测 - Bare CR', () => {
     it('应该拒绝 CR 后没有 LF 的情况', () => {
       assert.throws(
-        () => decodeHttpLine(Buffer.from('test\rmore')),
+        () => decodeHttpLine(Buffer.from('test\rmore'), 0, { maxLineLength: 100 }),
         (err: HttpDecodeError) => {
-          return err.code === HttpDecodeErrorCode.BARE_CR;
+          return err.code === HttpDecodeErrorCode.INVALID_LINE_ENDING;
         },
       );
     });
 
     it('应该拒绝 CR 后跟其他字符的情况', () => {
       assert.throws(
-        () => decodeHttpLine(Buffer.from('Hello\rWorld')),
+        () => decodeHttpLine(Buffer.from('Hello\rWorld'), 0, { maxLineLength: 100 }),
         (err: HttpDecodeError) => {
-          return err.code === HttpDecodeErrorCode.BARE_CR;
+          return err.code === HttpDecodeErrorCode.INVALID_LINE_ENDING;
         },
       );
     });
 
     it('应该拒绝行尾只有 CR 的情况', () => {
       assert.throws(
-        () => decodeHttpLine(Buffer.from('test\rmore\r\n')),
+        () => decodeHttpLine(Buffer.from('test\rmore\r\n'), 0, { maxLineLength: 100 }),
         (err: HttpDecodeError) => {
-          return err.code === HttpDecodeErrorCode.BARE_CR;
+          return err.code === HttpDecodeErrorCode.INVALID_LINE_ENDING;
         },
       );
     });
@@ -268,20 +271,20 @@ describe('decodeHttpLine', () => {
     it('应该接受在限制内的行', () => {
       const content = 'A'.repeat(100);
       const buf = Buffer.from(`${content}\r\n`);
-      const result = decodeHttpLine(buf, 0, 200);
+      const result = decodeHttpLine(buf, 0, { maxLineLength: 200 });
       assert.ok(result);
-      assert.strictEqual(result.length, 100);
-      assert.strictEqual(result.toString(), content);
+      assert.strictEqual(result.line.length, 100);
+      assert.strictEqual(result.line.toString(), content);
     });
 
     it('应该在行长度超过限制时抛出错误', () => {
       const buf = Buffer.from('A'.repeat(1000) + '\r\n');
       assert.throws(
-        () => decodeHttpLine(buf, 0, 100),
+        () => decodeHttpLine(buf, 0, { maxLineLength: 100 }),
         (err: HttpDecodeError) => {
           return (
             err.code === HttpDecodeErrorCode.LINE_TOO_LARGE &&
-            err.message.includes('exceeds limit of 100 bytes')
+            err.message.includes('HTTP line exceeds maximum length')
           );
         },
       );
@@ -290,17 +293,7 @@ describe('decodeHttpLine', () => {
     it('应该在不完整但超限的行抛出错误', () => {
       const buf = Buffer.from('A'.repeat(200));
       assert.throws(
-        () => decodeHttpLine(buf, 0, 100),
-        (err: HttpDecodeError) => {
-          return err.code === HttpDecodeErrorCode.LINE_TOO_LARGE;
-        },
-      );
-    });
-
-    it('应该使用默认的 16KB 限制', () => {
-      const buf = Buffer.from('A'.repeat(20000) + '\r\n');
-      assert.throws(
-        () => decodeHttpLine(buf),
+        () => decodeHttpLine(buf, 0, { maxLineLength: 100 }),
         (err: HttpDecodeError) => {
           return err.code === HttpDecodeErrorCode.LINE_TOO_LARGE;
         },
@@ -309,55 +302,55 @@ describe('decodeHttpLine', () => {
 
     it('应该在行长度等于限制-1时正常解析', () => {
       const buf = Buffer.from('A'.repeat(50) + '\r\n');
-      const result = decodeHttpLine(buf, 0, 51);
+      const result = decodeHttpLine(buf, 0, { maxLineLength: 51 });
       assert.ok(result);
-      assert.strictEqual(result.length, 50);
+      assert.strictEqual(result.line.length, 50);
     });
 
     it('应该能够处理大行（在默认限制内）', () => {
       const largeContent = 'A'.repeat(15 * 1024);
       const buf = Buffer.from(`${largeContent}\r\n`);
-      const result = decodeHttpLine(buf);
+      const result = decodeHttpLine(buf, 0, { maxLineLength: 16 * 1024 });
       assert.ok(result);
-      assert.strictEqual(result.length, 15 * 1024);
+      assert.strictEqual(result.line.length, 15 * 1024);
     });
   });
 
   describe('HTTP 实际场景', () => {
     it('应该解析 HTTP 请求行', () => {
-      const result = decodeHttpLine(Buffer.from('GET /api/users?id=123 HTTP/1.1\r\n'));
+      const result = decodeHttpLine(Buffer.from('GET /api/users?id=123 HTTP/1.1\r\n'), 0, { maxLineLength: 1024 });
       assert.ok(result);
-      assert.strictEqual(result.toString(), 'GET /api/users?id=123 HTTP/1.1');
+      assert.strictEqual(result.line.toString(), 'GET /api/users?id=123 HTTP/1.1');
     });
 
     it('应该解析 HTTP 响应状态行', () => {
-      const result = decodeHttpLine(Buffer.from('HTTP/1.1 200 OK\r\n'));
+      const result = decodeHttpLine(Buffer.from('HTTP/1.1 200 OK\r\n'), 0, { maxLineLength: 1024 });
       assert.ok(result);
-      assert.strictEqual(result.toString(), 'HTTP/1.1 200 OK');
+      assert.strictEqual(result.line.toString(), 'HTTP/1.1 200 OK');
     });
 
     it('应该解析 HTTP 头部', () => {
-      const result = decodeHttpLine(Buffer.from('Content-Type: application/json\r\n'));
+      const result = decodeHttpLine(Buffer.from('Content-Type: application/json\r\n'), 0, { maxLineLength: 1024 });
       assert.ok(result);
-      assert.strictEqual(result.toString(), 'Content-Type: application/json');
+      assert.strictEqual(result.line.toString(), 'Content-Type: application/json');
     });
 
     it('应该解析包含多个空格的头部', () => {
-      const result = decodeHttpLine(Buffer.from('User-Agent:   Mozilla/5.0   \r\n'));
+      const result = decodeHttpLine(Buffer.from('User-Agent:   Mozilla/5.0   \r\n'), 0, { maxLineLength: 1024 });
       assert.ok(result);
-      assert.strictEqual(result.toString(), 'User-Agent:   Mozilla/5.0   ');
+      assert.strictEqual(result.line.toString(), 'User-Agent:   Mozilla/5.0   ');
     });
 
     it('应该识别空行作为头部结束标志', () => {
       const buf = Buffer.from('Header: value\r\n\r\nBody');
 
-      const firstLine = decodeHttpLine(buf);
+      const firstLine = decodeHttpLine(buf, 0, { maxLineLength: 1024 });
       assert.ok(firstLine);
-      assert.strictEqual(firstLine.toString(), 'Header: value');
+      assert.strictEqual(firstLine.line.toString(), 'Header: value');
 
-      const emptyLine = decodeHttpLine(buf, firstLine.length + 2);
+      const emptyLine = decodeHttpLine(buf, firstLine.bytesConsumed, { maxLineLength: 1024 });
       assert.ok(emptyLine);
-      assert.strictEqual(emptyLine.length, 0);
+      assert.strictEqual(emptyLine.line.length, 0);
     });
 
     it('应该处理完整的 HTTP 头部解析流程', () => {
@@ -374,13 +367,13 @@ describe('decodeHttpLine', () => {
       let offset = 0;
 
       while (offset < buf.length) {
-        const line = decodeHttpLine(buf, offset);
+        const line = decodeHttpLine(buf, offset, { maxLineLength: 1024 });
         if (line === null) break;
 
-        lines.push(line.toString());
-        offset += line.length + 2;
+        lines.push(line.line.toString());
+        offset += line.bytesConsumed;
 
-        if (line.length === 0) break;
+        if (line.line.length === 0) break;
       }
 
       assert.strictEqual(lines.length, 5);
@@ -400,11 +393,11 @@ describe('decodeHttpLine', () => {
       let count = 0;
 
       while (offset < buf.length) {
-        const line = decodeHttpLine(buf, offset);
+        const line = decodeHttpLine(buf, offset, { maxLineLength: 1024 });
         if (line === null) break;
 
         count++;
-        offset += line.length + 2;
+        offset += line.bytesConsumed;
       }
 
       assert.strictEqual(count, 100);
@@ -414,23 +407,23 @@ describe('decodeHttpLine', () => {
   describe('性能和特殊数据', () => {
     it('应该处理纯二进制数据', () => {
       const buf = Buffer.from([0x48, 0x65, 0x6c, 0x6c, 0x6f, CR, LF]);
-      const result = decodeHttpLine(buf);
+      const result = decodeHttpLine(buf, 0, { maxLineLength: 100 });
       assert.ok(result);
-      assert.strictEqual(result.toString(), 'Hello');
+      assert.strictEqual(result.line.toString(), 'Hello');
     });
 
     it('应该处理包含 NULL 字节的数据', () => {
       const buf = Buffer.from([0x00, 0x01, 0x02, CR, LF]);
-      const result = decodeHttpLine(buf);
+      const result = decodeHttpLine(buf, 0, { maxLineLength: 100 });
       assert.ok(result);
-      assert.strictEqual(result.length, 3);
+      assert.strictEqual(result.line.length, 3);
     });
 
     it('应该处理高位字节数据', () => {
       const buf = Buffer.from([0xFF, 0xFE, 0xFD, CR, LF]);
-      const result = decodeHttpLine(buf);
+      const result = decodeHttpLine(buf, 0, { maxLineLength: 100 });
       assert.ok(result);
-      assert.strictEqual(result.length, 3);
+      assert.strictEqual(result.line.length, 3);
     });
   });
 });
