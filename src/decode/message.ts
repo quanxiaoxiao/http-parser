@@ -1,15 +1,59 @@
-import { Buffer } from 'node:buffer';
+import {
+  Buffer,
+} from 'node:buffer';
 
-import { HttpDecodeError, HttpDecodeErrorCode } from '../errors.js';
-import { getHeaderValues } from '../headers/headers.js';
-import { DEFAULT_CHUNKED_BODY_LIMITS, DEFAULT_FIXED_LENGTH_BODY_LIMITS, DEFAULT_HEADER_LIMITS, DEFAULT_START_LINE_LIMITS, HttpDecodePhase } from '../specs.js';
-import type { ChunkedBodyLimits, DecodeLineResult, FixedLengthBodyLimits, HeaderLimits, Headers, RequestStartLine, ResponseStartLine,StartLineLimits } from '../types.js';
-import { parseInteger } from '../utils/number.js';
-import { type ChunkedBodyState, createChunkedBodyState, decodeChunkedBody, isChunkedBodyFinished } from './chunked-body.js';
-import { createFixedLengthBodyState, decodeFixedLengthBody, type FixedLengthBodyState,isFixedLengthBodyFinished } from './fixed-length-body.js';
-import { createHeadersState, decodeHeaders, type HeadersState,isHeadersFinished } from './headers.js';
-import { decodeHttpLine } from './http-line.js';
-import { decodeRequestStartLine, decodeResponseStartLine } from './start-line.js';
+import {
+  HttpDecodeError,
+  HttpDecodeErrorCode,
+} from '../errors.js';
+import {
+  getHeaderValues,
+} from '../headers/headers.js';
+import {
+  DEFAULT_CHUNKED_BODY_LIMITS,
+  DEFAULT_FIXED_LENGTH_BODY_LIMITS,
+  DEFAULT_HEADER_LIMITS,
+  DEFAULT_START_LINE_LIMITS,
+  HttpDecodePhase,
+} from '../specs.js';
+import type {
+  ChunkedBodyLimits,
+  DecodeLineResult,
+  FixedLengthBodyLimits,
+  HeaderLimits,
+  Headers,
+  RequestStartLine,
+  ResponseStartLine,
+  StartLineLimits,
+} from '../types.js';
+import {
+  parseInteger,
+} from '../utils/number.js';
+import {
+  type ChunkedBodyState,
+  createChunkedBodyState,
+  decodeChunkedBody,
+  isChunkedBodyFinished,
+} from './chunked-body.js';
+import {
+  createFixedLengthBodyState,
+  decodeFixedLengthBody,
+  type FixedLengthBodyState,
+  isFixedLengthBodyFinished,
+} from './fixed-length-body.js';
+import {
+  createHeadersState,
+  decodeHeaders,
+  type HeadersState,
+  isHeadersFinished,
+} from './headers.js';
+import {
+  decodeHttpLine,
+} from './http-line.js';
+import {
+  decodeRequestStartLine,
+  decodeResponseStartLine,
+} from './start-line.js';
 
 const EMPTY_BUFFER = Buffer.alloc(0);
 

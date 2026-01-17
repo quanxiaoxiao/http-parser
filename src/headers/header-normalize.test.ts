@@ -1,7 +1,11 @@
 import * as assert from 'node:assert';
-import { describe, it } from 'node:test';
+import {
+  describe, it,
+} from 'node:test';
 
-import { normalizeHeaders } from './header-normalize.js';
+import {
+  normalizeHeaders,
+} from './header-normalize.js';
 
 describe('normalizeHeaders', () => {
   describe('基本功能', () => {

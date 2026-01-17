@@ -1,8 +1,15 @@
 import * as assert from 'node:assert';
-import { Buffer } from 'node:buffer';
-import { describe, test } from 'node:test';
+import {
+  Buffer,
+} from 'node:buffer';
+import {
+  describe, test,
+} from 'node:test';
 
-import { encodeHttpLine, encodeHttpLines } from './http-line.js';
+import {
+  encodeHttpLine,
+  encodeHttpLines,
+} from './http-line.js';
 
 const CR = 0x0d;
 const LF = 0x0a;

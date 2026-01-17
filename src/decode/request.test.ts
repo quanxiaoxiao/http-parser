@@ -1,9 +1,18 @@
 import * as assert from 'node:assert';
-import { Buffer } from 'node:buffer';
-import { describe, it } from 'node:test';
+import {
+  Buffer,
+} from 'node:buffer';
+import {
+  describe, it,
+} from 'node:test';
 
-import { HttpDecodePhase } from '../specs.js';
-import { createRequestState, decodeRequest } from './message.js';
+import {
+  HttpDecodePhase,
+} from '../specs.js';
+import {
+  createRequestState,
+  decodeRequest,
+} from './message.js';
 
 describe('decodeRequest', () => {
   describe('基础功能', () => {

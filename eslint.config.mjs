@@ -47,7 +47,15 @@ export default [
         'error',
         'single',
       ],
-      'object-curly-newline': 2,
+      'object-curly-newline': [
+        'error',
+        {
+          ImportDeclaration: {
+            multiline: true,
+            minProperties: 1,
+          },
+        },
+      ],
       'no-multi-assign': 2,
       'no-else-return': 2,
       'no-undef': 'error',

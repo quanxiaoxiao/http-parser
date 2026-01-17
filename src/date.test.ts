@@ -1,7 +1,13 @@
 import * as assert from 'node:assert';
-import { describe, it } from 'node:test';
+import {
+  describe, it,
+} from 'node:test';
 
-import { formatHttpDate, isValidHttpDate,parseHttpDate } from './date.js';
+import {
+  formatHttpDate,
+  isValidHttpDate,
+  parseHttpDate,
+} from './date.js';
 
 describe('formatHttpDate', () => {
   it('should correctly format standard date', () => {

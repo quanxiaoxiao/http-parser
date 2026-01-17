@@ -1,4 +1,6 @@
-import type { ChunkedBodyLimits, FixedLengthBodyLimits, HeaderLimits, HttpLineLimits, StartLineLimits } from './types.js';
+import type {
+  ChunkedBodyLimits, FixedLengthBodyLimits, HeaderLimits, HttpLineLimits, StartLineLimits,
+} from './types.js';
 
 export const REQUEST_ONLY_HEADERS = [
   'host', 'expect', 'if-match', 'if-none-match', 'if-modified-since',

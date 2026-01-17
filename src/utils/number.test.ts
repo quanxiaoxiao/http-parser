@@ -1,7 +1,12 @@
 import * as assert from 'node:assert';
-import { describe, test } from 'node:test';
+import {
+  describe, test,
+} from 'node:test';
 
-import { parseHex,parseInteger } from './number.js';
+import {
+  parseHex,
+  parseInteger,
+} from './number.js';
 
 test('parseInteger - 有效的整数字符串', () => {
   assert.strictEqual(parseInteger('123'), 123);

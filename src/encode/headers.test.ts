@@ -1,9 +1,17 @@
 import * as assert from 'node:assert';
-import { Buffer } from 'node:buffer';
-import { describe, it } from 'node:test';
+import {
+  Buffer,
+} from 'node:buffer';
+import {
+  describe, it,
+} from 'node:test';
 
-import type { Headers } from '../types.js';
-import { encodeHeaders } from './headers.js';
+import type {
+  Headers,
+} from '../types.js';
+import {
+  encodeHeaders,
+} from './headers.js';
 
 describe('encodeHeaders', () => {
   describe('基本功能', () => {

@@ -1,7 +1,18 @@
-import { HttpDecodeError, HttpDecodeErrorCode } from '../errors.js';
-import { DEFAULT_HEADER_LIMITS } from '../specs.js';
-import type { DecodeLineResult, HeaderLimits, Headers } from '../types.js';
-import { decodeHttpLine } from './http-line.js';
+import {
+  HttpDecodeError,
+  HttpDecodeErrorCode,
+} from '../errors.js';
+import {
+  DEFAULT_HEADER_LIMITS,
+} from '../specs.js';
+import type {
+  DecodeLineResult,
+  HeaderLimits,
+  Headers,
+} from '../types.js';
+import {
+  decodeHttpLine,
+} from './http-line.js';
 
 const CRLF_LENGTH = 2;
 const COLON = 0x3a;

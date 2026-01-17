@@ -1,4 +1,6 @@
-import type { Headers, NormalizedHeaders } from '../types.js';
+import type {
+  Headers, NormalizedHeaders,
+} from '../types.js';
 
 export function getHeaderValues(
   headers: NormalizedHeaders | Headers,

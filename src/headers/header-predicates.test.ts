@@ -1,7 +1,13 @@
 import * as assert from 'node:assert';
-import { describe, it } from 'node:test';
+import {
+  describe, it,
+} from 'node:test';
 
-import { hasBody, hasZeroContentLength,isChunked } from './header-predicates.js';
+import {
+  hasBody,
+  hasZeroContentLength,
+  isChunked,
+} from './header-predicates.js';
 
 describe('isChunked', () => {
   it('当 transfer-encoding 包含 chunked 时应该返回 true', () => {

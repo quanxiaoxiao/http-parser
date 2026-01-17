@@ -1,4 +1,6 @@
-import type { RequestStartLine, ResponseStartLine } from '../types.js';
+import type {
+  RequestStartLine, ResponseStartLine,
+} from '../types.js';
 
 const BODYLESS_METHODS = new Set(['GET', 'HEAD', 'DELETE', 'CONNECT', 'TRACE', 'OPTIONS']) as ReadonlySet<string>;
 

@@ -1,8 +1,20 @@
-import { Buffer } from 'node:buffer';
+import {
+  Buffer,
+} from 'node:buffer';
 
-import { HttpDecodeError, HttpDecodeErrorCode } from '../errors.js';
-import { CR, DEFAULT_HEADER_LIMITS,LF } from '../specs.js';
-import type { DecodeLineResult, HttpLineLimits } from '../types.js';
+import {
+  HttpDecodeError,
+  HttpDecodeErrorCode,
+} from '../errors.js';
+import {
+  CR,
+  DEFAULT_HEADER_LIMITS,
+  LF,
+} from '../specs.js';
+import type {
+  DecodeLineResult,
+  HttpLineLimits,
+} from '../types.js';
 
 const enum HttpLineState {
   DATA,

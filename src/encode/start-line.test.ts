@@ -1,7 +1,12 @@
 import * as assert from 'node:assert';
-import { describe, it } from 'node:test';
+import {
+  describe, it,
+} from 'node:test';
 
-import { encodeRequestLine, encodeResponseLine } from './start-line.js';
+import {
+  encodeRequestLine,
+  encodeResponseLine,
+} from './start-line.js';
 
 describe('encodeRequestLine', () => {
   it('should encode default GET request', () => {

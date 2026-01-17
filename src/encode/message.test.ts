@@ -1,8 +1,14 @@
 import * as assert from 'node:assert';
-import { describe, test } from 'node:test';
-import { setTimeout } from 'node:timers/promises';
+import {
+  describe, test,
+} from 'node:test';
+import {
+  setTimeout,
+} from 'node:timers/promises';
 
-import { encodeRequest } from './message.js';
+import {
+  encodeRequest,
+} from './message.js';
 
 async function collectGenerator(generator: AsyncIterable<Buffer>): Promise<Buffer> {
   const chunks: Buffer[] = [];

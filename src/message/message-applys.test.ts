@@ -1,9 +1,17 @@
 import * as assert from 'node:assert';
-import { describe, it } from 'node:test';
-import { setTimeout } from 'node:timers/promises';
+import {
+  describe, it,
+} from 'node:test';
+import {
+  setTimeout,
+} from 'node:timers/promises';
 
-import type { NormalizedHeaders, RequestStartLine, ResponseStartLine } from '../types.js';
-import { applyFramingHeaders } from './message-applys.js';
+import type {
+  NormalizedHeaders, RequestStartLine, ResponseStartLine,
+} from '../types.js';
+import {
+  applyFramingHeaders,
+} from './message-applys.js';
 
 const createHeaders = (): NormalizedHeaders => ({});
 

@@ -1,5 +1,9 @@
-import { CRLF } from '../specs.js';
-import type { Body } from '../types.js';
+import {
+  CRLF,
+} from '../specs.js';
+import type {
+  Body,
+} from '../types.js';
 
 export function isZeroChunkOnly(body: string | Buffer | null | undefined): boolean {
   if (body == null) {

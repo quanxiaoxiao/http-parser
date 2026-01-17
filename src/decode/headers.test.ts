@@ -1,9 +1,22 @@
 import * as assert from 'node:assert';
-import { describe, it } from 'node:test';
+import {
+  describe, it,
+} from 'node:test';
 
-import { HttpDecodeError, HttpDecodeErrorCode } from '../errors.js';
-import { DEFAULT_HEADER_LIMITS } from '../specs.js';
-import { createHeadersState, decodeHeaderLine, decodeHeaders,HeadersDecodePhase,isHeadersFinished } from './headers.js';
+import {
+  HttpDecodeError,
+  HttpDecodeErrorCode,
+} from '../errors.js';
+import {
+  DEFAULT_HEADER_LIMITS,
+} from '../specs.js';
+import {
+  createHeadersState,
+  decodeHeaderLine,
+  decodeHeaders,
+  HeadersDecodePhase,
+  isHeadersFinished,
+} from './headers.js';
 
 describe('createHeadersState', () => {
   it('should create initial state with empty values', () => {

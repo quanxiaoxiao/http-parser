@@ -1,7 +1,11 @@
 import * as assert from 'node:assert';
-import { describe,test } from 'node:test';
+import {
+  describe,test,
+} from 'node:test';
 
-import { validateConnectionHeader } from './connection-header.js';
+import {
+  validateConnectionHeader,
+} from './connection-header.js';
 
 describe('validateConnectionHeader', () => {
   test('应该处理空值或未定义值', () => {

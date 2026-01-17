@@ -1,6 +1,12 @@
-import type { NormalizedHeaders } from '../types.js';
-import { validateConnectionHeader } from './connection-header.js';
-import { getHeaderValues } from './headers.js';
+import type {
+  NormalizedHeaders,
+} from '../types.js';
+import {
+  validateConnectionHeader,
+} from './connection-header.js';
+import {
+  getHeaderValues,
+} from './headers.js';
 
 const HOP_BY_HOP_HEADERS = [
   'connection',

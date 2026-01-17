@@ -1,7 +1,11 @@
 import * as assert from 'node:assert';
-import { describe, it } from 'node:test';
+import {
+  describe, it,
+} from 'node:test';
 
-import { validateContentEncoding } from './validateContentEncoding.js';
+import {
+  validateContentEncoding,
+} from './validateContentEncoding.js';
 
 describe('validateContentEncoding', () => {
   describe('基本格式验证', () => {

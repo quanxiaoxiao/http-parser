@@ -1,8 +1,18 @@
 import * as assert from 'node:assert';
-import { describe, it, test } from 'node:test';
+import {
+  describe, it, test,
+} from 'node:test';
 
-import { HttpDecodeError, HttpDecodeErrorCode } from '../errors.js';
-import { ChunkedBodyPhase, createChunkedBodyState, decodeChunkedBody, parseChunkSize } from './chunked-body.js';
+import {
+  HttpDecodeError,
+  HttpDecodeErrorCode,
+} from '../errors.js';
+import {
+  ChunkedBodyPhase,
+  createChunkedBodyState,
+  decodeChunkedBody,
+  parseChunkSize,
+} from './chunked-body.js';
 
 describe('createChunkedBodyState', () => {
   test('should create initial state with correct defaults', () => {

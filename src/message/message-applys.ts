@@ -1,9 +1,26 @@
-import { readBodyLength } from '../body/body.js';
-import { isStreamBody } from '../body/body-predicates.js';
-import { stripHopByHopHeaders } from '../headers/header-strips.js';
-import { appendHeader, deleteHeader } from '../headers/headers.js';
-import { isRequestStartLine, isResponseStartLine } from '../start-line/start-line-predicates.js';
-import type { Body, NormalizedHeaders, RequestStartLine, ResponseStartLine } from '../types.js';
+import {
+  readBodyLength,
+} from '../body/body.js';
+import {
+  isStreamBody,
+} from '../body/body-predicates.js';
+import {
+  stripHopByHopHeaders,
+} from '../headers/header-strips.js';
+import {
+  appendHeader,
+  deleteHeader,
+} from '../headers/headers.js';
+import {
+  isRequestStartLine,
+  isResponseStartLine,
+} from '../start-line/start-line-predicates.js';
+import type {
+  Body,
+  NormalizedHeaders,
+  RequestStartLine,
+  ResponseStartLine,
+} from '../types.js';
 
 const METHODS_WITHOUT_BODY = ['GET', 'HEAD', 'OPTIONS', 'TRACE'] as const;
 

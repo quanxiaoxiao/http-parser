@@ -1,9 +1,19 @@
 import * as assert from 'node:assert';
-import { Buffer } from 'node:buffer';
-import { describe, it } from 'node:test';
+import {
+  Buffer,
+} from 'node:buffer';
+import {
+  describe, it,
+} from 'node:test';
 
-import { HttpDecodeError, HttpDecodeErrorCode } from '../errors.js';
-import { decodeHttpLine, validateParameters } from './http-line.js';
+import {
+  HttpDecodeError,
+  HttpDecodeErrorCode,
+} from '../errors.js';
+import {
+  decodeHttpLine,
+  validateParameters,
+} from './http-line.js';
 
 const CR = 0x0d;
 const LF = 0x0a;

@@ -1,6 +1,11 @@
-import { Buffer } from 'node:buffer';
+import {
+  Buffer,
+} from 'node:buffer';
 
-import { type Headers, type NormalizedHeaders } from '../types.js';
+import {
+  type Headers,
+  type NormalizedHeaders,
+} from '../types.js';
 
 const CRLF = '\r\n';
 const CRLF_BUFFER = Buffer.from(CRLF, 'utf8');

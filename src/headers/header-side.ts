@@ -1,4 +1,8 @@
-import { BOTH_HEADERS, REQUEST_ONLY_HEADERS, RESPONSE_ONLY_HEADERS } from '../specs.js';
+import {
+  BOTH_HEADERS,
+  REQUEST_ONLY_HEADERS,
+  RESPONSE_ONLY_HEADERS,
+} from '../specs.js';
 
 export enum HeaderSide {
   Request = 'request',

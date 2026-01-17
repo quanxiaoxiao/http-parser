@@ -1,6 +1,12 @@
-import type { Headers, NormalizedHeaders } from '../types.js';
-import { parseInteger } from '../utils/number.js';
-import { getHeaderValues } from './headers.js';
+import type {
+  Headers, NormalizedHeaders,
+} from '../types.js';
+import {
+  parseInteger,
+} from '../utils/number.js';
+import {
+  getHeaderValues,
+} from './headers.js';
 
 export function isChunked(headers: Headers | NormalizedHeaders): boolean {
   const te = getHeaderValues(headers, 'transfer-encoding');

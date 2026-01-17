@@ -1,7 +1,12 @@
 import * as assert from 'node:assert';
-import { describe, it } from 'node:test';
+import {
+  describe, it,
+} from 'node:test';
 
-import { isStreamBody,isZeroChunkOnly } from './body-predicates.js';
+import {
+  isStreamBody,
+  isZeroChunkOnly,
+} from './body-predicates.js';
 
 describe('isZeroChunkOnly', () => {
   describe('null 和 undefined 情况', () => {

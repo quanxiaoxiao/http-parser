@@ -1,7 +1,11 @@
 import * as assert from 'node:assert';
-import { describe, test } from 'node:test';
+import {
+  describe, test,
+} from 'node:test';
 
-import { parseRange } from './range-header.js';
+import {
+  parseRange,
+} from './range-header.js';
 
 describe('parseRange - HTTP Range 请求解析器', () => {
 

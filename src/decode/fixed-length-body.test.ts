@@ -1,7 +1,12 @@
 import * as assert from 'node:assert';
-import { describe, it,test } from 'node:test';
+import {
+  describe, it,test,
+} from 'node:test';
 
-import { HttpDecodeError, HttpDecodeErrorCode } from '../errors.js';
+import {
+  HttpDecodeError,
+  HttpDecodeErrorCode,
+} from '../errors.js';
 import {
   createFixedLengthBodyState,
   decodeFixedLengthBody,

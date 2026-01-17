@@ -1,7 +1,11 @@
 import * as assert from 'node:assert';
-import { describe, it } from 'node:test';
+import {
+  describe, it,
+} from 'node:test';
 
-import { validateCacheControl } from './validateCacheControl.js';
+import {
+  validateCacheControl,
+} from './validateCacheControl.js';
 
 describe('validateCacheControl', () => {
   describe('基本功能测试', () => {

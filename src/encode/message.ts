@@ -1,12 +1,32 @@
-import { isStreamBody } from '../body/body-predicates.js';
-import { normalizeHeaders } from '../headers/header-normalize.js';
-import { stripHopByHopHeaders } from '../headers/header-strips.js';
-import { applyFramingHeaders } from '../message/message-applys.js';
-import type { Body, Headers, RequestStartLine } from '../types.js';
-import { encodeChunkedStream } from './body-chunked.js';
-import { encodeHeaders } from './headers.js';
-import { encodeHttpLine } from './http-line.js';
-import { encodeRequestLine } from './start-line.js';
+import {
+  isStreamBody,
+} from '../body/body-predicates.js';
+import {
+  normalizeHeaders,
+} from '../headers/header-normalize.js';
+import {
+  stripHopByHopHeaders,
+} from '../headers/header-strips.js';
+import {
+  applyFramingHeaders,
+} from '../message/message-applys.js';
+import type {
+  Body,
+  Headers,
+  RequestStartLine,
+} from '../types.js';
+import {
+  encodeChunkedStream,
+} from './body-chunked.js';
+import {
+  encodeHeaders,
+} from './headers.js';
+import {
+  encodeHttpLine,
+} from './http-line.js';
+import {
+  encodeRequestLine,
+} from './start-line.js';
 
 async function* encodeBody(body: Body): AsyncGenerator<Buffer> {
   if (isStreamBody(body)) {

@@ -1,9 +1,25 @@
-import { Buffer } from 'node:buffer';
+import {
+  Buffer,
+} from 'node:buffer';
 
-import { HttpDecodeError, HttpDecodeErrorCode } from '../errors.js';
-import { CR, CRLF, DEFAULT_CHUNKED_BODY_LIMITS, LF } from '../specs.js';
-import type { BodyType, ChunkedBodyLimits, TrailerHeaders } from '../types.js';
-import { decodeHttpLine } from './http-line.js';
+import {
+  HttpDecodeError,
+  HttpDecodeErrorCode,
+} from '../errors.js';
+import {
+  CR,
+  CRLF,
+  DEFAULT_CHUNKED_BODY_LIMITS,
+  LF,
+} from '../specs.js';
+import type {
+  BodyType,
+  ChunkedBodyLimits,
+  TrailerHeaders,
+} from '../types.js';
+import {
+  decodeHttpLine,
+} from './http-line.js';
 
 export enum ChunkedBodyPhase {
   SIZE = 'size',
