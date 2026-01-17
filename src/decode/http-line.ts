@@ -1,7 +1,7 @@
 import { Buffer } from 'node:buffer';
 
 import { HttpDecodeError, HttpDecodeErrorCode } from '../errors.js';
-import { CR, LF } from '../specs.js';
+import { CR, DEFAULT_HEADER_LIMITS,LF } from '../specs.js';
 import type { DecodeLineResult, HttpLineLimits } from '../types.js';
 
 const enum HttpLineState {
@@ -13,7 +13,7 @@ const enum HttpLineState {
 export function validateParameters(
   buffer: Buffer,
   offset: number,
-  limits: HttpLineLimits,
+  limits: HttpLineLimits = DEFAULT_HEADER_LIMITS,
 ): void {
   if (!Number.isInteger(offset) || offset < 0) {
     throw new TypeError('offset must be a non-negative integer');
