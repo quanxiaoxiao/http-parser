@@ -3,7 +3,6 @@ import {
   describe, it, test,
 } from 'node:test';
 
-import { HttpDecodeErrorCode } from '../errors.js';
 import {
   ChunkedBodyPhase,
   createChunkedBodyState,
