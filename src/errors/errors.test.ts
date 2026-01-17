@@ -5,7 +5,7 @@ import {
   DecodeHttpError,
   EncodeHttpError,
   HttpUrlParseError,
-} from './errors.js';
+} from '../errors.js';
 
 describe('Custom Error Classes', () => {
   describe('HttpUrlParseError', () => {

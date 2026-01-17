@@ -3,7 +3,6 @@ import {
   describe, it,test,
 } from 'node:test';
 
-import type { HttpDecodeError } from '../errors.js';
 import { HttpDecodeErrorCode } from '../errors.js';
 import {
   createFixedLengthBodyState,

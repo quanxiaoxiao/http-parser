@@ -1,11 +1,14 @@
 import * as assert from 'node:assert';
 import { describe, it } from 'node:test';
 
-import createHeaderChecker from './createHeaderChecker.js';
+import createHeaderChecker from '../createHeaderChecker.js';
 
 describe('Header Checker', () => {
   it('should return true for existing header (case insensitive)', () => {
-    const obj = { 'Content-Type': 'application/json', Authorization: 'Bearer token' };
+    const obj = {
+      'Content-Type': 'application/json',
+      Authorization: 'Bearer token',
+    };
     const checker = createHeaderChecker(obj);
 
     assert.strictEqual(checker('content-type'), true);
@@ -65,7 +68,11 @@ describe('Header Checker', () => {
   });
 
   it('should handle arry', () => {
-    const obj = { 'Content-Type': 'application/json', Authorization: 'Bearer token', server: 'quan' };
+    const obj = {
+      'Content-Type': 'application/json',
+      Authorization: 'Bearer token',
+      server: 'quan',
+    };
     const checker = createHeaderChecker(obj);
 
     assert.strictEqual(checker(['content-type']), true);

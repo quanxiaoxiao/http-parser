@@ -1,5 +1,5 @@
 import * as assert from 'node:assert';
-import { describe,test } from 'node:test';
+import { describe, test } from 'node:test';
 
 import createHttpError, {
   createBadRequest,
@@ -11,7 +11,7 @@ import createHttpError, {
   createServiceUnavailable,
   createUnauthorized,
   HttpError,
-} from './createHttpError.js';
+} from '../createHttpError.js';
 
 describe('HttpError', () => {
   test('should create an HttpError instance with status code and message', () => {
@@ -42,7 +42,7 @@ describe('HttpError', () => {
     const error = new HttpError(500);
 
     assert.strictEqual(!!error.stack, true);
-    assert.strictEqual(error.stack.includes('HttpError'), true);
+    assert.strictEqual(error.stack?.includes('HttpError'), true);
   });
 });
 
@@ -206,11 +206,7 @@ describe('Error handling in Express/Koa middleware (integration)', () => {
 
   test('should preserve error properties when re-thrown', () => {
     try {
-      try { // eslint-disable-line
-        throw createBadRequest('Invalid data');
-      } catch (err) {
-        throw err;
-      }
+      throw createBadRequest('Invalid data');
     } catch (error) {
       assert.ok(error instanceof HttpError);
       assert.strictEqual((error as HttpError).statusCode, 400);
