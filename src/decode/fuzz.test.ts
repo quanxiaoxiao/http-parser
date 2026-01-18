@@ -1,16 +1,19 @@
-import { describe, it, test } from 'node:test';
 import assert from 'node:assert';
+import {
+ describe, it, test,
+} from 'node:test';
+
+import { createChunkedBodyState, decodeChunkedBody } from './chunked-body.js';
+import { createFixedLengthBodyState, decodeFixedLengthBody } from './fixed-length-body.js';
+import { createHeadersStateData, decodeHeaders } from './headers.js';
+import { decodeHeaderLine } from './headers.js';
 import {
   createRequestState,
   createResponseState,
   decodeRequest,
   decodeResponse,
 } from './message.js';
-import { createChunkedBodyState, decodeChunkedBody } from './chunked-body.js';
-import { createFixedLengthBodyState, decodeFixedLengthBody } from './fixed-length-body.js';
-import { createHeadersStateData, decodeHeaders } from './headers.js';
 import { decodeRequestStartLine, decodeResponseStartLine } from './start-line.js';
-import { decodeHeaderLine } from './headers.js';
 
 const HTTP_METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'];
 const VALID_PATHS = ['/', '/foo', '/bar/baz', '/test?query=1', '/api/v1/users'];
