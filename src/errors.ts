@@ -1,4 +1,12 @@
 // import { HttpDecodePhase } from './specs.js';
+export enum HttpDecodeErrorCategory {
+  SYNTAX = 'SYNTAX',
+  SIZE_LIMIT = 'SIZE_LIMIT',
+  STATE = 'STATE',
+  UNSUPPORTED = 'UNSUPPORTED',
+  RESOURCE = 'RESOURCE',
+  INTERNAL = 'INTERNAL',
+}
 
 export enum HttpDecodeErrorCode {
   // =========================

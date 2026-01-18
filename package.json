@@ -14,7 +14,8 @@
     "test": "TSX_TSCONFIG=tsconfig.test.json node --import tsx --test 'src/**/*.test.ts'",
     "test:message": "TSX_TSCONFIG=tsconfig.test.json node --import tsx --test 'src/decode/message.test.ts'",
     "test:coverage": "TSX_TSCONFIG=tsconfig.test.json node --import tsx --test --experimental-test-coverage 'src/**/*.test.ts'",
-    "test:single": "TSX_TSCONFIG=tsconfig.test.json node --import tsx --test --test-only"
+    "test:single": "TSX_TSCONFIG=tsconfig.test.json node --import tsx --test --test-only",
+    "test:fuzz": "TSX_TSCONFIG=tsconfig.test.json node --import tsx --test 'src/decode/fuzz.test.ts'"
   },
   "publishConfig": {
     "registry": "https://registry.npmjs.org"
