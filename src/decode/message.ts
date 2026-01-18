@@ -24,7 +24,7 @@ import type {
 } from '../types.js';
 import { parseInteger } from '../utils/number.js';
 import {
-  type ChunkedBodyState,
+  type ChunkedBodyStateData,
   createChunkedBodyState,
   decodeChunkedBody,
   isChunkedBodyFinished,
@@ -32,7 +32,7 @@ import {
 import {
   createFixedLengthBodyState,
   decodeFixedLengthBody,
-  type FixedLengthBodyState,
+  type FixedLengthBodyStateData,
   isFixedLengthBodyFinished,
 } from './fixed-length-body.js';
 import {
@@ -74,11 +74,11 @@ export type HttpDecodeEvent =
   | { type: 'body-complete'; totalSize: number }
   | { type: 'message-complete' };
 
-function isBodyFinished(state: ChunkedBodyState | FixedLengthBodyState): boolean {
+function isBodyFinished(state: ChunkedBodyStateData | FixedLengthBodyStateData): boolean {
   if (state.type === 'fixed') {
-    return isFixedLengthBodyFinished(state as FixedLengthBodyState);
+    return isFixedLengthBodyFinished(state as FixedLengthBodyStateData);
   }
-  return isChunkedBodyFinished(state as ChunkedBodyState);
+  return isChunkedBodyFinished(state as ChunkedBodyStateData);
 }
 
 function formatError(error: unknown): string {
@@ -237,7 +237,7 @@ export interface HttpState<T extends 'request' | 'response' = 'request' | 'respo
   parsing: {
     startLine: StartLineMap[T] | null;
     headers: HeadersState | null;
-    body: ChunkedBodyState | FixedLengthBodyState | null;
+    body: ChunkedBodyStateData | FixedLengthBodyStateData | null;
   },
   events: HttpDecodeEvent[];
 }
@@ -383,7 +383,7 @@ function handleHeadersState(state: HttpState): void {
   moveRemainingBuffer(state.parsing.headers, state);
 }
 
-function handleBodyState<T extends ChunkedBodyState | FixedLengthBodyState>(
+function handleBodyState<T extends ChunkedBodyStateData | FixedLengthBodyStateData>(
   state: HttpState,
   parser: (bodyState: T, buffer: Buffer) => T,
 ): void {

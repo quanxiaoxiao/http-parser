@@ -13,9 +13,9 @@ export enum FixedLengthBodyState {
   FINISHED = 'finished',
 }
 
-export type FixedLengthBodyState = {
+export type FixedLengthBodyStateData = {
   type: BodyType;
-  phase: FixedLengthBodyState,
+  state: FixedLengthBodyState,
   buffer: Buffer;
   chunks: Buffer[];
   decodedBodyBytes: number;
@@ -26,7 +26,7 @@ export type FixedLengthBodyState = {
 export function createFixedLengthBodyState(
   contentLength: number,
   limits: FixedLengthBodyLimits = DEFAULT_FIXED_LENGTH_BODY_LIMITS,
-): FixedLengthBodyState {
+): FixedLengthBodyStateData {
   if (!Number.isInteger(contentLength) || contentLength < 0) {
     throw new HttpDecodeError({
       code: HttpDecodeErrorCode.INVALID_CONTENT_LENGTH,
@@ -43,7 +43,7 @@ export function createFixedLengthBodyState(
 
   return {
     type: 'fixed',
-    phase: contentLength > 0 ? FixedLengthBodyState.DATA : FixedLengthBodyState.FINISHED,
+    state: contentLength > 0 ? FixedLengthBodyState.DATA : FixedLengthBodyState.FINISHED,
     buffer: Buffer.alloc(0),
     remainingBytes: contentLength,
     decodedBodyBytes: 0,
@@ -53,10 +53,10 @@ export function createFixedLengthBodyState(
 }
 
 export function decodeFixedLengthBody(
-  prev: FixedLengthBodyState,
+  prev: FixedLengthBodyStateData,
   input: Buffer,
-): FixedLengthBodyState {
-  if (prev.phase === FixedLengthBodyState.FINISHED) {
+): FixedLengthBodyStateData {
+  if (prev.state === FixedLengthBodyState.FINISHED) {
     throw new Error('Content-Length parsing already finished');
   }
 
@@ -69,11 +69,11 @@ export function decodeFixedLengthBody(
   const newRemainingBytes = prev.remainingBytes - canAccept;
   const newDecodedBytes = prev.decodedBodyBytes + canAccept;
 
-  const next: FixedLengthBodyState = {
+  const next: FixedLengthBodyStateData = {
     ...prev,
     decodedBodyBytes: newDecodedBytes,
     remainingBytes: newRemainingBytes,
-    phase: newRemainingBytes === 0 ? FixedLengthBodyState.FINISHED : prev.phase,
+    state: newRemainingBytes === 0 ? FixedLengthBodyState.FINISHED : prev.state,
     buffer: canAccept < inputSize ? input.subarray(canAccept) : Buffer.alloc(0),
   };
 
@@ -85,7 +85,7 @@ export function decodeFixedLengthBody(
   return next;
 }
 
-export function getProgress(state: FixedLengthBodyState): number {
+export function getProgress(state: FixedLengthBodyStateData): number {
   if (state.remainingBytes === 0) {
     return 1;
   }
@@ -93,10 +93,10 @@ export function getProgress(state: FixedLengthBodyState): number {
   return state.decodedBodyBytes / contentLength;
 }
 
-export function getRemainingBytes(state: FixedLengthBodyState): number {
+export function getRemainingBytes(state: FixedLengthBodyStateData): number {
   return state.remainingBytes;
 }
 
-export function isFixedLengthBodyFinished(state: FixedLengthBodyState) {
-  return state.phase === FixedLengthBodyState.FINISHED;
+export function isFixedLengthBodyFinished(state: FixedLengthBodyStateData) {
+  return state.state === FixedLengthBodyState.FINISHED;
 }
