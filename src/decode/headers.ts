@@ -21,7 +21,7 @@ export enum HeadersState {
 
 export interface HeadersStateData {
   buffer: Buffer;
-  phase: HeadersState;
+  state: HeadersState;
   headers: Headers;
   rawHeaders: Array<[name: string, value: string]>,
   rawHeaderLines: string[];
@@ -114,7 +114,7 @@ export function createHeadersStateData(limits: HeaderLimits = DEFAULT_HEADER_LIM
     headers: {},
     rawHeaders: [],
     rawHeaderLines: [],
-    phase: HeadersState.LINE,
+    state: HeadersState.LINE,
     receivedBytes: 0,
     limits,
   };
@@ -176,7 +176,7 @@ function processHeaderLine(
   const newOffset = offset + lineLength;
 
   if (line.length === 0) {
-    state.phase = HeadersState.FINISHED;
+    state.state = HeadersState.FINISHED;
     return { offset: newOffset, shouldContinue: false };
   }
 
@@ -195,7 +195,7 @@ export function decodeHeaders(
   prev: HeadersStateData,
   input: Buffer,
 ): HeadersStateData {
-  if (prev.phase === HeadersState.FINISHED) {
+  if (prev.state === HeadersState.FINISHED) {
     throw new Error('Headers parsing already finished');
   }
 
@@ -206,7 +206,7 @@ export function decodeHeaders(
 
   let offset = 0;
 
-  while (offset < next.buffer.length && next.phase !== HeadersState.FINISHED) {
+  while (offset < next.buffer.length && next.state !== HeadersState.FINISHED) {
     const result = processHeaderLine(next, next.buffer, offset);
     offset = result.offset;
     if (!result.shouldContinue) {
@@ -222,5 +222,5 @@ export function decodeHeaders(
 }
 
 export function isHeadersFinished(state: HeadersStateData) {
-  return state.phase === HeadersState.FINISHED;
+  return state.state === HeadersState.FINISHED;
 }
