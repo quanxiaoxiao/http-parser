@@ -26,14 +26,14 @@ export enum ChunkedBodyState {
 }
 
 export type ChunkedBodyStateData = {
-  type: BodyType;
+  readonly type: BodyType;
   state: ChunkedBodyState;
   decodedBodyBytes: number;
   remainingChunkBytes: number;
   buffer: Buffer;
   chunks: Buffer[];
   trailers: TrailerHeaders;
-  limits: ChunkedBodyLimits,
+  readonly limits: ChunkedBodyLimits,
 };
 
 const CRLF_LENGTH = 2;
