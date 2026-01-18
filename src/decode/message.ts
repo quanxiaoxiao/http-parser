@@ -59,12 +59,12 @@ type BodyStrategy =
 interface HttpParserConfig {
   headerLimits: HeaderLimits;
   startLineLimits: StartLineLimits;
-  chunkedbodylimits: ChunkedBodyLimits;
+  chunkedBodylimits: ChunkedBodyLimits;
   fixedLengthBodyLimits: FixedLengthBodyLimits;
 }
 
 export type HttpDecodeEvent =
-  | { type: 'state-enter'; state: HttpDecodeState, reason?: string; value?: number; limits?: Record<string, number> }
+  | { type: 'phase-enter'; state: HttpDecodeState, reason?: string; value?: number; limits?: Record<string, number> }
   | { type: 'start-line-complete'; raw: string }
   | { type: 'start-line-parsed'; method?: string; path?: string; version: number; statusCode?: number; statusText?: string }
   | { type: 'header-line'; name: string; value: string; index: number; }
@@ -110,7 +110,7 @@ function transition(state: HttpState, next: HttpDecodeState): void {
   }
   state.state = next;
   addEvent(state, {
-    type: 'state-enter',
+    type: 'phase-enter',
     state: next,
   });
   if (next === HttpDecodeState.FINISHED) {
@@ -252,7 +252,7 @@ export function createHttpState(messageType: 'request' | 'response'): HttpState 
     config: {
       headerLimits: DEFAULT_HEADER_LIMITS,
       startLineLimits: DEFAULT_START_LINE_LIMITS,
-      chunkedbodylimits: DEFAULT_CHUNKED_BODY_LIMITS,
+      chunkedBodylimits: DEFAULT_CHUNKED_BODY_LIMITS,
       fixedLengthBodyLimits: DEFAULT_FIXED_LENGTH_BODY_LIMITS,
     },
     buffer: EMPTY_BUFFER,
@@ -367,7 +367,7 @@ function handleHeadersState(state: HttpState): void {
   const bodyStrategy = decideBodyStrategy(state);
   switch (bodyStrategy.type) {
     case 'chunked': {
-      state.parsing.body = createChunkedBodyState(state.config.chunkedbodylimits);
+      state.parsing.body = createChunkedBodyState(state.config.chunkedBodylimits);
       transition(state, HttpDecodeState.BODY_CHUNKED);
       break;
     }
