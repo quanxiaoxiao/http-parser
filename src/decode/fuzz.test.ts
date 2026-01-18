@@ -253,7 +253,7 @@ describe('Fuzz Testing - Incremental Parsing', () => {
         const chunk = combined.slice(offset, Math.min(offset + chunkSize, combined.length));
         try {
           state = decodeRequest(state, chunk);
-          if (state.phase === 'finished') break;
+          if (state.state === 'finished') break;
         } catch (error) {
           break;
         }
@@ -274,7 +274,7 @@ describe('Fuzz Testing - Incremental Parsing', () => {
         const chunk = combined.slice(offset, Math.min(offset + chunkSize, combined.length));
         try {
           state = decodeResponse(state, chunk);
-          if (state.phase === 'finished') break;
+          if (state.state === 'finished') break;
         } catch (error) {
           break;
         }
@@ -387,7 +387,7 @@ describe('Fuzz Testing - Valid HTTP Messages Stress', () => {
       const request = generateValidRequest();
       const state = createRequestState();
       const result = decodeRequest(state, request);
-      assert.ok(result.phase !== undefined);
+      assert.ok(result.state !== undefined);
     }
   });
 
@@ -396,7 +396,7 @@ describe('Fuzz Testing - Valid HTTP Messages Stress', () => {
       const response = generateValidResponse();
       const state = createResponseState();
       const result = decodeResponse(state, response);
-      assert.ok(result.phase !== undefined);
+      assert.ok(result.state !== undefined);
     }
   });
 
@@ -418,7 +418,7 @@ describe('Fuzz Testing - Valid HTTP Messages Stress', () => {
       const state = createRequestState();
       try {
         const result = decodeRequest(state, combined);
-        assert.ok(result.phase !== undefined);
+        assert.ok(result.state !== undefined);
       } catch (error) {
         assert.ok(error instanceof Error);
       }

@@ -28,7 +28,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         requestState = decodeRequest(requestState, chunk);
       }
 
-      assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+      assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
       assert.strictEqual(requestState.parsing.startLine.raw, 'GET /api/users HTTP/1.1');
       assert.strictEqual(requestState.parsing.headers.headers.host, 'example.com');
       assert.strictEqual(requestState.parsing.headers.headers['user-agent'], 'TestClient/1.0');
@@ -53,7 +53,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         requestState = decodeRequest(requestState, chunk);
       }
 
-      assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+      assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
       assert.strictEqual(requestState.parsing.startLine.method, 'POST');
       assert.strictEqual(
         Buffer.concat(requestState.parsing.body.chunks).toString(),
@@ -77,7 +77,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         requestState = decodeRequest(requestState, chunk);
       }
 
-      assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+      assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
       assert.strictEqual(requestState.parsing.startLine.method, 'PUT');
       assert.strictEqual(requestState.parsing.startLine.path, '/api/resource/123');
     });
@@ -101,7 +101,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         requestState = decodeRequest(requestState, chunk);
       }
 
-      assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+      assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
       assert.strictEqual(requestState.parsing.startLine.method, 'PATCH');
       assert.strictEqual(
         Buffer.concat(requestState.parsing.body.chunks).toString(),
@@ -126,7 +126,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         requestState = decodeRequest(requestState, chunk);
       }
 
-      assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+      assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
       assert.strictEqual(requestState.parsing.startLine.method, 'DELETE');
       assert.strictEqual(requestState.parsing.headers.headers.authorization, 'Bearer token123');
     });
@@ -159,7 +159,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         requestState = decodeRequest(requestState, chunk);
       }
 
-      assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+      assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
       assert.strictEqual(requestState.parsing.startLine.raw, 'POST /api/upload HTTP/1.1');
       assert.deepStrictEqual(requestState.parsing.headers.headers.host, 'example.com');
       assert.strictEqual(requestState.parsing.headers.headers['transfer-encoding'], 'chunked');
@@ -204,7 +204,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         requestState = decodeRequest(requestState, chunk);
       }
 
-      assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+      assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
       assert.strictEqual(
         Buffer.concat(requestState.parsing.body.chunks).toString(),
         testData,
@@ -243,7 +243,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         requestState = decodeRequest(requestState, chunk);
       }
 
-      assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+      assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
       assert.strictEqual(
         Buffer.concat(requestState.parsing.body.chunks).toString(),
         'chunk1chunk2chunk3',
@@ -275,7 +275,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         requestState = decodeRequest(requestState, chunk);
       }
 
-      assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+      assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
       assert.strictEqual(
         Buffer.concat(requestState.parsing.body.chunks).toString(),
         'startmiddleend',
@@ -305,7 +305,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         requestState = decodeRequest(requestState, chunk);
       }
 
-      assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+      assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
       assert.strictEqual(Buffer.concat(requestState.parsing.body.chunks).length, 15000);
     });
 
@@ -330,7 +330,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         requestState = decodeRequest(requestState, chunk);
       }
 
-      assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+      assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
       assert.strictEqual(
         Buffer.concat(requestState.parsing.body.chunks).toString(),
         'single-chunk-data',
@@ -359,7 +359,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         requestState = decodeRequest(requestState, chunk);
       }
 
-      assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+      assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
       const headers = requestState.parsing.headers.headers;
       assert.strictEqual(headers.host, 'example.com');
       assert.strictEqual(headers['user-agent'], 'TestClient/1.0');
@@ -382,7 +382,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         requestState = decodeRequest(requestState, chunk);
       }
 
-      assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+      assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
       assert.strictEqual(requestState.parsing.startLine.method, 'GET');
     });
 
@@ -405,7 +405,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         requestState = decodeRequest(requestState, chunk);
       }
 
-      assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+      assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
       assert.ok('host' in requestState.parsing.headers.headers);
       assert.ok('content-type' in requestState.parsing.headers.headers);
       assert.ok('accept-encoding' in requestState.parsing.headers.headers);
@@ -430,7 +430,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         requestState = decodeRequest(requestState, chunk);
       }
 
-      assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+      assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
       assert.strictEqual(
         requestState.parsing.headers.headers['x-special'],
         'value-with-dashes_and_underscores',
@@ -458,7 +458,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         requestState = decodeRequest(requestState, chunk);
       }
 
-      assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+      assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
       assert.strictEqual(requestState.parsing.headers.headers.host, 'example.com');
       assert.strictEqual(requestState.parsing.headers.headers['x-custom-header-0'], 'value-0');
       assert.strictEqual(requestState.parsing.headers.headers['x-custom-header-49'], 'value-49');
@@ -481,7 +481,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         requestState = decodeRequest(requestState, chunk);
       }
 
-      assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+      assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
       assert.strictEqual(
         requestState.parsing.headers.headers['x-description'],
         'This is a header value with spaces',
@@ -509,7 +509,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         requestState = decodeRequest(requestState, chunk);
       }
 
-      assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+      assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
       const receivedBody = Buffer.concat(requestState.parsing.body.chunks).toString();
       assert.deepStrictEqual(JSON.parse(receivedBody), bodyData);
     });
@@ -530,7 +530,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         requestState = decodeRequest(requestState, chunk);
       }
 
-      assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+      assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
       if (requestState.parsing.body && requestState.parsing.body.chunks) {
         assert.strictEqual(requestState.parsing.body.chunks.length, 0);
       }
@@ -553,7 +553,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         requestState = decodeRequest(requestState, chunk);
       }
 
-      assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+      assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
       assert.deepStrictEqual(requestState.parsing.headers.headers['content-length'], '0');
     });
 
@@ -576,7 +576,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         requestState = decodeRequest(requestState, chunk);
       }
 
-      assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+      assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
       const receivedBody = Buffer.concat(requestState.parsing.body.chunks);
       assert.deepStrictEqual(receivedBody, binaryData);
     });
@@ -599,7 +599,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         requestState = decodeRequest(requestState, chunk);
       }
 
-      assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+      assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
       assert.strictEqual(
         Buffer.concat(requestState.parsing.body.chunks).toString(),
         'test buffer data',
@@ -625,7 +625,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         requestState = decodeRequest(requestState, chunk);
       }
 
-      assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+      assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
       assert.strictEqual(Buffer.concat(requestState.parsing.body.chunks).length, 10000);
       assert.strictEqual(requestState.parsing.headers.headers['content-length'], '10000');
     });
@@ -649,7 +649,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         requestState = decodeRequest(requestState, chunk);
       }
 
-      assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+      assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
       assert.strictEqual(
         Buffer.concat(requestState.parsing.body.chunks).toString(),
         unicodeString,
@@ -686,7 +686,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         requestState = decodeRequest(requestState, chunk);
       }
 
-      assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+      assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
       const receivedBody = JSON.parse(
         Buffer.concat(requestState.parsing.body.chunks).toString(),
       );
@@ -711,7 +711,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         requestState = decodeRequest(requestState, chunk);
       }
 
-      assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+      assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
       assert.strictEqual(requestState.parsing.startLine.path, '/api/search?q=test&limit=10');
     });
 
@@ -731,7 +731,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         requestState = decodeRequest(requestState, chunk);
       }
 
-      assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+      assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
       assert.strictEqual(requestState.parsing.startLine.path, '/');
     });
 
@@ -752,7 +752,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         requestState = decodeRequest(requestState, chunk);
       }
 
-      assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+      assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
       assert.strictEqual(requestState.parsing.startLine.path, complexPath);
     });
 
@@ -773,7 +773,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         requestState = decodeRequest(requestState, chunk);
       }
 
-      assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+      assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
       assert.strictEqual(requestState.parsing.startLine.path, encodedPath);
     });
 
@@ -794,7 +794,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         requestState = decodeRequest(requestState, chunk);
       }
 
-      assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+      assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
       assert.strictEqual(requestState.parsing.startLine.path, pathWithFragment);
     });
 
@@ -815,7 +815,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         requestState = decodeRequest(requestState, chunk);
       }
 
-      assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+      assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
       assert.ok(requestState.parsing.startLine.raw.includes(longPath));
     });
 
@@ -837,7 +837,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         requestState = decodeRequest(requestState, chunk);
       }
 
-      assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+      assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
       assert.strictEqual(requestState.parsing.startLine.path, complexQuery);
     });
   });
@@ -862,7 +862,7 @@ describe('HTTP Request Encode Decode Tests', () => {
           requestState = decodeRequest(requestState, chunk);
         }
 
-        assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+        assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
         assert.strictEqual(requestState.parsing.startLine.raw, `${method} /api/test HTTP/1.1`);
         assert.strictEqual(requestState.parsing.startLine.method, method);
       });
@@ -884,7 +884,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         requestState = decodeRequest(requestState, chunk);
       }
 
-      assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+      assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
       assert.strictEqual(requestState.parsing.body, null);
     });
 
@@ -904,7 +904,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         requestState = decodeRequest(requestState, chunk);
       }
 
-      assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+      assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
       assert.strictEqual(requestState.parsing.startLine.path, '*');
     });
   });
@@ -941,7 +941,7 @@ describe('HTTP Request Encode Decode Tests', () => {
           requestState = decodeRequest(requestState, chunk);
         }
 
-        assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+        assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
         assert.strictEqual(requestState.parsing.headers.headers['content-type'], contentType);
       });
     });
@@ -964,7 +964,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         requestState = decodeRequest(requestState, chunk);
       }
 
-      assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+      assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
       assert.strictEqual(
         requestState.parsing.headers.headers['content-type'],
         'text/html; charset=utf-8',
@@ -990,7 +990,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         requestState = decodeRequest(requestState, chunk);
       }
 
-      assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+      assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
       assert.strictEqual(requestState.parsing.headers.headers['content-type'], contentType);
     });
   });
@@ -1017,7 +1017,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         requestState = decodeRequest(requestState, chunk);
       }
 
-      assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+      assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
       const receivedData = Buffer.concat(requestState.parsing.body.chunks).toString();
       assert.deepStrictEqual(JSON.parse(receivedData), { name: 'test', value: 123 });
     });
@@ -1041,7 +1041,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         requestState = decodeRequest(requestState, chunk);
       }
 
-      assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+      assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
       assert.strictEqual(Buffer.concat(requestState.parsing.body.chunks).toString(), formData);
     });
 
@@ -1070,7 +1070,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         requestState = decodeRequest(requestState, chunk);
       }
 
-      assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+      assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
       const uploaded = Buffer.concat(requestState.parsing.body.chunks).toString();
       assert.ok(uploaded.includes('file-chunk-0-'));
       assert.ok(uploaded.includes('file-chunk-4-'));
@@ -1099,7 +1099,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         requestState = decodeRequest(requestState, chunk);
       }
 
-      assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+      assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
       const received = JSON.parse(Buffer.concat(requestState.parsing.body.chunks).toString());
       assert.deepStrictEqual(received, graphqlQuery);
     });
@@ -1127,7 +1127,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         requestState = decodeRequest(requestState, chunk);
       }
 
-      assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+      assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
       const received = JSON.parse(Buffer.concat(requestState.parsing.body.chunks).toString());
       assert.deepStrictEqual(received, patchData);
     });
@@ -1150,7 +1150,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         requestState = decodeRequest(requestState, chunk);
       }
 
-      assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+      assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
       assert.ok(requestState.parsing.headers.headers.authorization.startsWith('Bearer'));
       assert.strictEqual(requestState.parsing.headers.headers['x-api-key'], 'abc123xyz');
     });
@@ -1171,7 +1171,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         requestState = decodeRequest(requestState, chunk);
       }
 
-      assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+      assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
       assert.strictEqual(requestState.parsing.startLine.raw, 'GET / HTTP/1.1');
     });
 
@@ -1195,7 +1195,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         chunkCount++;
       }
 
-      assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+      assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
       assert.ok(chunkCount > 0);
     });
 
@@ -1220,7 +1220,7 @@ describe('HTTP Request Encode Decode Tests', () => {
       }
 
       assert.ok(states.length > 0);
-      assert.deepStrictEqual(states[states.length - 1].phase, HttpDecodeState.FINISHED);
+      assert.deepStrictEqual(states[states.length - 1].state, HttpDecodeState.FINISHED);
     });
 
     test('should correctly handle extremely small body', async () => {
@@ -1240,7 +1240,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         requestState = decodeRequest(requestState, chunk);
       }
 
-      assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+      assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
       assert.strictEqual(Buffer.concat(requestState.parsing.body.chunks).toString(), 'x');
     });
 
@@ -1262,7 +1262,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         requestState = decodeRequest(requestState, chunk);
       }
 
-      assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+      assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
       assert.strictEqual(requestState.parsing.headers.headers['x-long-header'], longValue);
     });
 
@@ -1285,7 +1285,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         requestState = decodeRequest(requestState, chunk);
       }
 
-      assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+      assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
       assert.strictEqual(requestState.parsing.headers.headers['x-request-id'], '123');
       assert.strictEqual(requestState.parsing.headers.headers['x-session-id'], '456');
       assert.strictEqual(requestState.parsing.headers.headers['x-trace-id'], '789');
@@ -1310,7 +1310,7 @@ describe('HTTP Request Encode Decode Tests', () => {
           requestState = decodeRequest(requestState, chunk);
         }
 
-        assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+        assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
         assert.strictEqual(requestState.parsing.startLine.path, `/api/test/${i}`);
       }
     });
@@ -1333,7 +1333,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         requestState = decodeRequest(requestState, chunk);
       }
 
-      assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+      assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
       assert.strictEqual(Buffer.concat(requestState.parsing.body.chunks).length, 100000);
     });
 
@@ -1363,7 +1363,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         chunkCount++;
       }
 
-      assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+      assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
       assert.ok(chunkCount > 0);
     });
   });
@@ -1387,7 +1387,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         requestState = decodeRequest(requestState, chunk);
       }
 
-      assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+      assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
       assert.strictEqual(
         Buffer.concat(requestState.parsing.body.chunks).toString(),
         specialChars,
@@ -1412,7 +1412,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         requestState = decodeRequest(requestState, chunk);
       }
 
-      assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+      assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
       assert.strictEqual(Buffer.concat(requestState.parsing.body.chunks).toString(), multiLang);
     });
 
@@ -1434,7 +1434,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         requestState = decodeRequest(requestState, chunk);
       }
 
-      assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+      assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
       assert.strictEqual(Buffer.concat(requestState.parsing.body.chunks).toString(), emojis);
     });
 
@@ -1456,7 +1456,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         requestState = decodeRequest(requestState, chunk);
       }
 
-      assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+      assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
       assert.strictEqual(Buffer.concat(requestState.parsing.body.chunks).toString(), multiline);
     });
   });
@@ -1479,7 +1479,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         requestState = decodeRequest(requestState, chunk);
       }
 
-      assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+      assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
       assert.strictEqual(requestState.parsing.headers.headers['content-length'], '9');
     });
 
@@ -1504,7 +1504,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         requestState = decodeRequest(requestState, chunk);
       }
 
-      assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+      assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
       assert.strictEqual(requestState.parsing.headers.headers['transfer-encoding'], 'chunked');
     });
 
@@ -1525,7 +1525,7 @@ describe('HTTP Request Encode Decode Tests', () => {
         requestState = decodeRequest(requestState, chunk);
       }
 
-      assert.strictEqual(requestState.phase, HttpDecodeState.FINISHED);
+      assert.strictEqual(requestState.state, HttpDecodeState.FINISHED);
       assert.strictEqual(requestState.parsing.headers.headers['content-length'], '0');
     });
   });

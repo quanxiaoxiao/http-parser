@@ -18,7 +18,7 @@ describe('HTTP Decoder - Headers', () => {
 
     const state = decodeRequest(null, input);
 
-    assert.strictEqual(state.phase, HttpDecodeState.FINISHED);
+    assert.strictEqual(state.state, HttpDecodeState.FINISHED);
     assert.ok(state.parsing.headers?.headers);
     assert.strictEqual(state.parsing.headers?.headers?.host, 'example.com');
   });
@@ -33,7 +33,7 @@ describe('HTTP Decoder - Headers', () => {
 
     const state = decodeRequest(null, input);
 
-    assert.strictEqual(state.phase, HttpDecodeState.FINISHED);
+    assert.strictEqual(state.state, HttpDecodeState.FINISHED);
     assert.strictEqual(state.parsing.startLine?.path, '/path?query=value&foo=bar');
     assert.ok(state.parsing.headers?.headers);
   });
@@ -51,7 +51,7 @@ describe('HTTP Decoder - Headers', () => {
 
     const state = decodeRequest(null, input);
 
-    assert.strictEqual(state.phase, HttpDecodeState.FINISHED);
+    assert.strictEqual(state.state, HttpDecodeState.FINISHED);
     assert.ok(state.parsing.headers?.headers);
     assert.strictEqual(state.parsing.headers?.headers?.['content-type'], 'application/x-www-form-urlencoded');
   });
@@ -67,7 +67,7 @@ describe('HTTP Decoder - Headers', () => {
 
     const state = decodeResponse(null, input);
 
-    assert.strictEqual(state.phase, HttpDecodeState.FINISHED);
+    assert.strictEqual(state.state, HttpDecodeState.FINISHED);
     assert.ok(state.parsing.headers?.headers);
     assert.strictEqual(state.parsing.headers?.headers?.['content-type'], 'text/plain');
   });
@@ -85,7 +85,7 @@ describe('HTTP Decoder - Headers', () => {
 
     const state = decodeResponse(null, input);
 
-    assert.strictEqual(state.phase, HttpDecodeState.FINISHED);
+    assert.strictEqual(state.state, HttpDecodeState.FINISHED);
     assert.ok(state.parsing.headers?.headers);
 
     const headerNames = Object.keys(state.parsing.headers.headers);
@@ -105,7 +105,7 @@ describe('HTTP Decoder - Headers', () => {
 
     const state = decodeResponse(null, input);
 
-    assert.strictEqual(state.phase, HttpDecodeState.FINISHED);
+    assert.strictEqual(state.state, HttpDecodeState.FINISHED);
     assert.ok(state.parsing.headers?.headers);
     assert.strictEqual(state.parsing.headers?.headers?.date, 'Mon, 01 Jan 2024 00:00:00 GMT');
   });
@@ -120,7 +120,7 @@ describe('HTTP Decoder - Headers', () => {
 
     const state = decodeResponse(null, input);
 
-    assert.strictEqual(state.phase, HttpDecodeState.FINISHED);
+    assert.strictEqual(state.state, HttpDecodeState.FINISHED);
     assert.ok(state.parsing.headers?.headers);
   });
 });

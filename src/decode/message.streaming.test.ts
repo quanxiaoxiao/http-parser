@@ -26,16 +26,16 @@ describe('HTTP Decoder - Streaming', () => {
     }
 
     assert.ok(state);
-    assert.strictEqual(state.phase, HttpDecodeState.FINISHED);
+    assert.strictEqual(state.state, HttpDecodeState.FINISHED);
     assert.strictEqual(state.parsing.startLine?.method, 'GET');
   });
 
   test('should handle segmented start line', () => {
     const state1 = decodeRequest(null, Buffer.from('GET /pa'));
-    assert.strictEqual(state1.phase, HttpDecodeState.START_LINE);
+    assert.strictEqual(state1.state, HttpDecodeState.START_LINE);
 
     const state2 = decodeRequest(state1, Buffer.from('th HTTP/1.1\r\n\r\n'));
-    assert.strictEqual(state2.phase, HttpDecodeState.FINISHED);
+    assert.strictEqual(state2.state, HttpDecodeState.FINISHED);
     assert.strictEqual(state2.parsing.startLine?.path, '/path');
   });
 
@@ -52,12 +52,12 @@ describe('HTTP Decoder - Streaming', () => {
     );
 
     let state = decodeRequest(null, header);
-    assert.strictEqual(state.phase, HttpDecodeState.BODY_FIXED_LENGTH);
+    assert.strictEqual(state.state, HttpDecodeState.BODY_FIXED_LENGTH);
 
     state = decodeRequest(state, Buffer.from(bodyPart1));
 
     state = decodeRequest(state, Buffer.from(bodyPart2));
-    assert.strictEqual(state.phase, HttpDecodeState.FINISHED);
+    assert.strictEqual(state.state, HttpDecodeState.FINISHED);
 
     const bodyCompleteEvent = state.events.find(e => e.type === 'body-complete');
     assert.strictEqual(bodyCompleteEvent?.totalSize, totalBody.length);
@@ -79,7 +79,7 @@ describe('HTTP Decoder - Streaming', () => {
 
     const state = decodeRequest(null, input);
 
-    assert.strictEqual(state.phase, HttpDecodeState.FINISHED);
+    assert.strictEqual(state.state, HttpDecodeState.FINISHED);
 
     const bodyCompleteEvent = state.events.find(e => e.type === 'body-complete');
     assert.ok(bodyCompleteEvent);
@@ -102,7 +102,7 @@ describe('HTTP Decoder - Streaming', () => {
     }
 
     assert.ok(state);
-    assert.strictEqual(state.phase, HttpDecodeState.FINISHED);
+    assert.strictEqual(state.state, HttpDecodeState.FINISHED);
     assert.strictEqual(state.parsing.startLine?.statusCode, 200);
   });
 
@@ -121,7 +121,7 @@ describe('HTTP Decoder - Streaming', () => {
 
     const state = decodeResponse(null, input);
 
-    assert.strictEqual(state.phase, HttpDecodeState.FINISHED);
+    assert.strictEqual(state.state, HttpDecodeState.FINISHED);
     const bodyCompleteEvent = state.events.find(e => e.type === 'body-complete');
     assert.strictEqual(bodyCompleteEvent?.totalSize, 9);
   });

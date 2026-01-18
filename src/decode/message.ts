@@ -64,7 +64,7 @@ interface HttpParserConfig {
 }
 
 export type HttpDecodeEvent =
-  | { type: 'phase-enter'; phase: HttpDecodeState, reason?: string; value?: number; limits?: Record<string, number> }
+  | { type: 'state-enter'; state: HttpDecodeState, reason?: string; value?: number; limits?: Record<string, number> }
   | { type: 'start-line-complete'; raw: string }
   | { type: 'start-line-parsed'; method?: string; path?: string; version: number; statusCode?: number; statusText?: string }
   | { type: 'header-line'; name: string; value: string; index: number; }
@@ -105,13 +105,13 @@ function moveRemainingBuffer<T extends { buffer: Buffer }>(
 }
 
 function transition(state: HttpState, next: HttpDecodeState): void {
-  if (state.phase === next) {
+  if (state.state === next) {
     return;
   }
-  state.phase = next;
+  state.state = next;
   addEvent(state, {
-    type: 'phase-enter',
-    phase: next,
+    type: 'state-enter',
+    state: next,
   });
   if (next === HttpDecodeState.FINISHED) {
     addEvent(state, {
@@ -231,7 +231,7 @@ type StartLineMap = {
 export interface HttpState<T extends 'request' | 'response' = 'request' | 'response'> {
   readonly messageType: T;
   readonly config: HttpParserConfig;
-  phase: HttpDecodeState;
+  state: HttpDecodeState;
   buffer: Buffer;
   error?: Error,
   parsing: {
@@ -248,7 +248,7 @@ export type HttpResponseState = HttpState<'response'>;
 export function createHttpState(messageType: 'request' | 'response'): HttpState {
   return {
     messageType,
-    phase: HttpDecodeState.START_LINE,
+    state: HttpDecodeState.START_LINE,
     config: {
       headerLimits: DEFAULT_HEADER_LIMITS,
       startLineLimits: DEFAULT_START_LINE_LIMITS,
@@ -292,7 +292,7 @@ function handleStartLineState(state: HttpState): void {
     }
     throw new HttpDecodeError({
       code: HttpDecodeErrorCode.INTERNAL_ERROR,
-      message: `HTTP parse failed at phase "start-line". Reason: ${formatError(error)}`,
+      message: `HTTP parse failed at state "start-line". Reason: ${formatError(error)}`,
     });
   }
 
@@ -438,10 +438,10 @@ const PHASE_HANDLERS: { [K in HttpDecodeState]: (state: HttpState) => void } = {
 };
 
 function runStateMachine(state: HttpState): void {
-  while (state.phase !== HttpDecodeState.FINISHED) {
-    const prev = state.phase;
-    PHASE_HANDLERS[state.phase](state);
-    if (state.phase === prev) {
+  while (state.state !== HttpDecodeState.FINISHED) {
+    const prev = state.state;
+    PHASE_HANDLERS[state.state](state);
+    if (state.state === prev) {
       break;
     }
   }
@@ -451,7 +451,7 @@ function decodeHttp(
   prev: HttpState,
   input: Buffer,
 ): HttpState {
-  if (prev.phase === HttpDecodeState.FINISHED) {
+  if (prev.state === HttpDecodeState.FINISHED) {
     throw new Error('Decoding already finished');
   }
 
@@ -473,7 +473,7 @@ function decodeHttp(
         code: HttpDecodeErrorCode.INTERNAL_ERROR,
         message: error instanceof Error ? error.message : String(error),
       });
-    next.phase = HttpDecodeState.FINISHED;
+    next.state = HttpDecodeState.FINISHED;
   }
 
   return next;
@@ -496,5 +496,5 @@ export function decodeResponse(
 }
 
 export function isMessageFinished(state: HttpState) {
-  return state.phase === HttpDecodeState.FINISHED;
+  return state.state === HttpDecodeState.FINISHED;
 }

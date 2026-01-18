@@ -114,12 +114,10 @@ export enum HttpDecodeErrorCode {
 
 export class HttpDecodeError extends Error {
   readonly code: HttpDecodeErrorCode;
-  // readonly phase: HttpDecodeState;
   readonly fatal: boolean;
 
   constructor(options: {
     code: HttpDecodeErrorCode;
-    // phase: HttpDecodeState;
     message: string;
     fatal?: boolean;
     cause?: unknown;
@@ -127,7 +125,6 @@ export class HttpDecodeError extends Error {
     super(options.message);
     this.name = this.constructor.name;
     this.code = options.code;
-    // this.phase = options.phase;
     this.fatal = options.fatal ?? true;
     if (options.cause) {
       this.cause = options.cause;

@@ -29,7 +29,7 @@ describe('HTTP Decoder - Body', () => {
 
     const state = decodeRequest(null, input);
 
-    assert.strictEqual(state.phase, HttpDecodeState.FINISHED);
+    assert.strictEqual(state.state, HttpDecodeState.FINISHED);
 
     const bodyCompleteEvent = state.events.find(e => e.type === 'body-complete');
     assert.ok(bodyCompleteEvent);
@@ -52,7 +52,7 @@ describe('HTTP Decoder - Body', () => {
 
     const state = decodeRequest(null, input);
 
-    assert.strictEqual(state.phase, HttpDecodeState.FINISHED);
+    assert.strictEqual(state.state, HttpDecodeState.FINISHED);
 
     const bodyCompleteEvent = state.events.find(e => e.type === 'body-complete');
     assert.ok(bodyCompleteEvent);
@@ -68,7 +68,7 @@ describe('HTTP Decoder - Body', () => {
 
     const state = decodeRequest(null, input);
 
-    assert.strictEqual(state.phase, HttpDecodeState.FINISHED);
+    assert.strictEqual(state.state, HttpDecodeState.FINISHED);
 
     const bodyEvents = state.events.filter(e =>
       e.type === 'body-chunk' || e.type === 'body-complete',
@@ -95,7 +95,7 @@ describe('HTTP Decoder - Body', () => {
     assert.strictEqual(chunk2Events.length, 1);
     assert.strictEqual(chunk2Events[0].size, 5);
 
-    assert.strictEqual(state.phase, HttpDecodeState.FINISHED);
+    assert.strictEqual(state.state, HttpDecodeState.FINISHED);
   });
 
   test('should generate correct body-chunk events for chunked encoding', () => {
@@ -112,7 +112,7 @@ describe('HTTP Decoder - Body', () => {
     assert.ok(chunkEvents.length > 0);
 
     state = decodeRequest(state, Buffer.from('4\r\ndefg\r\n0\r\n\r\n'));
-    assert.strictEqual(state.phase, HttpDecodeState.FINISHED);
+    assert.strictEqual(state.state, HttpDecodeState.FINISHED);
   });
 
   test('should decode POST response with body', () => {
@@ -133,7 +133,7 @@ describe('HTTP Decoder - Body', () => {
       body,
     ));
 
-    assert.strictEqual(state.phase, HttpDecodeState.FINISHED);
+    assert.strictEqual(state.state, HttpDecodeState.FINISHED);
 
     const bodyCompleteEvent = state.events.find(e => e.type === 'body-complete');
     assert.strictEqual(bodyCompleteEvent?.totalSize, body.length);
@@ -154,7 +154,7 @@ describe('HTTP Decoder - Body', () => {
 
     const state = decodeResponse(null, input);
 
-    assert.strictEqual(state.phase, HttpDecodeState.FINISHED);
+    assert.strictEqual(state.state, HttpDecodeState.FINISHED);
     const bodyCompleteEvent = state.events.find(e => e.type === 'body-complete');
     assert.strictEqual(bodyCompleteEvent?.totalSize, 9);
   });
@@ -168,7 +168,7 @@ describe('HTTP Decoder - Body', () => {
 
     const state = decodeResponse(null, input);
 
-    assert.strictEqual(state.phase, HttpDecodeState.FINISHED);
+    assert.strictEqual(state.state, HttpDecodeState.FINISHED);
 
     const bodyEvents = state.events.filter(e =>
       e.type === 'body-chunk' || e.type === 'body-complete',
@@ -185,7 +185,7 @@ describe('HTTP Decoder - Body', () => {
 
     const state = decodeRequest(null, input);
 
-    assert.strictEqual(state.phase, HttpDecodeState.FINISHED);
+    assert.strictEqual(state.state, HttpDecodeState.FINISHED);
 
     const bodyEvents = state.events.filter(e =>
       e.type === 'body-chunk' || e.type === 'body-complete',
