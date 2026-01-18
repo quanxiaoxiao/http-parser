@@ -1,6 +1,7 @@
 import type { Buffer } from 'node:buffer';
 
 import {
+  DecodeErrors,
   HttpDecodeError,
   HttpDecodeErrorCode,
 } from '../errors.js';
@@ -74,26 +75,17 @@ export function decodeHttpLine(
         }
 
         if (byte === LF) {
-          throw new HttpDecodeError({
-            code: HttpDecodeErrorCode.INVALID_LINE_ENDING,
-            message: 'LF without preceding CR',
-          });
+          throw DecodeErrors.lfWithoutCr();
         }
 
         if (++lineLength > maxLineLength) {
-          throw new HttpDecodeError({
-            code: HttpDecodeErrorCode.LINE_TOO_LARGE,
-            message: `HTTP line exceeds maximum length (${maxLineLength})`,
-          });
+          throw DecodeErrors.httpLineTooLarge(maxLineLength);
         }
         break;
 
       case HttpLineState.CR:
         if (byte !== LF) {
-          throw new HttpDecodeError({
-            code: HttpDecodeErrorCode.INVALID_LINE_ENDING,
-            message: 'CR not followed by LF',
-          });
+          throw DecodeErrors.crNotFollowedByLf();
         }
 
         return {

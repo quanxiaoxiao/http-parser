@@ -1,6 +1,7 @@
 import { Buffer } from 'node:buffer';
 
 import {
+  DecodeErrors,
   HttpDecodeError,
   HttpDecodeErrorCode,
 } from '../errors.js';
@@ -47,47 +48,29 @@ export function parseChunkSize(line: string, limits: ChunkedBodyLimits): number 
   const sizePart = semicolonIndex === -1 ? line : line.slice(0, semicolonIndex);
 
   if (limits.maxChunkExtensionLength === 0 && semicolonIndex !== -1) {
-    throw new HttpDecodeError({
-      code: HttpDecodeErrorCode.UNSUPPORTED_CHUNK_EXTENSION,
-      message: 'Unsupported chunk extension',
-    });
+    throw DecodeErrors.unsupportedChunkExtension();
   }
 
   if (semicolonIndex !== -1 && line.length - semicolonIndex > limits.maxChunkExtensionLength) {
-    throw new HttpDecodeError({
-      code: HttpDecodeErrorCode.CHUNK_EXTENSION_TOO_LARGE,
-      message: `Chunk extension exceeds maximum allowed of ${limits.maxChunkExtensionLength}`,
-    });
+    throw DecodeErrors.chunkExtensionTooLarge(limits.maxChunkExtensionLength);
   }
 
   if (!sizePart) {
-    throw new HttpDecodeError({
-      code: HttpDecodeErrorCode.INVALID_CHUNK_SIZE,
-      message: 'Empty chunk size line',
-    });
+    throw DecodeErrors.emptyChunkSize();
   }
 
   if (sizePart.length > limits.maxChunkSizeHexDigits) {
-    throw new HttpDecodeError({
-      code: HttpDecodeErrorCode.CHUNK_SIZE_TOO_LARGE,
-      message: `Chunk size hex digits exceed limit of ${limits.maxChunkSizeHexDigits}`,
-    });
+    throw DecodeErrors.chunkSizeHexDigitsTooLarge(limits.maxChunkSizeHexDigits);
   }
 
   if (!/^[0-9A-Fa-f]+$/.test(sizePart)) {
-    throw new HttpDecodeError({
-      code: HttpDecodeErrorCode.INVALID_CHUNK_SIZE,
-      message: `Invalid chunk size: "${sizePart}"`,
-    });
+    throw DecodeErrors.invalidChunkSize(sizePart);
   }
 
   const size = parseInt(sizePart, 16);
 
   if (size > limits.maxChunkSize) {
-    throw new HttpDecodeError({
-      code: HttpDecodeErrorCode.CHUNK_SIZE_TOO_LARGE,
-      message: `Chunk size exceeds maximum allowed of ${limits.maxChunkSize}`,
-    });
+    throw DecodeErrors.chunkSizeTooLarge(limits.maxChunkSize);
   }
 
   return size;
@@ -126,10 +109,7 @@ function parseTrailerHeaders(raw: string, limits: ChunkedBodyLimits): TrailerHea
   const lines = trimmed.split(CRLF);
 
   if (lines.length > limits.maxTrailers) {
-    throw new HttpDecodeError({
-      code: HttpDecodeErrorCode.TRAILER_TOO_MANY,
-      message: `Trailers too many: exceeds limit of ${limits.maxTrailers} count`,
-    });
+    throw DecodeErrors.trailerTooMany(limits.maxTrailers);
   }
 
   for (const line of lines) {
@@ -140,20 +120,14 @@ function parseTrailerHeaders(raw: string, limits: ChunkedBodyLimits): TrailerHea
     const colonIndex = line.indexOf(':');
 
     if (colonIndex <= 0) {
-      throw new HttpDecodeError({
-        code: HttpDecodeErrorCode.INVALID_TRAILER,
-        message: `Invalid trailer header (missing colon): "${line}"`,
-      });
+      throw DecodeErrors.invalidTrailer(`Invalid trailer header (missing colon): "${line}"`);
     }
 
     const key = line.slice(0, colonIndex).trim().toLowerCase();
     const value = line.slice(colonIndex + 1).trim();
 
     if (!key) {
-      throw new HttpDecodeError({
-        code: HttpDecodeErrorCode.INVALID_TRAILER,
-        message: `Invalid trailer header (empty key): "${line}"`,
-      });
+      throw DecodeErrors.invalidTrailer(`Invalid trailer header (empty key): "${line}"`);
     }
 
     if (trailers[key]) {
@@ -208,10 +182,7 @@ function handleCRLFState(state: ChunkedBodyStateData): void {
   }
 
   if (buffer[0] !== CR || buffer[1] !== LF) {
-    throw new HttpDecodeError({
-      code: HttpDecodeErrorCode.INVALID_CHUNK_SIZE_LINE_ENDING,
-      message: `Missing CRLF after chunk data (got: 0x${buffer[0]?.toString(16)} 0x${buffer[1]?.toString(16)})`,
-    });
+    throw DecodeErrors.invalidChunkSizeLineEnding(buffer[0] ?? 0, buffer[1] ?? 0);
   }
 
   state.buffer = buffer.subarray(CRLF_LENGTH);
@@ -238,10 +209,7 @@ function handleTrailerState(state: ChunkedBodyStateData): void {
 
   if (trailerEndIdx < 0) {
     if (buffer.length > maxTrailerSize) {
-      throw new HttpDecodeError({
-        code: HttpDecodeErrorCode.TRAILER_TOO_LARGE,
-        message: `Trailer size exceeds maximum allowed of ${maxTrailerSize}`,
-      });
+      throw DecodeErrors.trailerTooLarge(maxTrailerSize);
     }
     return;
   }

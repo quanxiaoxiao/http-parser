@@ -1,4 +1,5 @@
 import {
+  DecodeErrors,
   HttpDecodeError,
   HttpDecodeErrorCode,
 } from '../errors.js';
@@ -28,17 +29,11 @@ export function createFixedLengthBodyState(
   limits: FixedLengthBodyLimits = DEFAULT_FIXED_LENGTH_BODY_LIMITS,
 ): FixedLengthBodyStateData {
   if (!Number.isInteger(contentLength) || contentLength < 0) {
-    throw new HttpDecodeError({
-      code: HttpDecodeErrorCode.INVALID_CONTENT_LENGTH,
-      message: `Invalid Content-Length: ${contentLength}`,
-    });
+    throw DecodeErrors.invalidContentLength(contentLength);
   }
 
   if (contentLength > limits.maxBodySize) {
-    throw new HttpDecodeError({
-      code: HttpDecodeErrorCode.CONTENT_LENGTH_TOO_LARGE,
-      message: `Content-Length ${contentLength} exceeds limit ${limits.maxBodySize}`,
-    });
+    throw DecodeErrors.contentLengthTooLarge(contentLength, limits.maxBodySize);
   }
 
   return {

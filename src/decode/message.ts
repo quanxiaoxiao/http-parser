@@ -1,6 +1,7 @@
 import { Buffer } from 'node:buffer';
 
 import {
+  DecodeErrors,
   HttpDecodeError,
   HttpDecodeErrorCode,
 } from '../errors.js';
@@ -125,26 +126,17 @@ function handleTransferEncoding(
   contentLengthValues: string[] | undefined,
 ): BodyStrategy {
   if (transferEncodingValues.length > 1) {
-    throw new HttpDecodeError({
-      code: HttpDecodeErrorCode.INVALID_SYNTAX,
-      message: 'multiple Transfer-Encoding headers',
-    });
+    throw DecodeErrors.multipleTransferEncoding();
   }
 
   const encoding = transferEncodingValues[0]!.toLowerCase();
 
   if (encoding !== 'chunked') {
-    throw new HttpDecodeError({
-      code: HttpDecodeErrorCode.UNSUPPORTED_FEATURE,
-      message: `unsupported Transfer-Encoding: ${encoding}`,
-    });
+    throw DecodeErrors.unsupportedTransferEncoding(encoding);
   }
 
   if (contentLengthValues?.length) {
-    throw new HttpDecodeError({
-      code: HttpDecodeErrorCode.INVALID_SYNTAX,
-      message: 'Content-Length with Transfer-Encoding',
-    });
+    throw DecodeErrors.contentLengthWithTransferEncoding();
   }
 
   return { type: 'chunked' };
@@ -152,26 +144,17 @@ function handleTransferEncoding(
 
 function validateContentLength(length: number | null): asserts length is number {
   if (length == null || length < 0) {
-    throw new HttpDecodeError({
-      code: HttpDecodeErrorCode.INVALID_SYNTAX,
-      message: 'Content-Length invalid',
-    });
+    throw DecodeErrors.invalidContentLengthHeader();
   }
 
   if (!Number.isSafeInteger(length)) {
-    throw new HttpDecodeError({
-      code: HttpDecodeErrorCode.MESSAGE_TOO_LARGE,
-      message: 'Content-Length overflow',
-    });
+    throw DecodeErrors.contentLengthOverflow();
   }
 }
 
 function handleContentLength(contentLengthValues: string[]): BodyStrategy {
   if (contentLengthValues.length !== 1) {
-    throw new HttpDecodeError({
-      code: HttpDecodeErrorCode.INVALID_SYNTAX,
-      message: 'multiple Content-Length headers',
-    });
+    throw DecodeErrors.multipleContentLengthHeaders();
   }
 
   const length = parseInteger(contentLengthValues[0] as string);
@@ -283,17 +266,11 @@ function handleStartLineState(state: HttpState): void {
   } catch (error) {
     if (error instanceof HttpDecodeError) {
       if (error.code === HttpDecodeErrorCode.LINE_TOO_LARGE) {
-        throw new HttpDecodeError({
-          code: HttpDecodeErrorCode.START_LINE_TOO_LARGE,
-          message: 'HTTP start-line too large',
-        });
+        throw DecodeErrors.startLineTooLarge();
       }
       throw error;
     }
-    throw new HttpDecodeError({
-      code: HttpDecodeErrorCode.INTERNAL_ERROR,
-      message: `HTTP parse failed at state "start-line". Reason: ${formatError(error)}`,
-    });
+    throw DecodeErrors.httpParseFailedAtState('start-line', formatError(error));
   }
 
   if (!lineResult) {
@@ -423,16 +400,10 @@ const PHASE_HANDLERS: { [K in HttpDecodeState]: (state: HttpState) => void } = {
   [HttpDecodeState.BODY_CHUNKED]: (state) => handleBodyState(state, decodeChunkedBody),
   [HttpDecodeState.BODY_FIXED_LENGTH]: (state) => handleBodyState(state, decodeFixedLengthBody),
   [HttpDecodeState.BODY_CLOSE_DELIMITED]: () => {
-    throw new HttpDecodeError({
-      code: HttpDecodeErrorCode.UNSUPPORTED_FEATURE,
-      message: 'Body close-delimited not implemented',
-    });
+    throw DecodeErrors.bodyCloseDelimitedNotImplemented();
   },
   [HttpDecodeState.UPGRADE]: () => {
-    throw new HttpDecodeError({
-      code: HttpDecodeErrorCode.UNSUPPORTED_FEATURE,
-      message: 'Upgrade protocol not implemented',
-    });
+    throw DecodeErrors.upgradeProtocolNotImplemented();
   },
   [HttpDecodeState.FINISHED]: () => {},
 };
@@ -469,10 +440,7 @@ function decodeHttp(
   } catch (error) {
     next.error = error instanceof HttpDecodeError
       ? error
-      : new HttpDecodeError({
-        code: HttpDecodeErrorCode.INTERNAL_ERROR,
-        message: error instanceof Error ? error.message : String(error),
-      });
+      : DecodeErrors.internalError(error instanceof Error ? error.message : String(error));
     next.state = HttpDecodeState.FINISHED;
   }
 

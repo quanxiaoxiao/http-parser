@@ -320,10 +320,31 @@ export const DecodeErrors = {
     });
   },
 
+  lfWithoutCr(): HttpDecodeError {
+    return new HttpDecodeError({
+      code: HttpDecodeErrorCode.INVALID_LINE_ENDING,
+      message: 'LF without preceding CR',
+    });
+  },
+
+  crNotFollowedByLf(): HttpDecodeError {
+    return new HttpDecodeError({
+      code: HttpDecodeErrorCode.INVALID_LINE_ENDING,
+      message: 'CR not followed by LF',
+    });
+  },
+
   lineTooLarge(limit: number): HttpDecodeError {
     return new HttpDecodeError({
       code: HttpDecodeErrorCode.LINE_TOO_LARGE,
       message: `Line exceeds limit (${limit} bytes)`,
+    });
+  },
+
+  httpLineTooLarge(limit: number): HttpDecodeError {
+    return new HttpDecodeError({
+      code: HttpDecodeErrorCode.LINE_TOO_LARGE,
+      message: `HTTP line exceeds maximum length (${limit})`,
     });
   },
 
@@ -341,6 +362,48 @@ export const DecodeErrors = {
     });
   },
 
+  multipleTransferEncoding(): HttpDecodeError {
+    return new HttpDecodeError({
+      code: HttpDecodeErrorCode.INVALID_SYNTAX,
+      message: 'multiple Transfer-Encoding headers',
+    });
+  },
+
+  unsupportedTransferEncoding(encoding: string): HttpDecodeError {
+    return new HttpDecodeError({
+      code: HttpDecodeErrorCode.UNSUPPORTED_FEATURE,
+      message: `unsupported Transfer-Encoding: ${encoding}`,
+    });
+  },
+
+  contentLengthWithTransferEncoding(): HttpDecodeError {
+    return new HttpDecodeError({
+      code: HttpDecodeErrorCode.INVALID_SYNTAX,
+      message: 'Content-Length with Transfer-Encoding',
+    });
+  },
+
+  invalidContentLengthHeader(): HttpDecodeError {
+    return new HttpDecodeError({
+      code: HttpDecodeErrorCode.INVALID_SYNTAX,
+      message: 'Content-Length invalid',
+    });
+  },
+
+  contentLengthOverflow(): HttpDecodeError {
+    return new HttpDecodeError({
+      code: HttpDecodeErrorCode.MESSAGE_TOO_LARGE,
+      message: 'Content-Length overflow',
+    });
+  },
+
+  multipleContentLengthHeaders(): HttpDecodeError {
+    return new HttpDecodeError({
+      code: HttpDecodeErrorCode.INVALID_SYNTAX,
+      message: 'multiple Content-Length headers',
+    });
+  },
+
   bodyLengthMismatch(expected: number, actual: number): HttpDecodeError {
     return new HttpDecodeError({
       code: HttpDecodeErrorCode.BODY_LENGTH_MISMATCH,
@@ -355,11 +418,221 @@ export const DecodeErrors = {
     });
   },
 
+  headersTooLarge(limit: number): HttpDecodeError {
+    return new HttpDecodeError({
+      code: HttpDecodeErrorCode.HEADER_TOO_LARGE,
+      message: `Headers too large: exceeds limit of ${limit} bytes`,
+    });
+  },
+
+  headersTooMany(limit: number): HttpDecodeError {
+    return new HttpDecodeError({
+      code: HttpDecodeErrorCode.HEADER_TOO_MANY,
+      message: `Headers too many: exceeds limit of ${limit} count`,
+    });
+  },
+
+  headerLineTooLarge(limit: number): HttpDecodeError {
+    return new HttpDecodeError({
+      code: HttpDecodeErrorCode.HEADER_LINE_TOO_LARGE,
+      message: `Header line too large: exceeds limit of ${limit} bytes`,
+    });
+  },
+
+  headerMissingColon(): HttpDecodeError {
+    return new HttpDecodeError({
+      code: HttpDecodeErrorCode.INVALID_HEADER,
+      message: 'Header missing ":" separator',
+    });
+  },
+
+  headerNameEmpty(): HttpDecodeError {
+    return new HttpDecodeError({
+      code: HttpDecodeErrorCode.INVALID_HEADER,
+      message: 'Header name is empty',
+    });
+  },
+
+  headerNameTooLarge(limit: number): HttpDecodeError {
+    return new HttpDecodeError({
+      code: HttpDecodeErrorCode.HEADER_NAME_TOO_LARGE,
+      message: `Header name too large: exceeds limit of ${limit} bytes`,
+    });
+  },
+
+  invalidHeaderName(name: string): HttpDecodeError {
+    return new HttpDecodeError({
+      code: HttpDecodeErrorCode.INVALID_HEADER,
+      message: `Invalid characters in header name: ${name}`,
+    });
+  },
+
+  headerValueTooLarge(limit: number): HttpDecodeError {
+    return new HttpDecodeError({
+      code: HttpDecodeErrorCode.HEADER_VALUE_TOO_LARGE,
+      message: `Header value too large: exceeds limit of ${limit} bytes`,
+    });
+  },
+
+  invalidHeader(message: string): HttpDecodeError {
+    return new HttpDecodeError({
+      code: HttpDecodeErrorCode.INVALID_HEADER,
+      message,
+    });
+  },
+
+  startLineTooLarge(): HttpDecodeError {
+    return new HttpDecodeError({
+      code: HttpDecodeErrorCode.START_LINE_TOO_LARGE,
+      message: 'HTTP start-line too large',
+    });
+  },
+
+  invalidStartLine(details: string): HttpDecodeError {
+    return new HttpDecodeError({
+      code: HttpDecodeErrorCode.INVALID_START_LINE,
+      message: `Request start line parse fail: "${details}"`,
+    });
+  },
+
+  invalidResponseStartLine(details: string): HttpDecodeError {
+    return new HttpDecodeError({
+      code: HttpDecodeErrorCode.INVALID_START_LINE,
+      message: `Response start line parse fail: "${details}"`,
+    });
+  },
+
+  uriTooLarge(limit: number): HttpDecodeError {
+    return new HttpDecodeError({
+      code: HttpDecodeErrorCode.URI_TOO_LARGE,
+      message: `Request start line URI too large: exceeds limit of ${limit} bytes`,
+    });
+  },
+
+  invalidStatusCode(code: number, min: number, max: number): HttpDecodeError {
+    return new HttpDecodeError({
+      code: HttpDecodeErrorCode.INVALID_STATUS_CODE,
+      message: `Response start line invalid status code: ${code} (must be ${min}-${max})`,
+    });
+  },
+
+  reasonPhraseTooLarge(limit: number): HttpDecodeError {
+    return new HttpDecodeError({
+      code: HttpDecodeErrorCode.REASON_PHARSE_TOO_LARGE,
+      message: `Response start line rease phase too large: exceeds limit of ${limit} bytes`,
+    });
+  },
+
+  invalidContentLength(value: number): HttpDecodeError {
+    return new HttpDecodeError({
+      code: HttpDecodeErrorCode.INVALID_CONTENT_LENGTH,
+      message: `Invalid Content-Length: ${value}`,
+    });
+  },
+
+  contentLengthTooLarge(value: number, limit: number): HttpDecodeError {
+    return new HttpDecodeError({
+      code: HttpDecodeErrorCode.CONTENT_LENGTH_TOO_LARGE,
+      message: `Content-Length ${value} exceeds limit ${limit}`,
+    });
+  },
+
+  unsupportedChunkExtension(): HttpDecodeError {
+    return new HttpDecodeError({
+      code: HttpDecodeErrorCode.UNSUPPORTED_CHUNK_EXTENSION,
+      message: 'Unsupported chunk extension',
+    });
+  },
+
+  chunkExtensionTooLarge(limit: number): HttpDecodeError {
+    return new HttpDecodeError({
+      code: HttpDecodeErrorCode.CHUNK_EXTENSION_TOO_LARGE,
+      message: `Chunk extension exceeds maximum allowed of ${limit}`,
+    });
+  },
+
+  emptyChunkSize(): HttpDecodeError {
+    return new HttpDecodeError({
+      code: HttpDecodeErrorCode.INVALID_CHUNK_SIZE,
+      message: 'Empty chunk size line',
+    });
+  },
+
+  invalidChunkSize(sizePart: string): HttpDecodeError {
+    return new HttpDecodeError({
+      code: HttpDecodeErrorCode.INVALID_CHUNK_SIZE,
+      message: `Invalid chunk size: "${sizePart}"`,
+    });
+  },
+
+  chunkSizeTooLarge(limit: number): HttpDecodeError {
+    return new HttpDecodeError({
+      code: HttpDecodeErrorCode.CHUNK_SIZE_TOO_LARGE,
+      message: `Chunk size exceeds maximum allowed of ${limit}`,
+    });
+  },
+
+  chunkSizeHexDigitsTooLarge(limit: number): HttpDecodeError {
+    return new HttpDecodeError({
+      code: HttpDecodeErrorCode.CHUNK_SIZE_TOO_LARGE,
+      message: `Chunk size hex digits exceed limit of ${limit}`,
+    });
+  },
+
+  trailerTooMany(limit: number): HttpDecodeError {
+    return new HttpDecodeError({
+      code: HttpDecodeErrorCode.TRAILER_TOO_MANY,
+      message: `Trailers too many: exceeds limit of ${limit} count`,
+    });
+  },
+
+  invalidTrailer(message: string): HttpDecodeError {
+    return new HttpDecodeError({
+      code: HttpDecodeErrorCode.INVALID_TRAILER,
+      message,
+    });
+  },
+
+  trailerTooLarge(limit: number): HttpDecodeError {
+    return new HttpDecodeError({
+      code: HttpDecodeErrorCode.TRAILER_TOO_LARGE,
+      message: `Trailer size exceeds maximum allowed of ${limit}`,
+    });
+  },
+
+  invalidChunkSizeLineEnding(byte0: number, byte1: number): HttpDecodeError {
+    return new HttpDecodeError({
+      code: HttpDecodeErrorCode.INVALID_CHUNK_SIZE_LINE_ENDING,
+      message: `Missing CRLF after chunk data (got: 0x${byte0?.toString(16)} 0x${byte1?.toString(16)})`,
+    });
+  },
+
+  bodyCloseDelimitedNotImplemented(): HttpDecodeError {
+    return new HttpDecodeError({
+      code: HttpDecodeErrorCode.UNSUPPORTED_FEATURE,
+      message: 'Body close-delimited not implemented',
+    });
+  },
+
+  upgradeProtocolNotImplemented(): HttpDecodeError {
+    return new HttpDecodeError({
+      code: HttpDecodeErrorCode.UNSUPPORTED_FEATURE,
+      message: 'Upgrade protocol not implemented',
+    });
+  },
+
   internalError(message: string, cause?: unknown): HttpDecodeError {
     return new HttpDecodeError({
       code: HttpDecodeErrorCode.INTERNAL_ERROR,
       message: `Internal error: ${message}`,
       cause,
+    });
+  },
+
+  httpParseFailedAtState(state: string, reason: string): HttpDecodeError {
+    return new HttpDecodeError({
+      code: HttpDecodeErrorCode.INTERNAL_ERROR,
+      message: `HTTP parse failed at state "${state}". Reason: ${reason}`,
     });
   },
 } as const;

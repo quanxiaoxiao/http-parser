@@ -1,4 +1,5 @@
 import {
+  DecodeErrors,
   HttpDecodeError,
   HttpDecodeErrorCode,
 } from '../errors.js';
@@ -31,17 +32,11 @@ export interface HeadersStateData {
 
 function checkHeaderLimits(state: HeadersStateData) {
   if (state.receivedBytes > state.limits.maxHeaderBytes) {
-    throw new HttpDecodeError({
-      code: HttpDecodeErrorCode.HEADER_TOO_LARGE,
-      message: `Headers too large: exceeds limit of ${state.limits.maxHeaderBytes} bytes`,
-    });
+    throw DecodeErrors.headersTooLarge(state.limits.maxHeaderBytes);
   }
 
   if (state.rawHeaderLines.length >= state.limits.maxHeaderCount) {
-    throw new HttpDecodeError({
-      code: HttpDecodeErrorCode.HEADER_TOO_MANY,
-      message: `Headers too many: exceeds limit of ${state.limits.maxHeaderCount} count`,
-    });
+    throw DecodeErrors.headersTooMany(state.limits.maxHeaderCount);
   }
 }
 
@@ -49,58 +44,37 @@ export function decodeHeaderLine(headerBuf: Buffer, limits: HeaderLimits): [stri
   const len = headerBuf.length;
 
   if (len > limits.maxHeaderLineBytes) {
-    throw new HttpDecodeError({
-      code: HttpDecodeErrorCode.HEADER_LINE_TOO_LARGE,
-      message: `Header line too large: exceeds limit of ${limits.maxHeaderLineBytes} bytes`,
-    });
+    throw DecodeErrors.headerLineTooLarge(limits.maxHeaderLineBytes);
   }
 
   const colonIndex = headerBuf.indexOf(COLON);
 
   if (colonIndex < 0) {
-    throw new HttpDecodeError({
-      code: HttpDecodeErrorCode.INVALID_HEADER,
-      message: 'Header missing ":" separator',
-    });
+    throw DecodeErrors.headerMissingColon();
   }
 
   if (colonIndex === 0) {
-    throw new HttpDecodeError({
-      code: HttpDecodeErrorCode.INVALID_HEADER,
-      message: 'Header name is empty',
-    });
+    throw DecodeErrors.headerNameEmpty();
   }
 
   if (colonIndex > limits.maxHeaderNameBytes) {
-    throw new HttpDecodeError({
-      code: HttpDecodeErrorCode.HEADER_NAME_TOO_LARGE,
-      message: `Header name too large: exceeds limit of ${limits.maxHeaderNameBytes} bytes`,
-    });
+    throw DecodeErrors.headerNameTooLarge(limits.maxHeaderNameBytes);
   }
 
   const name = headerBuf.subarray(0, colonIndex).toString('ascii').trim();
 
   if (name === '') {
-    throw new HttpDecodeError({
-      code: HttpDecodeErrorCode.INVALID_HEADER,
-      message: 'Header name is empty',
-    });
+    throw DecodeErrors.headerNameEmpty();
   }
 
   if (INVALID_HEADER_NAME.test(name)) {
-    throw new HttpDecodeError({
-      code: HttpDecodeErrorCode.INVALID_HEADER,
-      message: `Invalid characters in header name: ${name}`,
-    });
+    throw DecodeErrors.invalidHeaderName(name);
   }
 
   const valueLength = len - colonIndex - 1;
 
   if (valueLength > limits.maxHeaderValueBytes) {
-    throw new HttpDecodeError({
-      code: HttpDecodeErrorCode.HEADER_VALUE_TOO_LARGE,
-      message: `Header value too large: exceeds limit of ${limits.maxHeaderValueBytes} bytes`,
-    });
+    throw DecodeErrors.headerValueTooLarge(limits.maxHeaderValueBytes);
   }
 
   const value = headerBuf.subarray(colonIndex + 1).toString('ascii').trim();
@@ -147,15 +121,9 @@ function processHeaderLine(
   } catch (error) {
     if (error instanceof HttpDecodeError) {
       if (error.code === HttpDecodeErrorCode.LINE_TOO_LARGE) {
-        throw new HttpDecodeError({
-          code: HttpDecodeErrorCode.HEADER_LINE_TOO_LARGE,
-          message: `HTTP header line too large: exceeds limit of ${state.limits.maxHeaderLineBytes} bytes`,
-        });
+        throw DecodeErrors.headerLineTooLarge(state.limits.maxHeaderLineBytes);
       }
-      throw new HttpDecodeError({
-        code: HttpDecodeErrorCode.INVALID_HEADER,
-        message: error.message,
-      });
+      throw DecodeErrors.invalidHeader(error.message);
     }
     throw error;
   }
@@ -164,10 +132,7 @@ function processHeaderLine(
   if (!line) {
     const remainingBytes = buffer.length - offset;
     if (state.receivedBytes + remainingBytes > state.limits.maxHeaderBytes) {
-      throw new HttpDecodeError({
-        code: HttpDecodeErrorCode.HEADER_TOO_LARGE,
-        message: `Headers too large: exceeds limit of ${state.limits.maxHeaderBytes} bytes`,
-      });
+      throw DecodeErrors.headersTooLarge(state.limits.maxHeaderBytes);
     }
     return { offset, shouldContinue: false };
   }

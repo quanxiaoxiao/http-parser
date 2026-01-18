@@ -1,4 +1,5 @@
 import {
+  DecodeErrors,
   HttpDecodeError,
   HttpDecodeErrorCode,
 } from '../errors.js';
@@ -43,10 +44,7 @@ function validateInput(str: string, type: 'request' | 'response') {
 function validateHttpVersion(versionStr: string): HttpVersion {
   const version = HTTP_VERSION_MAP[versionStr?.toUpperCase()];
   if (version === undefined) {
-    throw new HttpDecodeError({
-      code: HttpDecodeErrorCode.UNSUPPORTED_HTTP_VERSION,
-      message: `Start line unsupported HTTP version: ${versionStr}`,
-    });
+    throw DecodeErrors.unsupportedHttpVersion(versionStr);
   }
   return version as HttpVersion;
 }
@@ -60,20 +58,14 @@ export function decodeRequestStartLine(
   const matches = trimmedStr.match(REQUEST_STARTLINE_REG);
 
   if (!matches) {
-    throw new HttpDecodeError({
-      code: HttpDecodeErrorCode.INVALID_START_LINE,
-      message: `Request start line parse fail: "${createErrorPreview(trimmedStr)}"`,
-    });
+    throw DecodeErrors.invalidStartLine(createErrorPreview(trimmedStr));
   }
 
   const [, method, path, versionStr] = matches;
   const version = validateHttpVersion(versionStr!);
 
   if (path!.length > limits.maxUriBytes) {
-    throw new HttpDecodeError({
-      code: HttpDecodeErrorCode.URI_TOO_LARGE,
-      message: `Request start line URI too large: exceeds limit of ${limits.maxUriBytes} bytes`,
-    });
+    throw DecodeErrors.uriTooLarge(limits.maxUriBytes);
   }
 
   return {
@@ -91,10 +83,7 @@ export function decodeResponseStartLine(str: string, limits: StartLineLimits = D
   const matches = trimmedStr.match(RESPONSE_STARTLINE_REG);
 
   if (!matches) {
-    throw new HttpDecodeError({
-      code: HttpDecodeErrorCode.INVALID_START_LINE,
-      message: `Response start line parse fail: "${createErrorPreview(trimmedStr)}"`,
-    });
+    throw DecodeErrors.invalidResponseStartLine(createErrorPreview(trimmedStr));
   }
 
   const [, versionStr, statusCodeStr, statusText] = matches;
@@ -103,19 +92,13 @@ export function decodeResponseStartLine(str: string, limits: StartLineLimits = D
   const statusCode = parseInteger(statusCodeStr as string);
 
   if (statusCode == null || statusCode < MIN_STATUS_CODE || statusCode > MAX_STATUS_CODE) {
-    throw new HttpDecodeError({
-      code: HttpDecodeErrorCode.INVALID_STATUS_CODE,
-      message: `Response start line invalid status code: ${statusCode} (must be ${MIN_STATUS_CODE}-${MAX_STATUS_CODE})`,
-    });
+    throw DecodeErrors.invalidStatusCode(statusCode ?? 0, MIN_STATUS_CODE, MAX_STATUS_CODE);
   }
 
   const finalStatusMessage = statusText?.trim() || STATUS_CODES[statusCode] || 'Unknown';
 
   if (finalStatusMessage.length > limits.maxReasonPhraseBytes) {
-    throw new HttpDecodeError({
-      code: HttpDecodeErrorCode.REASON_PHARSE_TOO_LARGE,
-      message: `Response start line rease phase too large: exceeds limit of ${limits.maxReasonPhraseBytes} bytes`,
-    });
+    throw DecodeErrors.reasonPhraseTooLarge(limits.maxReasonPhraseBytes);
   }
 
   return {
