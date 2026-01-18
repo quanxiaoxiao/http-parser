@@ -8,7 +8,7 @@ import {
 } from './message.js';
 import { createChunkedBodyState, decodeChunkedBody } from './chunked-body.js';
 import { createFixedLengthBodyState, decodeFixedLengthBody } from './fixed-length-body.js';
-import { createHeadersState, decodeHeaders } from './headers.js';
+import { createHeadersStateData, decodeHeaders } from './headers.js';
 import { decodeRequestStartLine, decodeResponseStartLine } from './start-line.js';
 import { decodeHeaderLine } from './headers.js';
 
@@ -172,7 +172,7 @@ describe('Fuzz Testing - Header Line', () => {
   test('should not crash on random headers data', () => {
     for (let i = 0; i < 500; i++) {
       const input = generateRandomBuffer(2000);
-      const state = createHeadersState();
+      const state = createHeadersStateData();
       try {
         decodeHeaders(state, input);
       } catch (error) {

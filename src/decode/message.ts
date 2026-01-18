@@ -36,9 +36,9 @@ import {
   isFixedLengthBodyFinished,
 } from './fixed-length-body.js';
 import {
-  createHeadersState,
+  createHeadersStateData,
   decodeHeaders,
-  type HeadersState,
+  type HeadersStateData,
   isHeadersFinished,
 } from './headers.js';
 import { decodeHttpLine } from './http-line.js';
@@ -236,7 +236,7 @@ export interface HttpState<T extends 'request' | 'response' = 'request' | 'respo
   error?: Error,
   parsing: {
     startLine: StartLineMap[T] | null;
-    headers: HeadersState | null;
+    headers: HeadersStateData | null;
     body: ChunkedBodyStateData | FixedLengthBodyStateData | null;
   },
   events: HttpDecodeEvent[];
@@ -331,9 +331,9 @@ function handleStartLineState(state: HttpState): void {
   transition(state, HttpDecodeState.HEADERS);
 }
 
-function handleHeadersState(state: HttpState): void {
+function handleHeadersStateData(state: HttpState): void {
   if (!state.parsing.headers) {
-    state.parsing.headers = createHeadersState(state.config.headerLimits);
+    state.parsing.headers = createHeadersStateData(state.config.headerLimits);
   }
   const prevLineCount = state.parsing.headers.rawHeaders.length;
   state.parsing.headers = decodeHeaders(state.parsing.headers!, state.buffer);
@@ -419,7 +419,7 @@ function handleBodyState<T extends ChunkedBodyStateData | FixedLengthBodyStateDa
 
 const PHASE_HANDLERS: { [K in HttpDecodeState]: (state: HttpState) => void } = {
   [HttpDecodeState.START_LINE]: handleStartLineState,
-  [HttpDecodeState.HEADERS]: handleHeadersState,
+  [HttpDecodeState.HEADERS]: handleHeadersStateData,
   [HttpDecodeState.BODY_CHUNKED]: (state) => handleBodyState(state, decodeChunkedBody),
   [HttpDecodeState.BODY_FIXED_LENGTH]: (state) => handleBodyState(state, decodeFixedLengthBody),
   [HttpDecodeState.BODY_CLOSE_DELIMITED]: () => {

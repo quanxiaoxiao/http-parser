@@ -14,14 +14,14 @@ const CRLF_LENGTH = 2;
 const COLON = 0x3a;
 const INVALID_HEADER_NAME = /[^!#$%&'*+\-.^_`|~0-9a-z]/i;
 
-export enum HeadersDecodeState {
+export enum HeadersState {
   LINE = 'line',
   FINISHED = 'finished',
 }
 
-export interface HeadersState {
+export interface HeadersStateData {
   buffer: Buffer;
-  phase: HeadersDecodeState;
+  phase: HeadersState;
   headers: Headers;
   rawHeaders: Array<[name: string, value: string]>,
   rawHeaderLines: string[];
@@ -29,7 +29,7 @@ export interface HeadersState {
   limits: HeaderLimits,
 }
 
-function checkHeaderLimits(state: HeadersState) {
+function checkHeaderLimits(state: HeadersStateData) {
   if (state.receivedBytes > state.limits.maxHeaderBytes) {
     throw new HttpDecodeError({
       code: HttpDecodeErrorCode.HEADER_TOO_LARGE,
@@ -108,19 +108,19 @@ export function decodeHeaderLine(headerBuf: Buffer, limits: HeaderLimits): [stri
   return [name.toLowerCase(), value];
 }
 
-export function createHeadersState(limits: HeaderLimits = DEFAULT_HEADER_LIMITS): HeadersState {
+export function createHeadersStateData(limits: HeaderLimits = DEFAULT_HEADER_LIMITS): HeadersStateData {
   return {
     buffer: Buffer.alloc(0),
     headers: {},
     rawHeaders: [],
     rawHeaderLines: [],
-    phase: HeadersDecodeState.LINE,
+    phase: HeadersState.LINE,
     receivedBytes: 0,
     limits,
   };
 }
 
-function addHeader(state: HeadersState, name: string, value: string): void {
+function addHeader(state: HeadersStateData, name: string, value: string): void {
   const existing = state.headers[name];
   state.rawHeaders.push([name, value]);
   if (existing === undefined) {
@@ -133,7 +133,7 @@ function addHeader(state: HeadersState, name: string, value: string): void {
 }
 
 function processHeaderLine(
-  state: HeadersState,
+  state: HeadersStateData,
   buffer: Buffer,
   offset: number,
 ): { offset: number; shouldContinue: boolean } {
@@ -176,7 +176,7 @@ function processHeaderLine(
   const newOffset = offset + lineLength;
 
   if (line.length === 0) {
-    state.phase = HeadersDecodeState.FINISHED;
+    state.phase = HeadersState.FINISHED;
     return { offset: newOffset, shouldContinue: false };
   }
 
@@ -192,21 +192,21 @@ function processHeaderLine(
 }
 
 export function decodeHeaders(
-  prev: HeadersState,
+  prev: HeadersStateData,
   input: Buffer,
-): HeadersState {
-  if (prev.phase === HeadersDecodeState.FINISHED) {
+): HeadersStateData {
+  if (prev.phase === HeadersState.FINISHED) {
     throw new Error('Headers parsing already finished');
   }
 
-  const next: HeadersState = {
+  const next: HeadersStateData = {
     ...prev,
     buffer: prev.buffer.length === 0 ? input : Buffer.concat([prev.buffer, input]),
   };
 
   let offset = 0;
 
-  while (offset < next.buffer.length && next.phase !== HeadersDecodeState.FINISHED) {
+  while (offset < next.buffer.length && next.phase !== HeadersState.FINISHED) {
     const result = processHeaderLine(next, next.buffer, offset);
     offset = result.offset;
     if (!result.shouldContinue) {
@@ -221,6 +221,6 @@ export function decodeHeaders(
   return next;
 }
 
-export function isHeadersFinished(state: HeadersState) {
-  return state.phase === HeadersDecodeState.FINISHED;
+export function isHeadersFinished(state: HeadersStateData) {
+  return state.phase === HeadersState.FINISHED;
 }

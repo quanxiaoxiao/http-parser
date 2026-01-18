@@ -7,39 +7,39 @@ import {
 } from '../errors.js';
 import { DEFAULT_HEADER_LIMITS } from '../specs.js';
 import {
-  createHeadersState,
+  createHeadersStateData,
   decodeHeaderLine,
   decodeHeaders,
-  HeadersDecodeState,
+  HeadersState,
   isHeadersFinished,
 } from './headers.js';
 
-describe('createHeadersState', () => {
+describe('createHeadersStateData', () => {
   it('should create initial state with empty values', () => {
-    const state = createHeadersState();
+    const state = createHeadersStateData();
 
     assert.strictEqual(state.buffer.length, 0);
     assert.deepStrictEqual(state.headers, {});
     assert.deepStrictEqual(state.rawHeaderLines, []);
     assert.strictEqual(state.receivedBytes, 0);
-    assert.strictEqual(state.phase, HeadersDecodeState.LINE);
+    assert.strictEqual(state.phase, HeadersState.LINE);
   });
 });
 
 describe('decodeHeaders', () => {
   describe('basic parsing', () => {
     it('should parse single header line', () => {
-      const state = createHeadersState();
+      const state = createHeadersStateData();
       const input = Buffer.from('Host: example.com\r\n');
       const result = decodeHeaders(state, input);
 
       assert.strictEqual(result.headers['host'], 'example.com');
       assert.strictEqual(result.receivedBytes, 19);
-      assert.strictEqual(result.phase, HeadersDecodeState.LINE);
+      assert.strictEqual(result.phase, HeadersState.LINE);
     });
 
     it('should parse multiple header lines', () => {
-      const state = createHeadersState();
+      const state = createHeadersStateData();
       const input = Buffer.from(
         'Content-Type: application/json\r\n' +
         'Content-Length: 123\r\n' +
@@ -50,26 +50,26 @@ describe('decodeHeaders', () => {
       assert.strictEqual(result.headers['content-type'], 'application/json');
       assert.strictEqual(result.headers['content-length'], '123');
       assert.strictEqual(result.headers['host'], 'example.com');
-      assert.strictEqual(result.phase, HeadersDecodeState.LINE);
+      assert.strictEqual(result.phase, HeadersState.LINE);
     });
 
     it('should handle empty line as headers end', () => {
-      const state = createHeadersState();
+      const state = createHeadersStateData();
       const input = Buffer.from('Host: example.com\r\n\r\n');
       const result = decodeHeaders(state, input);
 
       assert.strictEqual(result.headers['host'], 'example.com');
-      assert.strictEqual(result.phase, HeadersDecodeState.FINISHED);
+      assert.strictEqual(result.phase, HeadersState.FINISHED);
       assert.strictEqual(result.receivedBytes, input.length - 2);
       assert.strictEqual(result.buffer.length, 0);
     });
 
     it('should handle empty input', () => {
-      const state = createHeadersState();
+      const state = createHeadersStateData();
       const input = Buffer.from('');
       const result = decodeHeaders(state, input);
 
-      assert.strictEqual(result.phase, HeadersDecodeState.LINE);
+      assert.strictEqual(result.phase, HeadersState.LINE);
       assert.deepStrictEqual(result.headers, {});
       assert.strictEqual(result.receivedBytes, 0);
     });
@@ -77,7 +77,7 @@ describe('decodeHeaders', () => {
 
   describe('duplicate headers', () => {
     it('should handle duplicate header names as array', () => {
-      const state = createHeadersState();
+      const state = createHeadersStateData();
       const input = Buffer.from(
         'Set-Cookie: cookie1=value1\r\nSet-Cookie: cookie2=value2\r\n',
       );
@@ -91,7 +91,7 @@ describe('decodeHeaders', () => {
     });
 
     it('should handle three or more duplicate headers', () => {
-      const state = createHeadersState();
+      const state = createHeadersStateData();
       const input = Buffer.from(
         'X-Custom: value1\r\n' +
         'X-Custom: value2\r\n' +
@@ -107,7 +107,7 @@ describe('decodeHeaders', () => {
     });
 
     it('should handle mixed case duplicate headers', () => {
-      const state = createHeadersState();
+      const state = createHeadersStateData();
       const input = Buffer.from(
         'Cache-Control: no-cache\r\ncache-control: no-store\r\n',
       );
@@ -123,18 +123,18 @@ describe('decodeHeaders', () => {
 
   describe('incremental parsing', () => {
     it('should preserve buffer when line is incomplete', () => {
-      const state = createHeadersState();
+      const state = createHeadersStateData();
       const input = Buffer.from('Host: exam');
       const result = decodeHeaders(state, input);
 
       assert.strictEqual(result.buffer.toString(), 'Host: exam');
       assert.strictEqual(result.receivedBytes, 0);
-      assert.strictEqual(result.phase, HeadersDecodeState.LINE);
+      assert.strictEqual(result.phase, HeadersState.LINE);
       assert.deepStrictEqual(result.headers, {});
     });
 
     it('should concatenate buffers across multiple calls', () => {
-      let state = createHeadersState();
+      let state = createHeadersStateData();
       state = decodeHeaders(state, Buffer.from('Host: exa'));
 
       assert.strictEqual(state.buffer.toString(), 'Host: exa');
@@ -148,32 +148,32 @@ describe('decodeHeaders', () => {
     });
 
     it('should continue parsing from previous buffer', () => {
-      let state = createHeadersState();
+      let state = createHeadersStateData();
       state = decodeHeaders(state, Buffer.from('Content-Type: appli'));
 
-      assert.strictEqual(state.phase, HeadersDecodeState.LINE);
+      assert.strictEqual(state.phase, HeadersState.LINE);
       assert.strictEqual(state.buffer.toString(), 'Content-Type: appli');
 
       state = decodeHeaders(state, Buffer.from('cation/json\r\n\r\n'));
 
       assert.strictEqual(state.headers['content-type'], 'application/json');
-      assert.strictEqual(state.phase, HeadersDecodeState.FINISHED);
+      assert.strictEqual(state.phase, HeadersState.FINISHED);
     });
 
     it('should preserve previous headers when continuing parsing', () => {
-      let state = createHeadersState();
+      let state = createHeadersStateData();
       state = decodeHeaders(state, Buffer.from('Content-Type: application/json\r\n'));
       state = decodeHeaders(state, Buffer.from('Host: example.com\r\n\r\n'));
 
       assert.strictEqual(state.headers['content-type'], 'application/json');
       assert.strictEqual(state.headers['host'], 'example.com');
-      assert.strictEqual(state.phase, HeadersDecodeState.FINISHED);
+      assert.strictEqual(state.phase, HeadersState.FINISHED);
     });
   });
 
   describe('header formatting', () => {
     it('should normalize header names to lowercase', () => {
-      const state = createHeadersState();
+      const state = createHeadersStateData();
       const input = Buffer.from(
         'Content-Type: text/html\r\n' +
         'CONTENT-LENGTH: 100\r\n' +
@@ -188,7 +188,7 @@ describe('decodeHeaders', () => {
     });
 
     it('should handle headers with whitespace in values', () => {
-      const state = createHeadersState();
+      const state = createHeadersStateData();
       const input = Buffer.from(
         'Host:   example.com   \r\n' +
         'User-Agent: Mozilla/5.0 (Windows NT)\r\n\r\n',
@@ -200,7 +200,7 @@ describe('decodeHeaders', () => {
     });
 
     it('should handle empty header values', () => {
-      const state = createHeadersState();
+      const state = createHeadersStateData();
       const input = Buffer.from('X-Empty-Header: \r\n');
       const result = decodeHeaders(state, input);
 
@@ -208,7 +208,7 @@ describe('decodeHeaders', () => {
     });
 
     it('should preserve raw headers order', () => {
-      const state = createHeadersState();
+      const state = createHeadersStateData();
       const input = Buffer.from(
         'Content-Type: application/json\r\n' +
         'Host: example.com\r\n' +
@@ -221,21 +221,21 @@ describe('decodeHeaders', () => {
 
   describe('body data handling', () => {
     it('should handle complete headers with body data', () => {
-      const state = createHeadersState();
+      const state = createHeadersStateData();
       const input = Buffer.from(
         'Content-Type: text/plain\r\n\r\nThis is body data',
       );
       const result = decodeHeaders(state, input);
 
       assert.strictEqual(result.headers['content-type'], 'text/plain');
-      assert.strictEqual(result.phase, HeadersDecodeState.FINISHED);
+      assert.strictEqual(result.phase, HeadersState.FINISHED);
       assert.strictEqual(result.buffer.toString(), 'This is body data');
     });
   });
 
   describe('byte counting', () => {
     it('should count bytes correctly including CRLF', () => {
-      const state = createHeadersState();
+      const state = createHeadersStateData();
       const input = Buffer.from('Content-Type: application/json\r\n\r\n');
       const result = decodeHeaders(state, input);
 
@@ -243,7 +243,7 @@ describe('decodeHeaders', () => {
     });
 
     it('should handle long header values', () => {
-      const state = createHeadersState();
+      const state = createHeadersStateData();
       const longValue = 'a'.repeat(1000);
       const input = Buffer.from(`X-Long-Header: ${longValue}\r\n`);
       const result = decodeHeaders(state, input);
@@ -253,7 +253,7 @@ describe('decodeHeaders', () => {
     });
 
     it('should preserve previous headers state', () => {
-      const state = createHeadersState();
+      const state = createHeadersStateData();
       state.headers = { host: 'example.com' };
       state.receivedBytes = 19;
 
@@ -268,8 +268,8 @@ describe('decodeHeaders', () => {
 
   describe('error handling', () => {
     it('should throw error if headers already finished', () => {
-      const state = createHeadersState();
-      state.phase = HeadersDecodeState.FINISHED;
+      const state = createHeadersStateData();
+      state.phase = HeadersState.FINISHED;
       const input = Buffer.from('Host: example.com\r\n');
 
       assert.throws(
@@ -282,10 +282,10 @@ describe('decodeHeaders', () => {
     });
 
     it('should throw error when parsing already finished headers', () => {
-      const state = createHeadersState();
+      const state = createHeadersStateData();
       const result = decodeHeaders(state, Buffer.from('\r\n'));
 
-      assert.strictEqual(result.phase, HeadersDecodeState.FINISHED);
+      assert.strictEqual(result.phase, HeadersState.FINISHED);
 
       assert.throws(
         () => decodeHeaders(result, Buffer.from('More: data\r\n')),
@@ -609,11 +609,11 @@ describe('decodeHeaderLine', () => {
   });
 });
 
-describe('createHeadersState', () => {
+describe('createHeadersStateData', () => {
   it('should create initial state', () => {
-    const state = createHeadersState();
+    const state = createHeadersStateData();
 
-    assert.strictEqual(state.phase, HeadersDecodeState.LINE);
+    assert.strictEqual(state.phase, HeadersState.LINE);
     assert.strictEqual(state.receivedBytes, 0);
     assert.deepStrictEqual(state.headers, {});
     assert.ok(state.buffer instanceof Buffer);
@@ -629,25 +629,25 @@ describe('createHeadersState', () => {
       maxHeaderCount: 50,
     };
 
-    const state = createHeadersState(customLimit);
+    const state = createHeadersStateData(customLimit);
     assert.deepStrictEqual(state.limits, customLimit);
   });
 });
 
 describe('decodeHeaders', () => {
   it('should parse single header', () => {
-    const state = createHeadersState();
+    const state = createHeadersStateData();
     const input = Buffer.from('Content-Type: application/json\r\n\r\n');
 
     const result = decodeHeaders(state, input);
 
-    assert.strictEqual(result.phase, HeadersDecodeState.FINISHED);
+    assert.strictEqual(result.phase, HeadersState.FINISHED);
     assert.strictEqual(result.headers['content-type'], 'application/json');
     assert.strictEqual(result.rawHeaderLines.length, 1);
   });
 
   it('should parse multiple headers', () => {
-    const state = createHeadersState();
+    const state = createHeadersStateData();
     const input = Buffer.from(
       'Content-Type: application/json\r\n' +
       'Authorization: Bearer token\r\n' +
@@ -657,7 +657,7 @@ describe('decodeHeaders', () => {
 
     const result = decodeHeaders(state, input);
 
-    assert.strictEqual(result.phase, HeadersDecodeState.FINISHED);
+    assert.strictEqual(result.phase, HeadersState.FINISHED);
     assert.strictEqual(result.headers['content-type'], 'application/json');
     assert.strictEqual(result.headers['authorization'], 'Bearer token');
     assert.strictEqual(result.headers['accept'], '*/*');
@@ -665,7 +665,7 @@ describe('decodeHeaders', () => {
   });
 
   it('should handle multiple headers with same name', () => {
-    const state = createHeadersState();
+    const state = createHeadersStateData();
     const input = Buffer.from(
       'Set-Cookie: session=abc123\r\n' +
       'Set-Cookie: user=john\r\n' +
@@ -674,35 +674,35 @@ describe('decodeHeaders', () => {
 
     const result = decodeHeaders(state, input);
 
-    assert.strictEqual(result.phase, HeadersDecodeState.FINISHED);
+    assert.strictEqual(result.phase, HeadersState.FINISHED);
     assert.ok(Array.isArray(result.headers['set-cookie']));
     assert.deepStrictEqual(result.headers['set-cookie'], ['session=abc123', 'user=john']);
   });
 
   it('should handle chunked input', () => {
-    let state = createHeadersState();
+    let state = createHeadersStateData();
 
     // 第一块
     const input1 = Buffer.from('Content-Type: application/');
     state = decodeHeaders(state, input1);
-    assert.strictEqual(state.phase, HeadersDecodeState.LINE);
+    assert.strictEqual(state.phase, HeadersState.LINE);
 
     // 第二块
     const input2 = Buffer.from('json\r\nAuthorization: Bearer ');
     state = decodeHeaders(state, input2);
-    assert.strictEqual(state.phase, HeadersDecodeState.LINE);
+    assert.strictEqual(state.phase, HeadersState.LINE);
 
     // 第三块
     const input3 = Buffer.from('token\r\n\r\n');
     state = decodeHeaders(state, input3);
-    assert.strictEqual(state.phase, HeadersDecodeState.FINISHED);
+    assert.strictEqual(state.phase, HeadersState.FINISHED);
 
     assert.strictEqual(state.headers['content-type'], 'application/json');
     assert.strictEqual(state.headers['authorization'], 'Bearer token');
   });
 
   it('should trim spaces from header names and values', () => {
-    const state = createHeadersState();
+    const state = createHeadersStateData();
     const input = Buffer.from('  Content-Type  :   application/json  \r\n\r\n');
 
     const result = decodeHeaders(state, input);
@@ -711,7 +711,7 @@ describe('decodeHeaders', () => {
   });
 
   it('should throw error when header name is invalid', () => {
-    const state = createHeadersState();
+    const state = createHeadersStateData();
     const input = Buffer.from('Invalid Header: value\r\n\r\n');
 
     assert.throws(
@@ -725,7 +725,7 @@ describe('decodeHeaders', () => {
   });
 
   it('should throw error when header name is empty', () => {
-    const state = createHeadersState();
+    const state = createHeadersStateData();
     const input = Buffer.from('  : value\r\n\r\n');
 
     assert.throws(
@@ -745,7 +745,7 @@ describe('decodeHeaders', () => {
       maxHeaderBytes: 16384,
       maxHeaderCount: 2,
     };
-    const state = createHeadersState(customLimit);
+    const state = createHeadersStateData(customLimit);
     const input = Buffer.from(
       'Header1: value1\r\n' +
       'Header2: value2\r\n' +
@@ -763,11 +763,11 @@ describe('decodeHeaders', () => {
   });
 
   it('should throw error when called again after completion', () => {
-    const state = createHeadersState();
+    const state = createHeadersStateData();
     const input = Buffer.from('Content-Type: application/json\r\n\r\n');
 
     const result = decodeHeaders(state, input);
-    assert.strictEqual(result.phase, HeadersDecodeState.FINISHED);
+    assert.strictEqual(result.phase, HeadersState.FINISHED);
 
     assert.throws(
       () => decodeHeaders(result, Buffer.from('More: data\r\n')),
@@ -776,12 +776,12 @@ describe('decodeHeaders', () => {
   });
 
   it('should correctly handle empty headers (only CRLF)', () => {
-    const state = createHeadersState();
+    const state = createHeadersStateData();
     const input = Buffer.from('\r\n');
 
     const result = decodeHeaders(state, input);
 
-    assert.strictEqual(result.phase, HeadersDecodeState.FINISHED);
+    assert.strictEqual(result.phase, HeadersState.FINISHED);
     assert.deepStrictEqual(result.headers, {});
     assert.strictEqual(result.rawHeaderLines.length, 0);
   });
@@ -789,12 +789,12 @@ describe('decodeHeaders', () => {
 
 describe('isHeadersFinished', () => {
   it('should return false when not finished', () => {
-    const state = createHeadersState();
+    const state = createHeadersStateData();
     assert.strictEqual(isHeadersFinished(state), false);
   });
 
   it('should return true when finished', () => {
-    const state = createHeadersState();
+    const state = createHeadersStateData();
     const input = Buffer.from('\r\n');
     const result = decodeHeaders(state, input);
 
@@ -804,7 +804,7 @@ describe('isHeadersFinished', () => {
 
 describe('Edge Cases Tests', () => {
   it('should handle valid header names with special characters', () => {
-    const state = createHeadersState();
+    const state = createHeadersStateData();
     const input = Buffer.from('X-Custom-Header_123: value\r\n\r\n');
 
     const result = decodeHeaders(state, input);
@@ -813,7 +813,7 @@ describe('Edge Cases Tests', () => {
   });
 
   it('should handle headers with empty values', () => {
-    const state = createHeadersState();
+    const state = createHeadersStateData();
     const input = Buffer.from('Empty-Value:\r\n\r\n');
 
     const result = decodeHeaders(state, input);
@@ -822,7 +822,7 @@ describe('Edge Cases Tests', () => {
   });
 
   it('should handle three headers with same name', () => {
-    const state = createHeadersState();
+    const state = createHeadersStateData();
     const input = Buffer.from(
       'X-Custom: first\r\n' +
       'X-Custom: second\r\n' +
