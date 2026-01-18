@@ -112,6 +112,15 @@ export enum HttpDecodeErrorCode {
   INTERNAL_ERROR = 'INTERNAL_ERROR',
 }
 
+export const ERROR_CATEGORY: Record<HttpDecodeErrorCode, HttpDecodeErrorCategory> = {
+  [HttpDecodeErrorCode.INVALID_SYNTAX]: HttpDecodeErrorCategory.SYNTAX,
+  [HttpDecodeErrorCode.LINE_TOO_LARGE]: HttpDecodeErrorCategory.SIZE_LIMIT,
+  [HttpDecodeErrorCode.TOO_MANY_STATE_TRANSITIONS]: HttpDecodeErrorCategory.STATE,
+  [HttpDecodeErrorCode.UNSUPPORTED_HTTP_VERSION]: HttpDecodeErrorCategory.UNSUPPORTED,
+  [HttpDecodeErrorCode.BUFFER_LIMIT_EXCEEDED]: HttpDecodeErrorCategory.RESOURCE,
+  [HttpDecodeErrorCode.INTERNAL_ERROR]: HttpDecodeErrorCategory.INTERNAL,
+};
+
 export class HttpDecodeError extends Error {
   readonly code: HttpDecodeErrorCode;
   readonly fatal: boolean;
