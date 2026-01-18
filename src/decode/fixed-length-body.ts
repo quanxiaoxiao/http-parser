@@ -8,14 +8,14 @@ import type {
   FixedLengthBodyLimits,
 } from '../types.js';
 
-export enum FixedLengthBodyPhase {
+export enum FixedLengthBodyState {
   DATA = 'data',
   FINISHED = 'finished',
 }
 
 export type FixedLengthBodyState = {
   type: BodyType;
-  phase: FixedLengthBodyPhase,
+  phase: FixedLengthBodyState,
   buffer: Buffer;
   chunks: Buffer[];
   decodedBodyBytes: number;
@@ -43,7 +43,7 @@ export function createFixedLengthBodyState(
 
   return {
     type: 'fixed',
-    phase: contentLength > 0 ? FixedLengthBodyPhase.DATA : FixedLengthBodyPhase.FINISHED,
+    phase: contentLength > 0 ? FixedLengthBodyState.DATA : FixedLengthBodyState.FINISHED,
     buffer: Buffer.alloc(0),
     remainingBytes: contentLength,
     decodedBodyBytes: 0,
@@ -56,7 +56,7 @@ export function decodeFixedLengthBody(
   prev: FixedLengthBodyState,
   input: Buffer,
 ): FixedLengthBodyState {
-  if (prev.phase === FixedLengthBodyPhase.FINISHED) {
+  if (prev.phase === FixedLengthBodyState.FINISHED) {
     throw new Error('Content-Length parsing already finished');
   }
 
@@ -73,7 +73,7 @@ export function decodeFixedLengthBody(
     ...prev,
     decodedBodyBytes: newDecodedBytes,
     remainingBytes: newRemainingBytes,
-    phase: newRemainingBytes === 0 ? FixedLengthBodyPhase.FINISHED : prev.phase,
+    phase: newRemainingBytes === 0 ? FixedLengthBodyState.FINISHED : prev.phase,
     buffer: canAccept < inputSize ? input.subarray(canAccept) : Buffer.alloc(0),
   };
 
@@ -98,5 +98,5 @@ export function getRemainingBytes(state: FixedLengthBodyState): number {
 }
 
 export function isFixedLengthBodyFinished(state: FixedLengthBodyState) {
-  return state.phase === FixedLengthBodyPhase.FINISHED;
+  return state.phase === FixedLengthBodyState.FINISHED;
 }

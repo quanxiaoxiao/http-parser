@@ -4,7 +4,7 @@ import {
 } from 'node:test';
 
 import {
-  ChunkedBodyPhase,
+  ChunkedBodyState,
   createChunkedBodyState,
   decodeChunkedBody,
 } from './chunked-body.js';
@@ -14,13 +14,13 @@ describe('decodeChunkedBody - incremental parsing', () => {
     let state = createChunkedBodyState();
 
     state = decodeChunkedBody(state, Buffer.from('5\r\n'));
-    assert.strictEqual(state.phase, ChunkedBodyPhase.DATA);
+    assert.strictEqual(state.phase, ChunkedBodyState.DATA);
 
     state = decodeChunkedBody(state, Buffer.from('hello'));
-    assert.strictEqual(state.phase, ChunkedBodyPhase.CRLF);
+    assert.strictEqual(state.phase, ChunkedBodyState.CRLF);
 
     state = decodeChunkedBody(state, Buffer.from('\r\n0\r\n\r\n'));
-    assert.strictEqual(state.phase, ChunkedBodyPhase.FINISHED);
+    assert.strictEqual(state.phase, ChunkedBodyState.FINISHED);
     assert.strictEqual(state.chunks[0].toString(), 'hello');
   });
 
@@ -28,10 +28,10 @@ describe('decodeChunkedBody - incremental parsing', () => {
     let state = createChunkedBodyState();
 
     state = decodeChunkedBody(state, Buffer.from('a'));
-    assert.strictEqual(state.phase, ChunkedBodyPhase.SIZE);
+    assert.strictEqual(state.phase, ChunkedBodyState.SIZE);
 
     state = decodeChunkedBody(state, Buffer.from('\r\nhelloworld\r\n0\r\n\r\n'));
-    assert.strictEqual(state.phase, ChunkedBodyPhase.FINISHED);
+    assert.strictEqual(state.phase, ChunkedBodyState.FINISHED);
     assert.strictEqual(state.chunks[0].toString(), 'helloworld');
   });
 
@@ -39,10 +39,10 @@ describe('decodeChunkedBody - incremental parsing', () => {
     let state = createChunkedBodyState();
 
     state = decodeChunkedBody(state, Buffer.from('a\r\nhello'));
-    assert.strictEqual(state.phase, ChunkedBodyPhase.DATA);
+    assert.strictEqual(state.phase, ChunkedBodyState.DATA);
 
     state = decodeChunkedBody(state, Buffer.from('world\r\n0\r\n\r\n'));
-    assert.strictEqual(state.phase, ChunkedBodyPhase.FINISHED);
+    assert.strictEqual(state.phase, ChunkedBodyState.FINISHED);
     assert.strictEqual(state.chunks[0].toString(), 'helloworld');
   });
 });
@@ -52,10 +52,10 @@ describe('decodeChunkedBody - 分片接收数据', () => {
     let state = createChunkedBodyState();
 
     state = decodeChunkedBody(state, Buffer.from('5'));
-    assert.strictEqual(state.phase, ChunkedBodyPhase.SIZE);
+    assert.strictEqual(state.phase, ChunkedBodyState.SIZE);
 
     state = decodeChunkedBody(state, Buffer.from('\r\nhello\r\n0\r\n\r\n'));
-    assert.strictEqual(state.phase, ChunkedBodyPhase.FINISHED);
+    assert.strictEqual(state.phase, ChunkedBodyState.FINISHED);
     assert.strictEqual(state.chunks[0]?.toString(), 'hello');
   });
 
@@ -63,12 +63,12 @@ describe('decodeChunkedBody - 分片接收数据', () => {
     let state = createChunkedBodyState();
 
     state = decodeChunkedBody(state, Buffer.from('a\r\nhello'));
-    assert.strictEqual(state.phase, ChunkedBodyPhase.DATA);
+    assert.strictEqual(state.phase, ChunkedBodyState.DATA);
     assert.strictEqual(state.remainingChunkBytes, 10);
     assert.strictEqual(state.buffer.toString(), 'hello');
 
     state = decodeChunkedBody(state, Buffer.from('world\r\n0\r\n\r\n'));
-    assert.strictEqual(state.phase, ChunkedBodyPhase.FINISHED);
+    assert.strictEqual(state.phase, ChunkedBodyState.FINISHED);
     assert.strictEqual(state.chunks[0]?.toString(), 'helloworld');
   });
 
@@ -76,40 +76,40 @@ describe('decodeChunkedBody - 分片接收数据', () => {
     let state = createChunkedBodyState();
 
     state = decodeChunkedBody(state, Buffer.from('5\r\nhello\r'));
-    assert.strictEqual(state.phase, ChunkedBodyPhase.CRLF);
+    assert.strictEqual(state.phase, ChunkedBodyState.CRLF);
 
     state = decodeChunkedBody(state, Buffer.from('\n0\r\n\r\n'));
-    assert.strictEqual(state.phase, ChunkedBodyPhase.FINISHED);
+    assert.strictEqual(state.phase, ChunkedBodyState.FINISHED);
   });
 
   it('应该处理完整状态机转换', () => {
     let state = createChunkedBodyState();
 
     state = decodeChunkedBody(state, Buffer.from('5\r\n'));
-    assert.strictEqual(state.phase, ChunkedBodyPhase.DATA);
+    assert.strictEqual(state.phase, ChunkedBodyState.DATA);
 
     state = decodeChunkedBody(state, Buffer.from('hello'));
-    assert.strictEqual(state.phase, ChunkedBodyPhase.CRLF);
+    assert.strictEqual(state.phase, ChunkedBodyState.CRLF);
 
     state = decodeChunkedBody(state, Buffer.from('\r\n'));
-    assert.strictEqual(state.phase, ChunkedBodyPhase.SIZE);
+    assert.strictEqual(state.phase, ChunkedBodyState.SIZE);
 
     state = decodeChunkedBody(state, Buffer.from('0\r\n'));
-    assert.strictEqual(state.phase, ChunkedBodyPhase.TRAILER);
+    assert.strictEqual(state.phase, ChunkedBodyState.TRAILER);
 
     state = decodeChunkedBody(state, Buffer.from('\r\n'));
-    assert.strictEqual(state.phase, ChunkedBodyPhase.FINISHED);
+    assert.strictEqual(state.phase, ChunkedBodyState.FINISHED);
   });
 
   it('应该处理跨多次调用的 chunk data', () => {
     let state = createChunkedBodyState();
 
     state = decodeChunkedBody(state, Buffer.from('a\r\n01234'));
-    assert.strictEqual(state.phase, ChunkedBodyPhase.DATA);
+    assert.strictEqual(state.phase, ChunkedBodyState.DATA);
     assert.strictEqual(state.chunks.length, 0);
 
     state = decodeChunkedBody(state, Buffer.from('56789\r\n0\r\n\r\n'));
-    assert.strictEqual(state.phase, ChunkedBodyPhase.FINISHED);
+    assert.strictEqual(state.phase, ChunkedBodyState.FINISHED);
     assert.strictEqual(state.chunks[0].toString(), '0123456789');
   });
 });
@@ -121,7 +121,7 @@ describe('ChunkedBodyDecoder - 处理分片数据', () => {
 
     const result = decodeChunkedBody(state, input);
 
-    assert.strictEqual(result.phase, ChunkedBodyPhase.FINISHED);
+    assert.strictEqual(result.phase, ChunkedBodyState.FINISHED);
     assert.strictEqual(result.decodedBodyBytes, 5);
     assert.strictEqual(result.chunks.length, 1);
     assert.strictEqual(result.chunks[0].toString(), 'Hello');
@@ -133,7 +133,7 @@ describe('ChunkedBodyDecoder - 处理分片数据', () => {
 
     const result = decodeChunkedBody(state, input);
 
-    assert.strictEqual(result.phase, ChunkedBodyPhase.FINISHED);
+    assert.strictEqual(result.phase, ChunkedBodyState.FINISHED);
     assert.strictEqual(result.decodedBodyBytes, 11);
     assert.strictEqual(result.chunks.length, 2);
     assert.strictEqual(result.chunks[0].toString(), 'Hello');
@@ -144,36 +144,36 @@ describe('ChunkedBodyDecoder - 处理分片数据', () => {
     let state = createChunkedBodyState();
 
     state = decodeChunkedBody(state, Buffer.from('5\r\n'));
-    assert.strictEqual(state.phase, ChunkedBodyPhase.DATA);
+    assert.strictEqual(state.phase, ChunkedBodyState.DATA);
     assert.strictEqual(state.remainingChunkBytes, 5);
 
     state = decodeChunkedBody(state, Buffer.from('Hello\r\n'));
-    assert.strictEqual(state.phase, ChunkedBodyPhase.SIZE);
+    assert.strictEqual(state.phase, ChunkedBodyState.SIZE);
     assert.strictEqual(state.chunks.length, 1);
 
     state = decodeChunkedBody(state, Buffer.from('0\r\n\r\n'));
-    assert.strictEqual(state.phase, ChunkedBodyPhase.FINISHED);
+    assert.strictEqual(state.phase, ChunkedBodyState.FINISHED);
   });
 
   it('应该处理部分数据缓冲', () => {
     let state = createChunkedBodyState();
 
     state = decodeChunkedBody(state, Buffer.from('5'));
-    assert.strictEqual(state.phase, ChunkedBodyPhase.SIZE);
+    assert.strictEqual(state.phase, ChunkedBodyState.SIZE);
 
     state = decodeChunkedBody(state, Buffer.from('\r\nHello\r\n0\r\n\r\n'));
-    assert.strictEqual(state.phase, ChunkedBodyPhase.FINISHED);
+    assert.strictEqual(state.phase, ChunkedBodyState.FINISHED);
   });
 
   it('应该处理 chunk data 跨越多次调用', () => {
     let state = createChunkedBodyState();
 
     state = decodeChunkedBody(state, Buffer.from('A\r\n01234'));
-    assert.strictEqual(state.phase, ChunkedBodyPhase.DATA);
+    assert.strictEqual(state.phase, ChunkedBodyState.DATA);
     assert.strictEqual(state.chunks.length, 0);
 
     state = decodeChunkedBody(state, Buffer.from('56789\r\n0\r\n\r\n'));
-    assert.strictEqual(state.phase, ChunkedBodyPhase.FINISHED);
+    assert.strictEqual(state.phase, ChunkedBodyState.FINISHED);
     assert.strictEqual(state.chunks[0].toString(), '0123456789');
   });
 });

@@ -14,14 +14,14 @@ const CRLF_LENGTH = 2;
 const COLON = 0x3a;
 const INVALID_HEADER_NAME = /[^!#$%&'*+\-.^_`|~0-9a-z]/i;
 
-export enum HeadersDecodePhase {
+export enum HeadersDecodeState {
   LINE = 'line',
   FINISHED = 'finished',
 }
 
 export interface HeadersState {
   buffer: Buffer;
-  phase: HeadersDecodePhase;
+  phase: HeadersDecodeState;
   headers: Headers;
   rawHeaders: Array<[name: string, value: string]>,
   rawHeaderLines: string[];
@@ -114,7 +114,7 @@ export function createHeadersState(limits: HeaderLimits = DEFAULT_HEADER_LIMITS)
     headers: {},
     rawHeaders: [],
     rawHeaderLines: [],
-    phase: HeadersDecodePhase.LINE,
+    phase: HeadersDecodeState.LINE,
     receivedBytes: 0,
     limits,
   };
@@ -176,7 +176,7 @@ function processHeaderLine(
   const newOffset = offset + lineLength;
 
   if (line.length === 0) {
-    state.phase = HeadersDecodePhase.FINISHED;
+    state.phase = HeadersDecodeState.FINISHED;
     return { offset: newOffset, shouldContinue: false };
   }
 
@@ -195,7 +195,7 @@ export function decodeHeaders(
   prev: HeadersState,
   input: Buffer,
 ): HeadersState {
-  if (prev.phase === HeadersDecodePhase.FINISHED) {
+  if (prev.phase === HeadersDecodeState.FINISHED) {
     throw new Error('Headers parsing already finished');
   }
 
@@ -206,7 +206,7 @@ export function decodeHeaders(
 
   let offset = 0;
 
-  while (offset < next.buffer.length && next.phase !== HeadersDecodePhase.FINISHED) {
+  while (offset < next.buffer.length && next.phase !== HeadersDecodeState.FINISHED) {
     const result = processHeaderLine(next, next.buffer, offset);
     offset = result.offset;
     if (!result.shouldContinue) {
@@ -222,5 +222,5 @@ export function decodeHeaders(
 }
 
 export function isHeadersFinished(state: HeadersState) {
-  return state.phase === HeadersDecodePhase.FINISHED;
+  return state.phase === HeadersDecodeState.FINISHED;
 }

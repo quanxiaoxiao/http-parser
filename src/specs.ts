@@ -41,7 +41,7 @@ export const CRLF = '\r\n';
 
 export const MAX_LINE_SIZE = 16 * 1024;
 
-export enum HttpDecodePhase {
+export enum HttpDecodeState {
   START_LINE = 'start_line',
   HEADERS = 'headers',
   BODY_CHUNKED = 'body_chunked',

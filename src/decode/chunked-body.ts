@@ -17,7 +17,7 @@ import type {
 } from '../types.js';
 import { decodeHttpLine } from './http-line.js';
 
-export enum ChunkedBodyPhase {
+export enum ChunkedBodyState {
   SIZE = 'size',
   DATA = 'data',
   CRLF = 'crlf', // eslint-disable-line
@@ -27,7 +27,7 @@ export enum ChunkedBodyPhase {
 
 export type ChunkedBodyState = {
   type: BodyType;
-  phase: ChunkedBodyPhase;
+  phase: ChunkedBodyState;
   decodedBodyBytes: number;
   remainingChunkBytes: number;
   buffer: Buffer;
@@ -96,7 +96,7 @@ export function parseChunkSize(line: string, limits: ChunkedBodyLimits): number 
 export function createChunkedBodyState(limits: ChunkedBodyLimits = DEFAULT_CHUNKED_BODY_LIMITS): ChunkedBodyState {
   return {
     type: 'chunked',
-    phase: ChunkedBodyPhase.SIZE,
+    phase: ChunkedBodyState.SIZE,
     buffer: EMPTY_BUFFER,
     limits,
     remainingChunkBytes: 0,
@@ -166,7 +166,7 @@ function parseTrailerHeaders(raw: string, limits: ChunkedBodyLimits): TrailerHea
   return trailers;
 }
 
-function handleSizePhase(state: ChunkedBodyState): void {
+function handleSizeState(state: ChunkedBodyState): void {
   const { limits } = state;
   const maxChunkSizeLineLength = limits.maxChunkExtensionLength === 0
     ? limits.maxChunkSizeHexDigits
@@ -182,11 +182,11 @@ function handleSizePhase(state: ChunkedBodyState): void {
   const size = parseChunkSize(line, state.limits);
 
   state.buffer = state.buffer.subarray(consumed);
-  state.phase = size === 0 ? ChunkedBodyPhase.TRAILER : ChunkedBodyPhase.DATA;
+  state.phase = size === 0 ? ChunkedBodyState.TRAILER : ChunkedBodyState.DATA;
   state.remainingChunkBytes = size;
 }
 
-function handleDataPhase(state: ChunkedBodyState): void {
+function handleDataState(state: ChunkedBodyState): void {
   const { buffer, remainingChunkBytes } = state;
 
   if (buffer.length < remainingChunkBytes) {
@@ -197,10 +197,10 @@ function handleDataPhase(state: ChunkedBodyState): void {
   state.buffer = buffer.subarray(remainingChunkBytes);
   state.chunks = [...state.chunks, buffer.subarray(0, remainingChunkBytes)];
   state.remainingChunkBytes = 0;
-  state.phase = ChunkedBodyPhase.CRLF;
+  state.phase = ChunkedBodyState.CRLF;
 }
 
-function handleCRLFPhase(state: ChunkedBodyState): void {
+function handleCRLFState(state: ChunkedBodyState): void {
   const { buffer } = state;
 
   if (buffer.length < CRLF_LENGTH) {
@@ -215,10 +215,10 @@ function handleCRLFPhase(state: ChunkedBodyState): void {
   }
 
   state.buffer = buffer.subarray(CRLF_LENGTH);
-  state.phase = ChunkedBodyPhase.SIZE;
+  state.phase = ChunkedBodyState.SIZE;
 }
 
-function handleTrailerPhase(state: ChunkedBodyState): void {
+function handleTrailerState(state: ChunkedBodyState): void {
   const { buffer, limits } = state;
   const { maxTrailerSize } = limits;
   const firstLineResult = decodeHttpLine(buffer, 0, { maxLineLength: maxTrailerSize });
@@ -230,7 +230,7 @@ function handleTrailerPhase(state: ChunkedBodyState): void {
   const firstLine = firstLineResult.line;
   if (firstLine.length === 0) {
     state.buffer = buffer.subarray(firstLineResult.bytesConsumed);
-    state.phase = ChunkedBodyPhase.FINISHED;
+    state.phase = ChunkedBodyState.FINISHED;
     return;
   }
 
@@ -249,7 +249,7 @@ function handleTrailerPhase(state: ChunkedBodyState): void {
   const rawTrailers = buffer.subarray(0, trailerEndIdx).toString('utf8');
   const parsedTrailers = parseTrailerHeaders(rawTrailers, state.limits);
 
-  state.phase = ChunkedBodyPhase.FINISHED;
+  state.phase = ChunkedBodyState.FINISHED;
   state.buffer = buffer.subarray(trailerEndIdx + DOUBLE_CRLF_LENGTH);
   state.trailers = {
     ...state.trailers,
@@ -257,19 +257,19 @@ function handleTrailerPhase(state: ChunkedBodyState): void {
   };
 }
 
-const phaseHandlers: Record<ChunkedBodyPhase, (state: ChunkedBodyState) => void> = {
-  [ChunkedBodyPhase.SIZE]: handleSizePhase,
-  [ChunkedBodyPhase.DATA]: handleDataPhase,
-  [ChunkedBodyPhase.CRLF]: handleCRLFPhase,
-  [ChunkedBodyPhase.TRAILER]: handleTrailerPhase,
-  [ChunkedBodyPhase.FINISHED]: () => {},
+const phaseHandlers: Record<ChunkedBodyState, (state: ChunkedBodyState) => void> = {
+  [ChunkedBodyState.SIZE]: handleSizeState,
+  [ChunkedBodyState.DATA]: handleDataState,
+  [ChunkedBodyState.CRLF]: handleCRLFState,
+  [ChunkedBodyState.TRAILER]: handleTrailerState,
+  [ChunkedBodyState.FINISHED]: () => {},
 } as const;
 
 export function decodeChunkedBody(
   prev: ChunkedBodyState,
   input: Buffer,
 ): ChunkedBodyState {
-  if (prev.phase === ChunkedBodyPhase.FINISHED) {
+  if (prev.phase === ChunkedBodyState.FINISHED) {
     throw new Error('Chunked decoding already finished');
   }
 
@@ -278,8 +278,8 @@ export function decodeChunkedBody(
     buffer: prev.buffer.length > 0 ? Buffer.concat([prev.buffer, input]) : input,
   };
 
-  while (next.phase !== ChunkedBodyPhase.FINISHED) {
-    const prevPhase = next.phase;
+  while (next.phase !== ChunkedBodyState.FINISHED) {
+    const prevState = next.phase;
     const handler = phaseHandlers[next.phase];
     if (!handler) {
       throw new Error(`Unknown phase: ${next.phase}`);
@@ -287,7 +287,7 @@ export function decodeChunkedBody(
 
     handler(next);
 
-    if (next.phase === prevPhase) {
+    if (next.phase === prevState) {
       break;
     }
   }
@@ -296,5 +296,5 @@ export function decodeChunkedBody(
 }
 
 export function isChunkedBodyFinished(state: ChunkedBodyState) {
-  return state.phase === ChunkedBodyPhase.FINISHED;
+  return state.phase === ChunkedBodyState.FINISHED;
 }

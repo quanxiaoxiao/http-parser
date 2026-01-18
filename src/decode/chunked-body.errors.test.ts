@@ -5,7 +5,7 @@ import {
 
 import { HttpDecodeErrorCode } from '../errors.js';
 import {
-  ChunkedBodyPhase,
+  ChunkedBodyState,
   createChunkedBodyState,
   decodeChunkedBody,
   parseChunkSize,
@@ -259,7 +259,7 @@ describe('ChunkedBodyDecoder - 错误处理', () => {
     const input = Buffer.from('0\r\n\r\n');
 
     const result = decodeChunkedBody(state, input);
-    assert.strictEqual(result.phase, ChunkedBodyPhase.FINISHED);
+    assert.strictEqual(result.phase, ChunkedBodyState.FINISHED);
 
     assert.throws(
       () => decodeChunkedBody(result, Buffer.from('5\r\n')),

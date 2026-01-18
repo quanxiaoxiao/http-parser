@@ -2,7 +2,7 @@ import * as assert from 'node:assert';
 import { Buffer } from 'node:buffer';
 import { describe, test } from 'node:test';
 
-import { HttpDecodePhase } from '../specs.js';
+import { HttpDecodeState } from '../specs.js';
 import {
   createRequestState,
   createResponseState,
@@ -15,7 +15,7 @@ describe('HTTP Decoder - Error Handling', () => {
     const input = Buffer.from('GET / HTTP/1.1\r\n\r\n');
     const state = decodeRequest(null, input);
 
-    assert.strictEqual(state.phase, HttpDecodePhase.FINISHED);
+    assert.strictEqual(state.phase, HttpDecodeState.FINISHED);
 
     assert.throws(() => {
       decodeRequest(state, Buffer.from('GET / HTTP/1.1\r\n\r\n'));
@@ -37,7 +37,7 @@ describe('HTTP Decoder - State Management', () => {
     const state = createRequestState();
 
     assert.strictEqual(state.messageType, 'request');
-    assert.strictEqual(state.phase, HttpDecodePhase.START_LINE);
+    assert.strictEqual(state.phase, HttpDecodeState.START_LINE);
     assert.strictEqual(state.parsing.startLine, null);
     assert.strictEqual(state.parsing.headers, null);
     assert.strictEqual(state.parsing.body, null);
@@ -48,7 +48,7 @@ describe('HTTP Decoder - State Management', () => {
     const state = createResponseState();
 
     assert.strictEqual(state.messageType, 'response');
-    assert.strictEqual(state.phase, HttpDecodePhase.START_LINE);
+    assert.strictEqual(state.phase, HttpDecodeState.START_LINE);
   });
 
   test('should reset events array on each decode', () => {
@@ -67,10 +67,10 @@ describe('HTTP Decoder - State Management', () => {
 describe('HTTP Decoder - Edge Cases', () => {
   test('should handle empty buffer input', () => {
     const state1 = decodeRequest(null, Buffer.alloc(0));
-    assert.strictEqual(state1.phase, HttpDecodePhase.START_LINE);
+    assert.strictEqual(state1.phase, HttpDecodeState.START_LINE);
 
     const state2 = decodeRequest(state1, Buffer.from('GET / HTTP/1.1\r\n\r\n'));
-    assert.strictEqual(state2.phase, HttpDecodePhase.FINISHED);
+    assert.strictEqual(state2.phase, HttpDecodeState.FINISHED);
   });
 
   test('should handle request with Content-Length 0', () => {
@@ -82,7 +82,7 @@ describe('HTTP Decoder - Edge Cases', () => {
 
     const state = decodeRequest(null, input);
 
-    assert.strictEqual(state.phase, HttpDecodePhase.FINISHED);
+    assert.strictEqual(state.phase, HttpDecodeState.FINISHED);
 
     const bodyEvents = state.events.filter(e =>
       e.type === 'body-chunk' || e.type === 'body-complete',
@@ -100,7 +100,7 @@ describe('HTTP Decoder - Edge Cases', () => {
 
     const state = decodeRequest(null, input);
 
-    assert.strictEqual(state.phase, HttpDecodePhase.FINISHED);
+    assert.strictEqual(state.phase, HttpDecodeState.FINISHED);
     assert.strictEqual(state.parsing.startLine?.path, longPath);
   });
 
@@ -114,7 +114,7 @@ describe('HTTP Decoder - Edge Cases', () => {
 
     const state = decodeResponse(null, input);
 
-    assert.strictEqual(state.phase, HttpDecodePhase.FINISHED);
+    assert.strictEqual(state.phase, HttpDecodeState.FINISHED);
     assert.ok(state.parsing.headers?.headers);
   });
 });

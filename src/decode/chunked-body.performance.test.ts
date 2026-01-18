@@ -5,7 +5,7 @@ import {
 
 import {
   type ChunkedBodyLimits,
-  ChunkedBodyPhase,
+  ChunkedBodyState,
   createChunkedBodyState,
   decodeChunkedBody,
   parseChunkSize,
@@ -21,7 +21,7 @@ describe('decodeChunkedBody - 性能和压力测试', () => {
 
     state = decodeChunkedBody(state, Buffer.from('0\r\n\r\n'));
 
-    assert.strictEqual(state.phase, ChunkedBodyPhase.FINISHED);
+    assert.strictEqual(state.phase, ChunkedBodyState.FINISHED);
     assert.strictEqual(state.chunks.length, 100);
     assert.strictEqual(state.decodedBodyBytes, 100);
   });
@@ -37,7 +37,7 @@ describe('decodeChunkedBody - 性能和压力测试', () => {
 
     const result = decodeChunkedBody(state, Buffer.from(trailerStr));
 
-    assert.strictEqual(result.phase, ChunkedBodyPhase.FINISHED);
+    assert.strictEqual(result.phase, ChunkedBodyState.FINISHED);
     assert.strictEqual(Object.keys(result.trailers).length, 31);
   });
 });
@@ -52,7 +52,7 @@ describe('ChunkedBodyDecoder - 性能和内存', () => {
 
     state = decodeChunkedBody(state, Buffer.from('0\r\n\r\n'));
 
-    assert.strictEqual(state.phase, ChunkedBodyPhase.FINISHED);
+    assert.strictEqual(state.phase, ChunkedBodyState.FINISHED);
     assert.strictEqual(state.chunks.length, 100);
     assert.strictEqual(state.decodedBodyBytes, 100);
   });
@@ -65,7 +65,7 @@ describe('ChunkedBodyDecoder - 性能和内存', () => {
 
     const result = decodeChunkedBody(state, input);
 
-    assert.strictEqual(result.phase, ChunkedBodyPhase.FINISHED);
+    assert.strictEqual(result.phase, ChunkedBodyState.FINISHED);
     assert.strictEqual(result.decodedBodyBytes, size);
     assert.strictEqual(result.chunks[0].length, size);
   });
@@ -89,7 +89,7 @@ describe('decodeChunkedBody - 真实场景模拟', () => {
 
     state = decodeChunkedBody(state, Buffer.from('0\r\n\r\n'));
 
-    assert.strictEqual(state.phase, ChunkedBodyPhase.FINISHED);
+    assert.strictEqual(state.phase, ChunkedBodyState.FINISHED);
 
     const fullBody = Buffer.concat(state.chunks).toString();
     const json = JSON.parse(fullBody);
@@ -122,7 +122,7 @@ describe('decodeChunkedBody - 真实场景模拟', () => {
       Buffer.from('\r\n0\r\n\r\n'),
     ]));
 
-    assert.strictEqual(state.phase, ChunkedBodyPhase.FINISHED);
+    assert.strictEqual(state.phase, ChunkedBodyState.FINISHED);
     assert.strictEqual(state.decodedBodyBytes, 2560);
   });
 
@@ -142,7 +142,7 @@ describe('decodeChunkedBody - 真实场景模拟', () => {
 
     state = decodeChunkedBody(state, Buffer.from('0\r\n\r\n'));
 
-    assert.strictEqual(state.phase, ChunkedBodyPhase.FINISHED);
+    assert.strictEqual(state.phase, ChunkedBodyState.FINISHED);
     assert.strictEqual(state.chunks.length, 3);
   });
 });
@@ -158,7 +158,7 @@ describe('decodeChunkedBody - 二进制数据处理', () => {
     ]);
     const result = decodeChunkedBody(state, input);
 
-    assert.strictEqual(result.phase, ChunkedBodyPhase.FINISHED);
+    assert.strictEqual(result.phase, ChunkedBodyState.FINISHED);
     assert.deepStrictEqual(result.chunks[0], binaryData);
   });
 
@@ -195,7 +195,7 @@ describe('decodeChunkedBody - 边界情况 - 性能', () => {
     const input = Buffer.from('1\r\nA\r\n0\r\n\r\n');
     const result = decodeChunkedBody(state, input);
 
-    assert.strictEqual(result.phase, ChunkedBodyPhase.FINISHED);
+    assert.strictEqual(result.phase, ChunkedBodyState.FINISHED);
     assert.strictEqual(result.chunks[0].toString(), 'A');
   });
 
@@ -203,7 +203,7 @@ describe('decodeChunkedBody - 边界情况 - 性能', () => {
     const state = createChunkedBodyState();
     const result = decodeChunkedBody(state, Buffer.alloc(0));
 
-    assert.strictEqual(result.phase, ChunkedBodyPhase.SIZE);
+    assert.strictEqual(result.phase, ChunkedBodyState.SIZE);
   });
 });
 

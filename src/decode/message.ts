@@ -10,7 +10,7 @@ import {
   DEFAULT_FIXED_LENGTH_BODY_LIMITS,
   DEFAULT_HEADER_LIMITS,
   DEFAULT_START_LINE_LIMITS,
-  HttpDecodePhase,
+  HttpDecodeState,
 } from '../specs.js';
 import type {
   ChunkedBodyLimits,
@@ -64,7 +64,7 @@ interface HttpParserConfig {
 }
 
 export type HttpDecodeEvent =
-  | { type: 'phase-enter'; phase: HttpDecodePhase, reason?: string; value?: number; limits?: Record<string, number> }
+  | { type: 'phase-enter'; phase: HttpDecodeState, reason?: string; value?: number; limits?: Record<string, number> }
   | { type: 'start-line-complete'; raw: string }
   | { type: 'start-line-parsed'; method?: string; path?: string; version: number; statusCode?: number; statusText?: string }
   | { type: 'header-line'; name: string; value: string; index: number; }
@@ -104,7 +104,7 @@ function moveRemainingBuffer<T extends { buffer: Buffer }>(
   from.buffer = EMPTY_BUFFER;
 }
 
-function transition(state: HttpState, next: HttpDecodePhase): void {
+function transition(state: HttpState, next: HttpDecodeState): void {
   if (state.phase === next) {
     return;
   }
@@ -113,7 +113,7 @@ function transition(state: HttpState, next: HttpDecodePhase): void {
     type: 'phase-enter',
     phase: next,
   });
-  if (next === HttpDecodePhase.FINISHED) {
+  if (next === HttpDecodeState.FINISHED) {
     addEvent(state, {
       type: 'message-complete',
     });
@@ -231,7 +231,7 @@ type StartLineMap = {
 export interface HttpState<T extends 'request' | 'response' = 'request' | 'response'> {
   readonly messageType: T;
   readonly config: HttpParserConfig;
-  phase: HttpDecodePhase;
+  phase: HttpDecodeState;
   buffer: Buffer;
   error?: Error,
   parsing: {
@@ -248,7 +248,7 @@ export type HttpResponseState = HttpState<'response'>;
 export function createHttpState(messageType: 'request' | 'response'): HttpState {
   return {
     messageType,
-    phase: HttpDecodePhase.START_LINE,
+    phase: HttpDecodeState.START_LINE,
     config: {
       headerLimits: DEFAULT_HEADER_LIMITS,
       startLineLimits: DEFAULT_START_LINE_LIMITS,
@@ -273,7 +273,7 @@ export function createResponseState(): HttpResponseState {
   return createHttpState('response') as HttpResponseState;
 }
 
-function handleStartLinePhase(state: HttpState): void {
+function handleStartLineState(state: HttpState): void {
   const parseLineFn = state.messageType === 'request'
     ? decodeRequestStartLine
     : decodeResponseStartLine;
@@ -328,10 +328,10 @@ function handleStartLinePhase(state: HttpState): void {
     });
   }
 
-  transition(state, HttpDecodePhase.HEADERS);
+  transition(state, HttpDecodeState.HEADERS);
 }
 
-function handleHeadersPhase(state: HttpState): void {
+function handleHeadersState(state: HttpState): void {
   if (!state.parsing.headers) {
     state.parsing.headers = createHeadersState(state.config.headerLimits);
   }
@@ -368,22 +368,22 @@ function handleHeadersPhase(state: HttpState): void {
   switch (bodyStrategy.type) {
     case 'chunked': {
       state.parsing.body = createChunkedBodyState(state.config.chunkedbodylimits);
-      transition(state, HttpDecodePhase.BODY_CHUNKED);
+      transition(state, HttpDecodeState.BODY_CHUNKED);
       break;
     }
     case 'fixed': {
       state.parsing.body = createFixedLengthBodyState(bodyStrategy.length, state.config.fixedLengthBodyLimits);
-      transition(state, HttpDecodePhase.BODY_FIXED_LENGTH);
+      transition(state, HttpDecodeState.BODY_FIXED_LENGTH);
       break;
     }
     default: {
-      transition(state, HttpDecodePhase.FINISHED);
+      transition(state, HttpDecodeState.FINISHED);
     }
   }
   moveRemainingBuffer(state.parsing.headers, state);
 }
 
-function handleBodyPhase<T extends ChunkedBodyState | FixedLengthBodyState>(
+function handleBodyState<T extends ChunkedBodyState | FixedLengthBodyState>(
   state: HttpState,
   parser: (bodyState: T, buffer: Buffer) => T,
 ): void {
@@ -414,31 +414,31 @@ function handleBodyPhase<T extends ChunkedBodyState | FixedLengthBodyState>(
 
   state.parsing.body = bodyState;
   moveRemainingBuffer(state.parsing.body, state);
-  transition(state, HttpDecodePhase.FINISHED);
+  transition(state, HttpDecodeState.FINISHED);
 }
 
-const PHASE_HANDLERS: { [K in HttpDecodePhase]: (state: HttpState) => void } = {
-  [HttpDecodePhase.START_LINE]: handleStartLinePhase,
-  [HttpDecodePhase.HEADERS]: handleHeadersPhase,
-  [HttpDecodePhase.BODY_CHUNKED]: (state) => handleBodyPhase(state, decodeChunkedBody),
-  [HttpDecodePhase.BODY_FIXED_LENGTH]: (state) => handleBodyPhase(state, decodeFixedLengthBody),
-  [HttpDecodePhase.BODY_CLOSE_DELIMITED]: () => {
+const PHASE_HANDLERS: { [K in HttpDecodeState]: (state: HttpState) => void } = {
+  [HttpDecodeState.START_LINE]: handleStartLineState,
+  [HttpDecodeState.HEADERS]: handleHeadersState,
+  [HttpDecodeState.BODY_CHUNKED]: (state) => handleBodyState(state, decodeChunkedBody),
+  [HttpDecodeState.BODY_FIXED_LENGTH]: (state) => handleBodyState(state, decodeFixedLengthBody),
+  [HttpDecodeState.BODY_CLOSE_DELIMITED]: () => {
     throw new HttpDecodeError({
       code: HttpDecodeErrorCode.UNSUPPORTED_FEATURE,
       message: 'Body close-delimited not implemented',
     });
   },
-  [HttpDecodePhase.UPGRADE]: () => {
+  [HttpDecodeState.UPGRADE]: () => {
     throw new HttpDecodeError({
       code: HttpDecodeErrorCode.UNSUPPORTED_FEATURE,
       message: 'Upgrade protocol not implemented',
     });
   },
-  [HttpDecodePhase.FINISHED]: () => {},
+  [HttpDecodeState.FINISHED]: () => {},
 };
 
 function runStateMachine(state: HttpState): void {
-  while (state.phase !== HttpDecodePhase.FINISHED) {
+  while (state.phase !== HttpDecodeState.FINISHED) {
     const prev = state.phase;
     PHASE_HANDLERS[state.phase](state);
     if (state.phase === prev) {
@@ -451,7 +451,7 @@ function decodeHttp(
   prev: HttpState,
   input: Buffer,
 ): HttpState {
-  if (prev.phase === HttpDecodePhase.FINISHED) {
+  if (prev.phase === HttpDecodeState.FINISHED) {
     throw new Error('Decoding already finished');
   }
 
@@ -473,7 +473,7 @@ function decodeHttp(
         code: HttpDecodeErrorCode.INTERNAL_ERROR,
         message: error instanceof Error ? error.message : String(error),
       });
-    next.phase = HttpDecodePhase.FINISHED;
+    next.phase = HttpDecodeState.FINISHED;
   }
 
   return next;
@@ -496,5 +496,5 @@ export function decodeResponse(
 }
 
 export function isMessageFinished(state: HttpState) {
-  return state.phase === HttpDecodePhase.FINISHED;
+  return state.phase === HttpDecodeState.FINISHED;
 }

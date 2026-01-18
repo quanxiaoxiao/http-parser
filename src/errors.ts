@@ -1,4 +1,4 @@
-// import { HttpDecodePhase } from './specs.js';
+// import { HttpDecodeState } from './specs.js';
 export enum HttpDecodeErrorCategory {
   SYNTAX = 'SYNTAX',
   SIZE_LIMIT = 'SIZE_LIMIT',
@@ -114,12 +114,12 @@ export enum HttpDecodeErrorCode {
 
 export class HttpDecodeError extends Error {
   readonly code: HttpDecodeErrorCode;
-  // readonly phase: HttpDecodePhase;
+  // readonly phase: HttpDecodeState;
   readonly fatal: boolean;
 
   constructor(options: {
     code: HttpDecodeErrorCode;
-    // phase: HttpDecodePhase;
+    // phase: HttpDecodeState;
     message: string;
     fatal?: boolean;
     cause?: unknown;

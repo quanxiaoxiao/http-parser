@@ -7,7 +7,7 @@ import { HttpDecodeErrorCode } from '../errors.js';
 import {
   createFixedLengthBodyState,
   decodeFixedLengthBody,
-  FixedLengthBodyPhase,
+  FixedLengthBodyState,
   getProgress,
   getRemainingBytes,
 } from './fixed-length-body.js';
@@ -18,7 +18,7 @@ describe('createFixedLengthBodyState', () => {
 
     assert.strictEqual(state.remainingBytes, 100);
     assert.strictEqual(state.decodedBodyBytes, 0);
-    assert.strictEqual(state.phase, FixedLengthBodyPhase.DATA);
+    assert.strictEqual(state.phase, FixedLengthBodyState.DATA);
     assert.strictEqual(state.buffer.length, 0);
     assert.strictEqual(state.chunks.length, 0);
   });
@@ -27,7 +27,7 @@ describe('createFixedLengthBodyState', () => {
     const state = createFixedLengthBodyState(0);
 
     assert.strictEqual(state.remainingBytes, 0);
-    assert.strictEqual(state.phase, FixedLengthBodyPhase.FINISHED);
+    assert.strictEqual(state.phase, FixedLengthBodyState.FINISHED);
   });
 
   test('should throw error for negative content length', () => {
@@ -59,7 +59,7 @@ describe('decodeFixedLengthBody', () => {
     const result = decodeFixedLengthBody(state, input);
 
     assert.strictEqual(result.decodedBodyBytes, 10);
-    assert.strictEqual(result.phase, FixedLengthBodyPhase.FINISHED);
+    assert.strictEqual(result.phase, FixedLengthBodyState.FINISHED);
     assert.strictEqual(result.buffer.toString(), '');
     assert.strictEqual(result.chunks.length, 1);
   });
@@ -69,11 +69,11 @@ describe('decodeFixedLengthBody', () => {
 
     state = decodeFixedLengthBody(state, Buffer.from('12345'));
     assert.strictEqual(state.decodedBodyBytes, 5);
-    assert.strictEqual(state.phase, FixedLengthBodyPhase.DATA);
+    assert.strictEqual(state.phase, FixedLengthBodyState.DATA);
 
     state = decodeFixedLengthBody(state, Buffer.from('67890'));
     assert.strictEqual(state.decodedBodyBytes, 10);
-    assert.strictEqual(state.phase, FixedLengthBodyPhase.FINISHED);
+    assert.strictEqual(state.phase, FixedLengthBodyState.FINISHED);
     assert.strictEqual(state.buffer.toString(), '');
   });
 
@@ -82,12 +82,12 @@ describe('decodeFixedLengthBody', () => {
 
     state = decodeFixedLengthBody(state, Buffer.from(''));
     assert.strictEqual(state.decodedBodyBytes, 0);
-    assert.strictEqual(state.phase, FixedLengthBodyPhase.DATA);
+    assert.strictEqual(state.phase, FixedLengthBodyState.DATA);
     assert.strictEqual(state.chunks.length, 0);
 
     state = decodeFixedLengthBody(state, Buffer.from('12345'));
     assert.strictEqual(state.decodedBodyBytes, 5);
-    assert.strictEqual(state.phase, FixedLengthBodyPhase.FINISHED);
+    assert.strictEqual(state.phase, FixedLengthBodyState.FINISHED);
   });
 
   test('should more data than content length', () => {
@@ -97,7 +97,7 @@ describe('decodeFixedLengthBody', () => {
     state = decodeFixedLengthBody(state, input);
 
     assert.strictEqual(state.decodedBodyBytes, 5);
-    assert.strictEqual(state.phase, FixedLengthBodyPhase.FINISHED);
+    assert.strictEqual(state.phase, FixedLengthBodyState.FINISHED);
     assert.strictEqual(state.chunks[0].length, 5);
     assert.strictEqual(state.buffer.toString(), input.subarray(5).toString());
   });
@@ -221,7 +221,7 @@ describe('integration tests', () => {
     state = decodeFixedLengthBody(state, Buffer.from('Done!!aa'));
     assert.strictEqual(getProgress(state), 1);
     assert.strictEqual(getRemainingBytes(state), 0);
-    assert.strictEqual(state.phase, FixedLengthBodyPhase.FINISHED);
+    assert.strictEqual(state.phase, FixedLengthBodyState.FINISHED);
     assert.strictEqual(state.buffer.toString(), 'aa');
   });
 });
@@ -233,13 +233,13 @@ describe('FixedLengthBody Decoder', () => {
       const state = createFixedLengthBodyState(100);
       assert.equal(state.remainingBytes, 100);
       assert.equal(state.decodedBodyBytes, 0);
-      assert.strictEqual(state.phase, FixedLengthBodyPhase.DATA);
+      assert.strictEqual(state.phase, FixedLengthBodyState.DATA);
       assert.equal(state.chunks.length, 0);
     });
 
     test('当 Content-Length 为 0 时，应立即标记为完成', () => {
       const state = createFixedLengthBodyState(0);
-      assert.strictEqual(state.phase, FixedLengthBodyPhase.FINISHED);
+      assert.strictEqual(state.phase, FixedLengthBodyState.FINISHED);
     });
 
     test('无效的 Content-Length 应抛出错误', () => {
@@ -254,11 +254,11 @@ describe('FixedLengthBody Decoder', () => {
 
       state = decodeFixedLengthBody(state, Buffer.from('hello'));
       assert.equal(state.decodedBodyBytes, 5);
-      assert.strictEqual(state.phase, FixedLengthBodyPhase.DATA);
+      assert.strictEqual(state.phase, FixedLengthBodyState.DATA);
 
       state = decodeFixedLengthBody(state, Buffer.from('world'));
       assert.equal(state.decodedBodyBytes, 10);
-      assert.strictEqual(state.phase, FixedLengthBodyPhase.FINISHED);
+      assert.strictEqual(state.phase, FixedLengthBodyState.FINISHED);
       assert.deepEqual(Buffer.concat(state.chunks), Buffer.from('helloworld'));
     });
 
@@ -268,7 +268,7 @@ describe('FixedLengthBody Decoder', () => {
 
       const nextState = decodeFixedLengthBody(state, input);
 
-      assert.strictEqual(nextState.phase, FixedLengthBodyPhase.FINISHED);
+      assert.strictEqual(nextState.phase, FixedLengthBodyState.FINISHED);
       assert.equal(nextState.decodedBodyBytes, 5);
       // 验证 chunks 只包含前 5 个字节
       assert.deepEqual(Buffer.concat(nextState.chunks), Buffer.from('12345'));
@@ -324,7 +324,7 @@ describe('createFixedLengthBodyState', () => {
     const state = createFixedLengthBodyState(100);
 
     assert.strictEqual(state.type, 'fixed');
-    assert.strictEqual(state.phase, FixedLengthBodyPhase.DATA);
+    assert.strictEqual(state.phase, FixedLengthBodyState.DATA);
     assert.strictEqual(state.buffer.length, 0);
     assert.strictEqual(state.remainingBytes, 100);
     assert.strictEqual(state.decodedBodyBytes, 0);
@@ -334,7 +334,7 @@ describe('createFixedLengthBodyState', () => {
   it('应该创建已完成状态（contentLength = 0）', () => {
     const state = createFixedLengthBodyState(0);
 
-    assert.strictEqual(state.phase, FixedLengthBodyPhase.FINISHED);
+    assert.strictEqual(state.phase, FixedLengthBodyState.FINISHED);
     assert.strictEqual(state.remainingBytes, 0);
     assert.strictEqual(state.decodedBodyBytes, 0);
   });
@@ -388,7 +388,7 @@ describe('decodeFixedLengthBody', () => {
 
     const result = decodeFixedLengthBody(state, input);
 
-    assert.strictEqual(result.phase, FixedLengthBodyPhase.FINISHED);
+    assert.strictEqual(result.phase, FixedLengthBodyState.FINISHED);
     assert.strictEqual(result.remainingBytes, 0);
     assert.strictEqual(result.decodedBodyBytes, 10);
     assert.strictEqual(result.buffer.length, 0);
@@ -401,21 +401,21 @@ describe('decodeFixedLengthBody', () => {
 
     // 第一块：5 字节
     state = decodeFixedLengthBody(state, Buffer.from('12345'));
-    assert.strictEqual(state.phase, FixedLengthBodyPhase.DATA);
+    assert.strictEqual(state.phase, FixedLengthBodyState.DATA);
     assert.strictEqual(state.remainingBytes, 10);
     assert.strictEqual(state.decodedBodyBytes, 5);
     assert.strictEqual(state.chunks.length, 1);
 
     // 第二块：7 字节
     state = decodeFixedLengthBody(state, Buffer.from('abcdefg'));
-    assert.strictEqual(state.phase, FixedLengthBodyPhase.DATA);
+    assert.strictEqual(state.phase, FixedLengthBodyState.DATA);
     assert.strictEqual(state.remainingBytes, 3);
     assert.strictEqual(state.decodedBodyBytes, 12);
     assert.strictEqual(state.chunks.length, 2);
 
     // 第三块：3 字节（完成）
     state = decodeFixedLengthBody(state, Buffer.from('xyz'));
-    assert.strictEqual(state.phase, FixedLengthBodyPhase.FINISHED);
+    assert.strictEqual(state.phase, FixedLengthBodyState.FINISHED);
     assert.strictEqual(state.remainingBytes, 0);
     assert.strictEqual(state.decodedBodyBytes, 15);
     assert.strictEqual(state.chunks.length, 3);
@@ -427,7 +427,7 @@ describe('decodeFixedLengthBody', () => {
 
     const result = decodeFixedLengthBody(state, input);
 
-    assert.strictEqual(result.phase, FixedLengthBodyPhase.FINISHED);
+    assert.strictEqual(result.phase, FixedLengthBodyState.FINISHED);
     assert.strictEqual(result.remainingBytes, 0);
     assert.strictEqual(result.decodedBodyBytes, 5);
     assert.strictEqual(result.chunks.length, 1);
@@ -456,7 +456,7 @@ describe('decodeFixedLengthBody', () => {
   it('应该正确处理零长度 body', () => {
     const state = createFixedLengthBodyState(0);
 
-    assert.strictEqual(state.phase, FixedLengthBodyPhase.FINISHED);
+    assert.strictEqual(state.phase, FixedLengthBodyState.FINISHED);
     assert.throws(
       () => decodeFixedLengthBody(state, Buffer.from('data')),
       /already finished/,
@@ -480,7 +480,7 @@ describe('decodeFixedLengthBody', () => {
     // 添加 10 字节，恰好填满
     state = decodeFixedLengthBody(state, Buffer.from('1234567890'));
 
-    assert.strictEqual(state.phase, FixedLengthBodyPhase.FINISHED);
+    assert.strictEqual(state.phase, FixedLengthBodyState.FINISHED);
     assert.strictEqual(state.remainingBytes, 0);
     assert.strictEqual(state.decodedBodyBytes, 10);
   });
@@ -520,7 +520,7 @@ describe('集成测试', () => {
     state = decodeFixedLengthBody(state, chunk2);
     state = decodeFixedLengthBody(state, chunk3);
 
-    assert.strictEqual(state.phase, FixedLengthBodyPhase.FINISHED);
+    assert.strictEqual(state.phase, FixedLengthBodyState.FINISHED);
 
     // 验证可以正确重建原始数据
     const reconstructed = Buffer.concat(state.chunks).toString();
