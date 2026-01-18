@@ -405,7 +405,7 @@ describe('Fuzz Testing - Valid HTTP Messages Stress', () => {
       const body = generateChunkedBody();
       const state = createChunkedBodyState();
       const result = decodeChunkedBody(state, body);
-      assert.ok(result.phase !== undefined);
+      assert.ok(result.state !== undefined);
     }
   });
 

@@ -18,7 +18,7 @@ describe('decodeChunkedBody - trailer headers', () => {
 
     const result = decodeChunkedBody(state, input);
 
-    assert.strictEqual(result.phase, ChunkedBodyState.FINISHED);
+    assert.strictEqual(result.state, ChunkedBodyState.FINISHED);
     assert.strictEqual(result.trailers['x-trailer'], 'value');
     assert.strictEqual(result.trailers['another-header'], 'test');
   });
@@ -29,7 +29,7 @@ describe('decodeChunkedBody - trailer headers', () => {
 
     const result = decodeChunkedBody(state, input);
 
-    assert.strictEqual(result.phase, ChunkedBodyState.FINISHED);
+    assert.strictEqual(result.state, ChunkedBodyState.FINISHED);
     assert.strictEqual(result.trailers['x-header'], 'value:with:colons');
   });
 
@@ -39,7 +39,7 @@ describe('decodeChunkedBody - trailer headers', () => {
 
     const result = decodeChunkedBody(state, input);
 
-    assert.strictEqual(result.phase, ChunkedBodyState.FINISHED);
+    assert.strictEqual(result.state, ChunkedBodyState.FINISHED);
     assert.deepStrictEqual(result.trailers, {});
   });
 
@@ -49,7 +49,7 @@ describe('decodeChunkedBody - trailer headers', () => {
     state = decodeChunkedBody(state, Buffer.from('0\r\nX-Trail'));
 
     state = decodeChunkedBody(state, Buffer.from('er: value\r\n\r\n'));
-    assert.strictEqual(state.phase, ChunkedBodyState.FINISHED);
+    assert.strictEqual(state.state, ChunkedBodyState.FINISHED);
     assert.strictEqual(state.trailers['x-trailer'], 'value');
   });
 });
@@ -62,7 +62,7 @@ describe('decodeChunkedBody - Trailer 处理', () => {
     );
     const result = decodeChunkedBody(state, input);
 
-    assert.strictEqual(result.phase, ChunkedBodyState.FINISHED);
+    assert.strictEqual(result.state, ChunkedBodyState.FINISHED);
     assert.strictEqual(result.trailers['x-trailer'], 'value');
   });
 
@@ -98,7 +98,7 @@ describe('decodeChunkedBody - Trailer 处理', () => {
     const input = Buffer.from('5\r\nhello\r\n0\r\n\r\n');
     const result = decodeChunkedBody(state, input);
 
-    assert.strictEqual(result.phase, ChunkedBodyState.FINISHED);
+    assert.strictEqual(result.state, ChunkedBodyState.FINISHED);
     assert.deepStrictEqual(result.trailers, {});
   });
 
@@ -127,7 +127,7 @@ describe('decodeChunkedBody - Trailer Headers', () => {
     const input = Buffer.from('5\r\nhello\r\n0\r\nX-Trailer: value\r\n\r\n');
     const result = decodeChunkedBody(state, input);
 
-    assert.strictEqual(result.phase, ChunkedBodyState.FINISHED);
+    assert.strictEqual(result.state, ChunkedBodyState.FINISHED);
     assert.strictEqual(result.trailers['x-trailer'], 'value');
   });
 
@@ -187,10 +187,10 @@ describe('decodeChunkedBody - Trailer Headers', () => {
     let state = createChunkedBodyState();
 
     state = decodeChunkedBody(state, Buffer.from('0\r\nX-Trail'));
-    assert.strictEqual(state.phase, ChunkedBodyState.TRAILER);
+    assert.strictEqual(state.state, ChunkedBodyState.TRAILER);
 
     state = decodeChunkedBody(state, Buffer.from('er: value\r\n\r\n'));
-    assert.strictEqual(state.phase, ChunkedBodyState.FINISHED);
+    assert.strictEqual(state.state, ChunkedBodyState.FINISHED);
     assert.strictEqual(state.trailers['x-trailer'], 'value');
   });
 
@@ -199,7 +199,7 @@ describe('decodeChunkedBody - Trailer Headers', () => {
     const input = Buffer.from('5\r\nhello\r\n0\r\n\r\n');
     const result = decodeChunkedBody(state, input);
 
-    assert.strictEqual(result.phase, ChunkedBodyState.FINISHED);
+    assert.strictEqual(result.state, ChunkedBodyState.FINISHED);
     assert.deepStrictEqual(result.trailers, {});
   });
 
@@ -241,7 +241,7 @@ describe('decodeChunkedBody - 带认证信息的 trailer', () => {
     );
     const result = decodeChunkedBody(state, input);
 
-    assert.strictEqual(result.phase, ChunkedBodyState.FINISHED);
+    assert.strictEqual(result.state, ChunkedBodyState.FINISHED);
     assert.strictEqual(result.trailers['x-checksum'], 'abc123def456');
     assert.ok(result.trailers['x-signature']);
   });
