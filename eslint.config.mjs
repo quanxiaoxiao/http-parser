@@ -1,11 +1,11 @@
 import eslint from '@eslint/js';
-import simpleImportSort from 'eslint-plugin-simple-import-sort';
-import globals from 'globals';
-import tseslint from 'typescript-eslint';
 import importPlugin from 'eslint-plugin-import';
+import simpleImportSort from 'eslint-plugin-simple-import-sort';
 import unicornPlugin from 'eslint-plugin-unicorn';
-import { fileURLToPath } from 'url';
+import globals from 'globals';
 import { dirname } from 'path';
+import tseslint from 'typescript-eslint';
+import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -27,7 +27,14 @@ export default [
   ...tseslint.configs.recommended,
 
   {
-    files: ['src/**/*.ts', 'eslint.config.mjs'],
+    files: ['eslint.config.mjs'],
+    rules: {
+      'unicorn/prevent-abbreviations': 'off',
+    },
+  },
+
+  {
+    files: ['src/**/*.ts'],
     ignores: ['**/*.test.ts', '**/*.d.ts'],
 
     languageOptions: {
