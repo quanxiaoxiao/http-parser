@@ -1,8 +1,4 @@
-import {
-  DecodeErrors,
-  HttpDecodeError,
-  HttpDecodeErrorCode,
-} from '../errors.js';
+import { DecodeErrors } from '../errors.js';
 import { DEFAULT_FIXED_LENGTH_BODY_LIMITS } from '../specs.js';
 import type {
   BodyType,
