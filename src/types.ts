@@ -58,7 +58,7 @@ export interface HttpParserHooks {
 
   onMessageComplete?(): void;
 
-  onError?(err: Error): void;
+  onError?(error: Error): void;
 }
 
 export interface HeaderLimits {

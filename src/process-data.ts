@@ -35,8 +35,8 @@ function shouldProcessFile(filePath: string, extensions?: string[]): boolean {
   if (!extensions || extensions.length === 0) {
     return true;
   }
-  const ext = path.extname(filePath).toLowerCase();
-  return extensions.includes(ext);
+  const extension = path.extname(filePath).toLowerCase();
+  return extensions.includes(extension);
 }
 
 function processHttpRequest(chunk: Buffer): HttpRequestState {
@@ -86,8 +86,8 @@ async function processConcurrently<T, R>(
   concurrency: number = 10,
 ): Promise<R[]> {
   const results: R[] = [];
-  for (let i = 0; i < items.length; i += concurrency) {
-    const batch = items.slice(i, i + concurrency);
+  for (let index = 0; index < items.length; index += concurrency) {
+    const batch = items.slice(index, index + concurrency);
     const batchResults = await Promise.all(batch.map(processor));
     results.push(...batchResults);
   }
@@ -104,7 +104,7 @@ async function processDirectory(
 
   const results = await processConcurrently(
     fullPaths,
-    (pathname: string) => processPath(pathname, options),
+    async (pathname: string) => processPath(pathname, options),
     concurrency,
   );
   return results.flat();
@@ -134,7 +134,7 @@ async function processHttpFiles(
   return Array.isArray(result) ? result : [result];
 }
 
-const ret = await processHttpFiles(path.resolve('/Users/huzhedong/mylib/http-utils/_data'));
+const returnValue = await processHttpFiles(path.resolve('/Users/huzhedong/mylib/http-utils/_data'));
 // const ret = await processHttpFiles(path.resolve('/Users/huzhedong/mylib/http-utils/_data/01/66442ac107c67a1322721b'));
 
-console.log(ret);
+console.log(returnValue);

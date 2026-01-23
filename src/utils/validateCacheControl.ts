@@ -1,8 +1,6 @@
 export type CacheControlDirectiveValue = number | string | boolean;
 
-export interface CacheControlParsed {
-  [directive: string]: CacheControlDirectiveValue;
-}
+export type CacheControlParsed = Record<string, CacheControlDirectiveValue>;
 
 export type CacheControlResult =
   | {
@@ -20,35 +18,35 @@ const NUMERIC_PATTERN = /^\d+$/;
 
 function parseDirectiveValue(
   key: string,
-  valRaw: string,
+  valueRaw: string,
 ): { value: CacheControlDirectiveValue; error?: undefined } | { error: string; value?: undefined } {
-  if (NUMERIC_PATTERN.test(valRaw)) {
-    const num = Number(valRaw);
-    if (num < 0) {
+  if (NUMERIC_PATTERN.test(valueRaw)) {
+    const number_ = Number(valueRaw);
+    if (number_ < 0) {
       return { error: `directive ${key} value must be >=0` };
     }
-    if (!Number.isSafeInteger(num)) {
+    if (!Number.isSafeInteger(number_)) {
       return { error: `directive ${key} value exceeds safe integer range` };
     }
-    return { value: num };
+    return { value: number_ };
   }
 
-  if (valRaw.startsWith('"') && valRaw.endsWith('"')) {
-    if (valRaw.length < 2) {
+  if (valueRaw.startsWith('"') && valueRaw.endsWith('"')) {
+    if (valueRaw.length < 2) {
       return { error: `directive ${key} has invalid quoted value` };
     }
-    const unquoted = valRaw.slice(1, -1);
+    const unquoted = valueRaw.slice(1, -1);
     if (unquoted.includes('"')) {
       return { error: `directive ${key} has unescaped quote in value` };
     }
     return { value: unquoted };
   }
 
-  if (/^[a-zA-Z0-9!#$%&'*+.^_`|~-]+$/.test(valRaw)) {
-    return { value: valRaw };
+  if (/^[a-zA-Z0-9!#$%&'*+.^_`|~-]+$/.test(valueRaw)) {
+    return { value: valueRaw };
   }
 
-  return { error: `directive ${key} has invalid value format: ${valRaw}` };
+  return { error: `directive ${key} has invalid value format: ${valueRaw}` };
 }
 
 function splitDirectives(value: string): string[] {
@@ -56,8 +54,8 @@ function splitDirectives(value: string): string[] {
   let current = '';
   let inQuotes = false;
 
-  for (let i = 0; i < value.length; i++) {
-    const char = value[i];
+  for (let index = 0; index < value.length; index++) {
+    const char = value[index];
 
     if (char === '"') {
       inQuotes = !inQuotes;
@@ -102,7 +100,7 @@ export function validateCacheControl(value: string): CacheControlResult {
     const key = (equalIndex === -1 ? part : part.slice(0, equalIndex))
       .trim()
       .toLowerCase();
-    const valRaw = equalIndex === -1 ? undefined : part.slice(equalIndex + 1).trim();
+    const valueRaw = equalIndex === -1 ? undefined : part.slice(equalIndex + 1).trim();
 
     if (!DIRECTIVE_NAME_PATTERN.test(key)) {
       return { valid: false, reason: `invalid directive name: ${key}` };
@@ -112,10 +110,10 @@ export function validateCacheControl(value: string): CacheControlResult {
       return { valid: false, reason: `duplicate directive: ${key}` };
     }
 
-    if (valRaw === undefined) {
+    if (valueRaw === undefined) {
       directives[key] = true;
     } else {
-      const parsedValue = parseDirectiveValue(key, valRaw);
+      const parsedValue = parseDirectiveValue(key, valueRaw);
       if (parsedValue.error) {
         return { valid: false, reason: parsedValue.error };
       }

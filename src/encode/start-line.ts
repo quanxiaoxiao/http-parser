@@ -7,8 +7,8 @@ export function encodeRequestLine(startLine: RequestStartLine = {
   version: 1.1,
 }) {
   const { method = 'GET', path = '/', version = 1.1 } = startLine;
-  const versionStr = `HTTP/${String(Number.isInteger(version) ? `${version}.0` : version)}`;
-  const line = `${method.toUpperCase()} ${path} ${versionStr}`;
+  const versionString = `HTTP/${String(Number.isInteger(version) ? `${version}.0` : version)}`;
+  const line = `${method.toUpperCase()} ${path} ${versionString}`;
 
   return Buffer.from(line);
 }
@@ -19,8 +19,8 @@ export function encodeResponseLine(startLine: ResponseStartLine = {
   statusText: 'OK',
 }) {
   const { version, statusCode = 200, statusText } = startLine;
-  const versionStr = `HTTP/${String(Number.isInteger(version) ? `${version}.0` : version)}`;
+  const versionString = `HTTP/${String(Number.isInteger(version) ? `${version}.0` : version)}`;
   const text = statusText ?? STATUS_CODES[statusCode] ?? 'Unknown';
-  const line = `${versionStr} ${statusCode} ${text}`;
+  const line = `${versionString} ${statusCode} ${text}`;
   return Buffer.from(line);
 }

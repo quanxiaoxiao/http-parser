@@ -38,8 +38,8 @@ export function validateConnectionHeader(
   };
 
   const tokens = value.split(',');
-  for (let i = 0; i < tokens.length; i++) {
-    const token = tokens[i]!.trim();
+  for (let index = 0; index < tokens.length; index++) {
+    const token = tokens[index]!.trim();
     if (!token) {
       continue;
     }

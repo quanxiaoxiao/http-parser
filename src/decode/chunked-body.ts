@@ -90,8 +90,8 @@ export function createChunkedBodyState(limits: ChunkedBodyLimits = DEFAULT_CHUNK
 }
 
 function indexOfDoubleCRLF(buf: Buffer): number {
-  const len = buf.length;
-  if (len < DOUBLE_CRLF_LENGTH) {
+  const { length } = buf;
+  if (length < DOUBLE_CRLF_LENGTH) {
     return -1;
   }
 
@@ -205,20 +205,20 @@ function handleTrailerState(state: ChunkedBodyStateData): void {
     return;
   }
 
-  const trailerEndIdx = indexOfDoubleCRLF(buffer);
+  const trailerEndIndex = indexOfDoubleCRLF(buffer);
 
-  if (trailerEndIdx < 0) {
+  if (trailerEndIndex < 0) {
     if (buffer.length > maxTrailerSize) {
       throw DecodeErrors.trailerTooLarge(maxTrailerSize);
     }
     return;
   }
 
-  const rawTrailers = buffer.subarray(0, trailerEndIdx).toString('utf8');
+  const rawTrailers = buffer.subarray(0, trailerEndIndex).toString('utf8');
   const parsedTrailers = parseTrailerHeaders(rawTrailers, state.limits);
 
   state.state = ChunkedBodyState.FINISHED;
-  state.buffer = buffer.subarray(trailerEndIdx + DOUBLE_CRLF_LENGTH);
+  state.buffer = buffer.subarray(trailerEndIndex + DOUBLE_CRLF_LENGTH);
   state.trailers = {
     ...state.trailers,
     ...parsedTrailers,
@@ -234,20 +234,20 @@ const phaseHandlers: Record<ChunkedBodyState, (state: ChunkedBodyStateData) => v
 } as const;
 
 export function decodeChunkedBody(
-  prev: ChunkedBodyStateData,
+  previous: ChunkedBodyStateData,
   input: Buffer,
 ): ChunkedBodyStateData {
-  if (prev.state === ChunkedBodyState.FINISHED) {
+  if (previous.state === ChunkedBodyState.FINISHED) {
     throw new Error('Chunked decoding already finished');
   }
 
   const next: ChunkedBodyStateData = {
-    ...prev,
-    buffer: prev.buffer.length > 0 ? Buffer.concat([prev.buffer, input]) : input,
+    ...previous,
+    buffer: previous.buffer.length > 0 ? Buffer.concat([previous.buffer, input]) : input,
   };
 
   while (next.state !== ChunkedBodyState.FINISHED) {
-    const prevState = next.state;
+    const previousState = next.state;
     const handler = phaseHandlers[next.state];
     if (!handler) {
       throw new Error(`Unknown state: ${next.state}`);
@@ -255,7 +255,7 @@ export function decodeChunkedBody(
 
     handler(next);
 
-    if (next.state === prevState) {
+    if (next.state === previousState) {
       break;
     }
   }

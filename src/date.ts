@@ -2,7 +2,7 @@ const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const;
 
 const MONTH_MAP = new Map<string, number>(
-  MONTHS.map((m, i) => [m, i]),
+  MONTHS.map((m, index) => [m, index]),
 );
 
 const HTTP_DATE_PATTERNS = [
@@ -50,13 +50,13 @@ function buildUtcDate(
 
 export function formatHttpDate(date: Date): string {
   const day = WEEKDAYS[date.getUTCDay()];
-  const dateNum = pad2(date.getUTCDate());
+  const dateNumber = pad2(date.getUTCDate());
   const month = MONTHS[date.getUTCMonth()];
   const year = date.getUTCFullYear();
   const hour = pad2(date.getUTCHours());
   const min = pad2(date.getUTCMinutes());
   const sec = pad2(date.getUTCSeconds());
-  return `${day}, ${dateNum} ${month} ${year} ${hour}:${min}:${sec} GMT`;
+  return `${day}, ${dateNumber} ${month} ${year} ${hour}:${min}:${sec} GMT`;
 }
 
 export function parseHttpDate(value: string): Date | null {
@@ -66,8 +66,8 @@ export function parseHttpDate(value: string): Date | null {
   for (const pattern of HTTP_DATE_PATTERNS) {
     const match = pattern.regex.exec(value);
     if (match) {
-      const [year, monthStr, day, hour, min, sec] = pattern.parse(match);
-      const month = MONTH_MAP.get(monthStr as string);
+      const [year, monthString, day, hour, min, sec] = pattern.parse(match);
+      const month = MONTH_MAP.get(monthString as string);
       if (month === undefined) {
         return null;
       }

@@ -48,27 +48,27 @@ export function createFixedLengthBodyState(
 }
 
 export function decodeFixedLengthBody(
-  prev: FixedLengthBodyStateData,
+  previous: FixedLengthBodyStateData,
   input: Buffer,
 ): FixedLengthBodyStateData {
-  if (prev.state === FixedLengthBodyState.FINISHED) {
+  if (previous.state === FixedLengthBodyState.FINISHED) {
     throw new Error('Content-Length parsing already finished');
   }
 
   const inputSize = input.length;
   if (inputSize === 0) {
-    return prev;
+    return previous;
   }
 
-  const canAccept = Math.min(inputSize, prev.remainingBytes);
-  const newRemainingBytes = prev.remainingBytes - canAccept;
-  const newDecodedBytes = prev.decodedBodyBytes + canAccept;
+  const canAccept = Math.min(inputSize, previous.remainingBytes);
+  const newRemainingBytes = previous.remainingBytes - canAccept;
+  const newDecodedBytes = previous.decodedBodyBytes + canAccept;
 
   const next: FixedLengthBodyStateData = {
-    ...prev,
+    ...previous,
     decodedBodyBytes: newDecodedBytes,
     remainingBytes: newRemainingBytes,
-    state: newRemainingBytes === 0 ? FixedLengthBodyState.FINISHED : prev.state,
+    state: newRemainingBytes === 0 ? FixedLengthBodyState.FINISHED : previous.state,
     buffer: canAccept < inputSize ? input.subarray(canAccept) : Buffer.alloc(0),
   };
 

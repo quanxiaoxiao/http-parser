@@ -33,21 +33,21 @@ export function validateParameters(
     throw new TypeError('maxLineLength must be a positive integer');
   }
 
-  const len = buffer.length;
+  const { length } = buffer;
 
-  if (len === 0) {
+  if (length === 0) {
     if (offset !== 0) {
       throw new RangeError('offset must be 0 for empty buffer');
     }
     return;
   }
 
-  if (offset > len - 1) {
-    throw new RangeError(`offset (${offset}) exceeds buffer length (${len})`);
+  if (offset > length - 1) {
+    throw new RangeError(`offset (${offset}) exceeds buffer length (${length})`);
   }
 
-  if (offset === len) {
-    throw new RangeError(`offset (${offset}) equals buffer length (${len})`);
+  if (offset === length) {
+    throw new RangeError(`offset (${offset}) equals buffer length (${length})`);
   }
 }
 

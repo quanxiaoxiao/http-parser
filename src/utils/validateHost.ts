@@ -124,13 +124,13 @@ export default function validateHost(value: string): ValidationResult {
   if (!matches) {
     return createError('syntax mismatch (not IPv6/IPv4/reg-name with optional port)');
   }
-  const [, ipv6, ipv4, regname, portStr] = matches;
+  const [, ipv6, ipv4, regname, portString] = matches;
   let port: number | undefined;
-  if (portStr) {
-    if (!isValidPort(portStr)) {
+  if (portString) {
+    if (!isValidPort(portString)) {
       return createError('port out of range (1-65535)');
     }
-    port = parseInteger(portStr)!;
+    port = parseInteger(portString)!;
   }
   if (ipv4) {
     return validateIPv4(ipv4, port);

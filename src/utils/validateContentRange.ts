@@ -21,8 +21,8 @@ export type ContentRangeResult =
 const CONTENT_RANGE_REGEX = /^bytes\s+(?:(\d+)-(\d+)\/(\d+)|\*\/(\d+))$/i;
 const CRLF_REGEX = /[\r\n]/;
 
-function validateUnsatisfiedRange(sizeStr: string): ContentRangeResult {
-  const size = Number(sizeStr);
+function validateUnsatisfiedRange(sizeString: string): ContentRangeResult {
+  const size = Number(sizeString);
 
   if (!Number.isSafeInteger(size) || size < 0) {
     return { valid: false, reason: 'invalid size (must be non-negative integer)' };
@@ -37,13 +37,13 @@ function validateUnsatisfiedRange(sizeStr: string): ContentRangeResult {
 }
 
 function validatePartialRange(
-  startStr: string,
-  endStr: string,
-  sizeStr: string,
+  startString: string,
+  endString: string,
+  sizeString: string,
 ): ContentRangeResult {
-  const start = Number(startStr);
-  const end = Number(endStr);
-  const size = Number(sizeStr);
+  const start = Number(startString);
+  const end = Number(endString);
+  const size = Number(sizeString);
 
   if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || !Number.isSafeInteger(size)) {
     return { valid: false, reason: 'range values must be safe integers' };

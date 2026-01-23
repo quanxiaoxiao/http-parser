@@ -2,11 +2,11 @@ import createHttpError from '../../createHttpError.js';
 
 type RangeResult = [number, number];
 
-const parseNumber = (str: string | null | undefined, fieldName = 'number'): number => {
-  if (str == null) {
+const parseNumber = (string_: string | null | undefined, fieldName = 'number'): number => {
+  if (string_ == null) {
     throw createHttpError(400, `Invalid range: empty ${fieldName}`);
   }
-  const trimmed = str.trim();
+  const trimmed = string_.trim();
 
   if (trimmed === '') {
     throw createHttpError(400, `Invalid range: empty ${fieldName}`);
@@ -16,13 +16,13 @@ const parseNumber = (str: string | null | undefined, fieldName = 'number'): numb
     throw createHttpError(400, `Invalid range: ${fieldName} is not a valid number`);
   }
 
-  const num = Number(trimmed);
+  const number_ = Number(trimmed);
 
-  if (!Number.isSafeInteger(num) || num < 0) {
+  if (!Number.isSafeInteger(number_) || number_ < 0) {
     throw createHttpError(400, `Invalid range: ${fieldName} is not a valid safe integer`);
   }
 
-  return num;
+  return number_;
 };
 
 export function parseRange(rangeHeaderValue: string, contentSize: number): RangeResult {
@@ -45,18 +45,18 @@ export function parseRange(rangeHeaderValue: string, contentSize: number): Range
     throw createHttpError(400, 'Invalid range format. Expected: bytes=start-end');
   }
 
-  const [, startStr, endStr] = matches;
+  const [, startString, endString] = matches;
 
   const maxIndex = contentSize - 1;
   let start: number;
   let end: number;
 
-  if (startStr === '') {
-    if (endStr === '') {
+  if (startString === '') {
+    if (endString === '') {
       throw createHttpError(400, 'Invalid range: both start and end are empty');
     }
 
-    const suffixLength = parseNumber(endStr, 'suffix length');
+    const suffixLength = parseNumber(endString, 'suffix length');
 
     if (suffixLength === 0) {
       throw createHttpError(400, 'Invalid range format');
@@ -68,12 +68,12 @@ export function parseRange(rangeHeaderValue: string, contentSize: number): Range
       throw createHttpError(416, 'Range not satisfiable');
     }
   } else {
-    start = parseNumber(startStr, 'start');
-    end = endStr === '' ? maxIndex : parseNumber(endStr, 'end');
+    start = parseNumber(startString, 'start');
+    end = endString === '' ? maxIndex : parseNumber(endString, 'end');
   }
 
   if (start > end) {
-    if (endStr === '' || startStr === '') {
+    if (endString === '' || startString === '') {
       throw createHttpError(416, 'Range not satisfiable');
     }
     throw createHttpError(400, 'Invalid range: start is greater than end');

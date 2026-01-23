@@ -130,9 +130,9 @@ function createError(
   value: unknown,
   index?: number,
 ): ValidationError {
-  const err: ValidationError = { header, error, value };
-  if (index !== undefined) err.index = index;
-  return err;
+  const error_: ValidationError = { header, error, value };
+  if (index !== undefined) error_.index = index;
+  return error_;
 }
 
 function validateNumericHeader(
@@ -145,8 +145,8 @@ function validateNumericHeader(
     return createError(key, `${key} must be a non-negative integer`, value, index);
   }
 
-  const num = Number(trimmedValue);
-  if (num < 0 || !Number.isSafeInteger(num)) {
+  const number_ = Number(trimmedValue);
+  if (number_ < 0 || !Number.isSafeInteger(number_)) {
     return createError(key, `${key} value exceeds safe range`, value, index);
   }
 
@@ -234,8 +234,8 @@ export default function validateHeaders(headers: Headers): ValidationError[] {
       continue;
     }
 
-    for (let i = 0; i < values.length; i++) {
-      const error = validateHeaderValue(headerName, values[i] as string, i, headerName);
+    for (let index = 0; index < values.length; index++) {
+      const error = validateHeaderValue(headerName, values[index] as string, index, headerName);
       if (error) {
         errors.push(error);
       }

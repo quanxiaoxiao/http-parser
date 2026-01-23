@@ -29,67 +29,67 @@ const HTTP_VERSION_MAP: Record<string, number> = {
   'HTTP/1.1': HTTP_VERSION_1_1,
 } as const;
 
-function createErrorPreview(str: string, maxLength: number = ERROR_PREVIEW_LENGTH): string {
-  return str.length > maxLength
-    ? `${str.substring(0, maxLength)}...`
-    : str;
+function createErrorPreview(string_: string, maxLength: number = ERROR_PREVIEW_LENGTH): string {
+  return string_.length > maxLength
+    ? `${string_.substring(0, maxLength)}...`
+    : string_;
 }
 
-function validateInput(str: string, type: 'request' | 'response') {
-  if (!str || typeof str !== 'string') {
+function validateInput(string_: string, type: 'request' | 'response') {
+  if (!string_ || typeof string_ !== 'string') {
     throw new TypeError(`Invalid input: ${type} line must be a non-empty string`);
   }
 }
 
-function validateHttpVersion(versionStr: string): HttpVersion {
-  const version = HTTP_VERSION_MAP[versionStr?.toUpperCase()];
+function validateHttpVersion(versionString: string): HttpVersion {
+  const version = HTTP_VERSION_MAP[versionString?.toUpperCase()];
   if (version === undefined) {
-    throw DecodeErrors.unsupportedHttpVersion(versionStr);
+    throw DecodeErrors.unsupportedHttpVersion(versionString);
   }
   return version as HttpVersion;
 }
 
 export function decodeRequestStartLine(
-  str: string,
+  string_: string,
   limits: StartLineLimits = DEFAULT_START_LINE_LIMITS,
 ): RequestStartLine {
-  validateInput(str, 'request');
-  const trimmedStr = str.trim();
-  const matches = trimmedStr.match(REQUEST_STARTLINE_REG);
+  validateInput(string_, 'request');
+  const trimmedString = string_.trim();
+  const matches = trimmedString.match(REQUEST_STARTLINE_REG);
 
   if (!matches) {
-    throw DecodeErrors.invalidStartLine(createErrorPreview(trimmedStr));
+    throw DecodeErrors.invalidStartLine(createErrorPreview(trimmedString));
   }
 
-  const [, method, path, versionStr] = matches;
-  const version = validateHttpVersion(versionStr!);
+  const [, method, path, versionString] = matches;
+  const version = validateHttpVersion(versionString!);
 
   if (path!.length > limits.maxUriBytes) {
     throw DecodeErrors.uriTooLarge(limits.maxUriBytes);
   }
 
   return {
-    raw: str,
+    raw: string_,
     method: method!.toUpperCase() as HttpMethod,
     path: path!,
-    version: version as HttpVersion,
+    version,
   };
 };
 
-export function decodeResponseStartLine(str: string, limits: StartLineLimits = DEFAULT_START_LINE_LIMITS): ResponseStartLine {
-  validateInput(str, 'response');
+export function decodeResponseStartLine(string_: string, limits: StartLineLimits = DEFAULT_START_LINE_LIMITS): ResponseStartLine {
+  validateInput(string_, 'response');
 
-  const trimmedStr = str.trim();
-  const matches = trimmedStr.match(RESPONSE_STARTLINE_REG);
+  const trimmedString = string_.trim();
+  const matches = trimmedString.match(RESPONSE_STARTLINE_REG);
 
   if (!matches) {
-    throw DecodeErrors.invalidResponseStartLine(createErrorPreview(trimmedStr));
+    throw DecodeErrors.invalidResponseStartLine(createErrorPreview(trimmedString));
   }
 
-  const [, versionStr, statusCodeStr, statusText] = matches;
+  const [, versionString, statusCodeString, statusText] = matches;
 
-  const version = validateHttpVersion(versionStr!);
-  const statusCode = parseInteger(statusCodeStr as string);
+  const version = validateHttpVersion(versionString!);
+  const statusCode = parseInteger(statusCodeString as string);
 
   if (statusCode == null || statusCode < MIN_STATUS_CODE || statusCode > MAX_STATUS_CODE) {
     throw DecodeErrors.invalidStatusCode(statusCode ?? 0, MIN_STATUS_CODE, MAX_STATUS_CODE);
@@ -102,8 +102,8 @@ export function decodeResponseStartLine(str: string, limits: StartLineLimits = D
   }
 
   return {
-    raw: str,
-    version: version as HttpVersion,
+    raw: string_,
+    version,
     statusCode,
     statusText: finalStatusMessage,
   };

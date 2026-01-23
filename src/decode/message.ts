@@ -90,9 +90,9 @@ function addEvent(state: HttpState, event: HttpDecodeEvent): void {
   state.events.push(event);
 }
 
-function forkState(prev: HttpState): HttpState {
+function forkState(previous: HttpState): HttpState {
   return {
-    ...prev,
+    ...previous,
     events: [],
   };
 }
@@ -177,7 +177,7 @@ export function decideBodyStrategy(state: HttpState): BodyStrategy {
     throw new Error('decideBodyStrategy called before headers parsed');
   }
 
-  const headers = headersState.headers;
+  const { headers } = headersState;
   const contentLengthValues = getHeaderValues(headers, 'content-length');
   const transferEncodingValues = getHeaderValues(headers, 'transfer-encoding');
 
@@ -257,7 +257,7 @@ export function createResponseState(): HttpResponseState {
 }
 
 function handleStartLineState(state: HttpState): void {
-  const parseLineFn = state.messageType === 'request'
+  const parseLineFunction = state.messageType === 'request'
     ? decodeRequestStartLine
     : decodeResponseStartLine;
   let lineResult: DecodeLineResult | null;
@@ -278,7 +278,7 @@ function handleStartLineState(state: HttpState): void {
   }
 
   const lineBuf = lineResult.line;
-  const startLine = parseLineFn(lineBuf.toString(), state.config.startLineLimits);
+  const startLine = parseLineFunction(lineBuf.toString(), state.config.startLineLimits);
   state.parsing.startLine = startLine;
   state.buffer = state.buffer.subarray(lineResult.bytesConsumed);
 
@@ -312,17 +312,17 @@ function handleHeadersStateData(state: HttpState): void {
   if (!state.parsing.headers) {
     state.parsing.headers = createHeadersStateData(state.config.headerLimits);
   }
-  const prevLineCount = state.parsing.headers.rawHeaders.length;
-  state.parsing.headers = decodeHeaders(state.parsing.headers!, state.buffer);
+  const previousLineCount = state.parsing.headers.rawHeaders.length;
+  state.parsing.headers = decodeHeaders(state.parsing.headers, state.buffer);
 
-  for (let i = prevLineCount; i < state.parsing.headers.rawHeaders.length; i++) {
-    const headerLine = state.parsing.headers.rawHeaders[i]!;
+  for (let index = previousLineCount; index < state.parsing.headers.rawHeaders.length; index++) {
+    const headerLine = state.parsing.headers.rawHeaders[index]!;
 
     addEvent(state, {
       type: 'header-line',
       name: headerLine[0],
       value: headerLine[1],
-      index: i,
+      index,
     });
   }
 
@@ -394,7 +394,7 @@ function handleBodyState<T extends ChunkedBodyStateData | FixedLengthBodyStateDa
   transition(state, HttpDecodeState.FINISHED);
 }
 
-const PHASE_HANDLERS: { [K in HttpDecodeState]: (state: HttpState) => void } = {
+const PHASE_HANDLERS: Record<HttpDecodeState, (state: HttpState) => void> = {
   [HttpDecodeState.START_LINE]: handleStartLineState,
   [HttpDecodeState.HEADERS]: handleHeadersStateData,
   [HttpDecodeState.BODY_CHUNKED]: (state) => handleBodyState(state, decodeChunkedBody),
@@ -410,27 +410,27 @@ const PHASE_HANDLERS: { [K in HttpDecodeState]: (state: HttpState) => void } = {
 
 function runStateMachine(state: HttpState): void {
   while (state.state !== HttpDecodeState.FINISHED) {
-    const prev = state.state;
+    const previous = state.state;
     PHASE_HANDLERS[state.state](state);
-    if (state.state === prev) {
+    if (state.state === previous) {
       break;
     }
   }
 }
 
 function decodeHttp(
-  prev: HttpState,
+  previous: HttpState,
   input: Buffer,
 ): HttpState {
-  if (prev.state === HttpDecodeState.FINISHED) {
+  if (previous.state === HttpDecodeState.FINISHED) {
     throw new Error('Decoding already finished');
   }
 
-  if (prev.error) {
-    throw new Error(`Decoding encountered error: "${prev.error.message}"`);
+  if (previous.error) {
+    throw new Error(`Decoding encountered error: "${previous.error.message}"`);
   }
 
-  const next: HttpState = forkState(prev);
+  const next: HttpState = forkState(previous);
   if (input.length > 0) {
     next.buffer = Buffer.concat([next.buffer, input]);
   }
@@ -448,19 +448,19 @@ function decodeHttp(
 }
 
 export function decodeRequest(
-  prev: HttpRequestState | null,
+  previous: HttpRequestState | null,
   input: Buffer,
 ): HttpRequestState {
-  const prevState = prev ?? createRequestState();
-  return decodeHttp(prevState, input) as HttpRequestState;
+  const previousState = previous ?? createRequestState();
+  return decodeHttp(previousState, input) as HttpRequestState;
 }
 
 export function decodeResponse(
-  prev: HttpResponseState | null,
+  previous: HttpResponseState | null,
   input: Buffer,
 ): HttpResponseState {
-  const prevState = prev ?? createResponseState();
-  return decodeHttp(prevState, input) as HttpResponseState;
+  const previousState = previous ?? createResponseState();
+  return decodeHttp(previousState, input) as HttpResponseState;
 }
 
 export function isMessageFinished(state: HttpState) {

@@ -102,9 +102,9 @@ function parseParameters(value: string): ParseParametersResult {
       return { parameters, error: 'parameter name too long (>127)' };
     }
 
-    const paramValue = unquoteString(rawValue!);
+    const parameterValue = unquoteString(rawValue!);
 
-    if (paramValue.length > LIMITS.PARAMETER_VALUE_MAX_LENGTH) {
+    if (parameterValue.length > LIMITS.PARAMETER_VALUE_MAX_LENGTH) {
       return { parameters, error: 'parameter value too long (>1024)' };
     }
 
@@ -112,7 +112,7 @@ function parseParameters(value: string): ParseParametersResult {
       return { parameters, error: `duplicate parameter: ${name}` };
     }
 
-    parameters[name] = paramValue;
+    parameters[name] = parameterValue;
   }
 
   return { parameters };
@@ -152,12 +152,12 @@ export default function validateContentType(value: string): ValidationResult {
     parameters,
   };
 
-  const charset = parameters.charset;
+  const { charset } = parameters;
   if (charset !== undefined) {
     contentTypeInfo.charset = charset;
   }
 
-  const boundary = parameters.boundary;
+  const { boundary } = parameters;
   if (boundary !== undefined) {
     contentTypeInfo.boundary = boundary;
   }

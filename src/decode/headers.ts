@@ -41,9 +41,9 @@ function checkHeaderLimits(state: HeadersStateData) {
 }
 
 export function decodeHeaderLine(headerBuf: Buffer, limits: HeaderLimits): [string, string] {
-  const len = headerBuf.length;
+  const { length } = headerBuf;
 
-  if (len > limits.maxHeaderLineBytes) {
+  if (length > limits.maxHeaderLineBytes) {
     throw DecodeErrors.headerLineTooLarge(limits.maxHeaderLineBytes);
   }
 
@@ -71,7 +71,7 @@ export function decodeHeaderLine(headerBuf: Buffer, limits: HeaderLimits): [stri
     throw DecodeErrors.invalidHeaderName(name);
   }
 
-  const valueLength = len - colonIndex - 1;
+  const valueLength = length - colonIndex - 1;
 
   if (valueLength > limits.maxHeaderValueBytes) {
     throw DecodeErrors.headerValueTooLarge(limits.maxHeaderValueBytes);
@@ -157,16 +157,16 @@ function processHeaderLine(
 }
 
 export function decodeHeaders(
-  prev: HeadersStateData,
+  previous: HeadersStateData,
   input: Buffer,
 ): HeadersStateData {
-  if (prev.state === HeadersState.FINISHED) {
+  if (previous.state === HeadersState.FINISHED) {
     throw new Error('Headers parsing already finished');
   }
 
   const next: HeadersStateData = {
-    ...prev,
-    buffer: prev.buffer.length === 0 ? input : Buffer.concat([prev.buffer, input]),
+    ...previous,
+    buffer: previous.buffer.length === 0 ? input : Buffer.concat([previous.buffer, input]),
   };
 
   let offset = 0;
