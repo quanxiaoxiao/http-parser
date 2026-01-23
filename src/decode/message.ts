@@ -309,9 +309,7 @@ function handleStartLineState(state: HttpState): void {
 }
 
 function handleHeadersStateData(state: HttpState): void {
-  if (!state.parsing.headers) {
-    state.parsing.headers = createHeadersStateData(state.config.headerLimits);
-  }
+  state.parsing.headers ??= createHeadersStateData(state.config.headerLimits);
   const previousLineCount = state.parsing.headers.rawHeaders.length;
   state.parsing.headers = decodeHeaders(state.parsing.headers, state.buffer);
 
