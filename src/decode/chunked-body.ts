@@ -1,10 +1,6 @@
 import { Buffer } from 'node:buffer';
 
-import {
-  DecodeErrors,
-  HttpDecodeError,
-  HttpDecodeErrorCode,
-} from '../errors.js';
+import { DecodeErrors } from '../errors.js';
 import {
   CR,
   CRLF,
@@ -249,9 +245,6 @@ export function decodeChunkedBody(
   while (next.state !== ChunkedBodyState.FINISHED) {
     const previousState = next.state;
     const handler = phaseHandlers[next.state];
-    if (!handler) {
-      throw new Error(`Unknown state: ${next.state}`);
-    }
 
     handler(next);
 
