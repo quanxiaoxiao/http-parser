@@ -13,6 +13,7 @@
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
 
+    "noFallthroughCasesInSwitch": true,
     "strict": true,
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
