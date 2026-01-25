@@ -12,8 +12,6 @@ import {
   type HttpResponseState,
   isMessageFinished,
 } from './decode/message.js';
-import validateHeaders from './utils/validateHeaders.js';
-import { validateRequestCookie } from './utils/validateRequestCookie.js';
 
 interface ProcessFileResult {
   success: boolean;
