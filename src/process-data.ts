@@ -1,17 +1,21 @@
-/* eslint no-use-before-define: 0 */
+/* processHttpFilesPipe.ts */
 import type { Buffer } from 'node:buffer';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
 import {
-  createRequestState,
-  createResponseState,
-  decodeRequest,
-  decodeResponse,
   type HttpRequestState,
   type HttpResponseState,
-  isMessageFinished,
 } from './decode/message.js';
+import {
+  createPipelineState,
+  getHttpState,
+  isFinished,
+  pipe,
+  type PipelineState,
+  pushRequest,
+  pushResponse,
+} from './decode/pipeline.js';
 
 interface ProcessFileResult {
   success: boolean;
@@ -24,30 +28,55 @@ interface ProcessOptions {
   fileExtensions?: string[];
 }
 
-interface ProcessOptions {
-  concurrency?: number;
-  fileExtensions?: string[];
-}
-
 function shouldProcessFile(filePath: string, extensions?: string[]): boolean {
-  if (!extensions || extensions.length === 0) {
-    return true;
-  }
+  if (!extensions || extensions.length === 0) return true;
   const extension = path.extname(filePath).toLowerCase();
   return extensions.includes(extension);
 }
 
-function processHttpRequest(chunk: Buffer): HttpRequestState {
-  const state: HttpRequestState = createRequestState();
-  return decodeRequest(state, chunk);
+function decodeRequestStep(state: PipelineState<HttpRequestState>, chunk: Buffer) {
+  return pushRequest(state, chunk);
 }
 
-function procssHttpResponse(chunk: Buffer): HttpResponseState {
-  const state: HttpResponseState = createResponseState();
-  return decodeResponse(state, chunk);
+function decodeResponseStep(state: PipelineState<HttpResponseState>, chunk: Buffer) {
+  return pushResponse(state, chunk);
 }
 
-async function processFile(filePath: string, options: ProcessOptions): Promise<ProcessFileResult>{
+function ensureRequestFinished(state: PipelineState<HttpRequestState>) {
+  const httpState = getHttpState(state);
+  if (!httpState || !isFinished(state)) {
+    return {
+      ...state,
+      httpState: {
+        ...httpState,
+        messageType: 'request',
+        error: new Error('Request not finished'),
+      } as HttpRequestState,
+    };
+  }
+  return state;
+}
+
+function finalizeResult(filePath: string, state: PipelineState<HttpResponseState>): ProcessFileResult {
+  const httpState = getHttpState(state);
+  return {
+    success: !httpState?.error,
+    filePath,
+    errorMessage: httpState?.error?.message ?? '',
+  };
+}
+
+function logEvents<T extends HttpRequestState | HttpResponseState>(state: PipelineState<T>): PipelineState<T> {
+  const httpState = getHttpState(state);
+  if (httpState?.events.length) {
+    for (const event of httpState.events) {
+      console.log(`[${httpState.constructor.name}] Event:`, event);
+    }
+  }
+  return state;
+}
+
+async function processFile(filePath: string, options: ProcessOptions): Promise<ProcessFileResult> {
   if (!shouldProcessFile(filePath, options.fileExtensions)) {
     return {
       success: true,
@@ -55,27 +84,32 @@ async function processFile(filePath: string, options: ProcessOptions): Promise<P
       errorMessage: 'Skipped: file extension not matched',
     };
   }
-  const httpBuf = await fs.readFile(filePath);
-  const requestState: HttpRequestState = processHttpRequest(httpBuf);
-  if (!isMessageFinished(requestState)) {
+
+  const buffer = await fs.readFile(filePath);
+
+  const requestPipeline = pipe<HttpRequestState>(
+    (state) => decodeRequestStep(state, buffer),
+    logEvents,
+    ensureRequestFinished,
+    logEvents,
+  )(createPipelineState<HttpRequestState>());
+
+  const requestState = getHttpState(requestPipeline)!;
+
+  if (requestState.error) {
     return {
       success: false,
       filePath,
-      errorMessage: requestState.error?.message ?? 'parse response uncomplete',
+      errorMessage: requestState.error.message,
     };
   }
 
-  if (requestState.parsing.body) {
-    console.log(requestState.events);
-  }
+  const responsePipeline = pipe<HttpResponseState>(
+    (state) => decodeResponseStep(state, requestState.buffer),
+    logEvents,
+  )(createPipelineState<HttpResponseState>());
 
-  const responseState: HttpResponseState = procssHttpResponse(requestState.buffer);
-
-  return {
-    success: !!responseState.error,
-    filePath,
-    errorMessage: responseState.error?.message ?? '',
-  };
+  return finalizeResult(filePath, responsePipeline);
 }
 
 async function processConcurrently<T, R>(
@@ -92,28 +126,27 @@ async function processConcurrently<T, R>(
   return results;
 }
 
-async function processDirectory(
-  dirPath: string,
-  options: ProcessOptions,
-): Promise<ProcessFileResult[]> {
+async function processDirectory(directionPath: string, options: ProcessOptions): Promise<ProcessFileResult[]> {
   const { concurrency = 10 } = options;
-  const entries = await fs.readdir(dirPath);
-  const fullPaths = entries.map((entry) => path.resolve(dirPath, entry));
+  const entries = await fs.readdir(directionPath);
+  const fullPaths = entries.map((entry) => path.resolve(directionPath, entry));
 
   const results = await processConcurrently(
     fullPaths,
     async (pathname: string) => processPath(pathname, options),
     concurrency,
   );
+
   return results.flat();
 }
 
-async function processPath (pathname: string, options: ProcessOptions): Promise<ProcessFileResult | ProcessFileResult[]> {
+async function processPath(pathname: string, options: ProcessOptions): Promise<ProcessFileResult | ProcessFileResult[]> {
   const stats = await fs.stat(pathname);
 
   if (stats.isDirectory()) {
     return processDirectory(pathname, options);
   }
+
   if (!shouldProcessFile(pathname, options.fileExtensions)) {
     return {
       success: false,
@@ -121,18 +154,22 @@ async function processPath (pathname: string, options: ProcessOptions): Promise<
       errorMessage: 'Skipped: file extension not matched',
     };
   }
+
   return processFile(pathname, options);
 }
 
-async function processHttpFiles(
-  pathname: string,
-  options: ProcessOptions = {},
-): Promise<ProcessFileResult[]> {
+export async function processHttpFiles(pathname: string, options: ProcessOptions = {}): Promise<ProcessFileResult[]> {
   const result = await processPath(pathname, options);
   return Array.isArray(result) ? result : [result];
 }
 
-const returnValue = await processHttpFiles(path.resolve('/Users/huzhedong/mylib/http-utils/_data'));
-// const ret = await processHttpFiles(path.resolve('/Users/huzhedong/mylib/http-utils/_data/01/66442ac107c67a1322721b'));
+const targetDirection = path.resolve('/Users/huzhedong/mylib/http-utils/_data');
 
-console.log(returnValue);
+const results = await processHttpFiles(targetDirection, {
+  concurrency: 5,
+  // fileExtensions: ['.http', '.txt'],
+  fileExtensions: [],
+});
+
+console.log('------ All results ------');
+console.log(results);
