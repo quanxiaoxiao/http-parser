@@ -6,7 +6,7 @@ import path from 'node:path';
 import {
   type HttpRequestState,
   type HttpResponseState,
-} from './decode/message.js';
+} from '../decode/message.js';
 import {
   createPipelineState,
   getHttpState,
@@ -15,7 +15,7 @@ import {
   type PipelineState,
   pushRequest,
   pushResponse,
-} from './decode/pipeline.js';
+} from '../decode/pipeline.js';
 
 interface ProcessFileResult {
   success: boolean;

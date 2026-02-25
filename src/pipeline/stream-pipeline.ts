@@ -4,14 +4,14 @@ import {
   type HttpRequestState,
   type HttpResponseState,
   isMessageFinished,
-} from './decode/message.js';
+} from '../decode/message.js';
 import {
   createPipelineState,
   getHttpState,
   type PipelineState,
   pushRequest,
   pushResponse,
-} from './decode/pipeline.js';
+} from '../decode/pipeline.js';
 
 async function streamProcessFile(filePath: string) {
   const readStream = fs.createReadStream(filePath);
