@@ -9,7 +9,7 @@ import {
   HttpDecodeErrorCategory,
   HttpDecodeErrorCode,
   HttpErrorDisposition,
-} from '../../errors.js';
+} from './errors.js';
 
 describe('HttpDecodeError', () => {
   describe('Constructor', () => {

@@ -1,4 +1,4 @@
-import { type Headers } from '../types.js';
+import { type Headers } from '../../types.js';
 import validateCacheControl from './validateCacheControl.js';
 import validateContentRange from './validateContentRange.js';
 import validateContentType from './validateContentType.js';

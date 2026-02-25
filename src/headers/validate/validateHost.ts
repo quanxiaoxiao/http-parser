@@ -1,5 +1,5 @@
-import isValidPort from './isValidPort.js';
-import { parseInteger } from './number.js';
+import isValidPort from '../../utils/isValidPort.js';
+import { parseInteger } from '../../utils/number.js';
 
 const LIMITS = {
   PORT_MAX: 65535,

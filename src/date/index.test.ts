@@ -5,7 +5,7 @@ import {
   formatHttpDate,
   isValidHttpDate,
   parseHttpDate,
-} from '../date.js';
+} from './index.js';
 
 describe('formatHttpDate', () => {
   it('should correctly format standard date', () => {

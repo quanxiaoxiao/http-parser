@@ -11,7 +11,7 @@ import createHttpError, {
   createServiceUnavailable,
   createUnauthorized,
   HttpError,
-} from '../createHttpError.js';
+} from './index.js';
 
 describe('HttpError', () => {
   test('should create an HttpError instance with status code and message', () => {
