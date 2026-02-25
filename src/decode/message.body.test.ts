@@ -5,7 +5,7 @@ import { describe, test } from 'node:test';
 import {
   HttpDecodeError,
   HttpDecodeErrorCode,
-} from '../errors.js';
+} from './errors.js';
 import { HttpDecodeState } from '../specs.js';
 import {
   createRequestState,

@@ -1,6 +1,6 @@
 import type { Buffer } from 'node:buffer';
 
-import { DecodeErrors } from '../errors.js';
+import { DecodeErrors } from './errors.js';
 import {
   CR,
   DEFAULT_HTTP_LINE_LIMINTS,

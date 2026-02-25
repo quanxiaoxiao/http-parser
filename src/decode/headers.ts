@@ -2,7 +2,7 @@ import {
   DecodeErrors,
   HttpDecodeError,
   HttpDecodeErrorCode,
-} from '../errors.js';
+} from './errors.js';
 import { DEFAULT_HEADER_LIMITS } from '../specs.js';
 import type {
   DecodeLineResult,

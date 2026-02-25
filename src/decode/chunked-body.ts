@@ -1,6 +1,6 @@
 import { Buffer } from 'node:buffer';
 
-import { DecodeErrors } from '../errors.js';
+import { DecodeErrors } from './errors.js';
 import {
   CR,
   CRLF,

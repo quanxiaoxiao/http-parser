@@ -4,7 +4,7 @@ import {
  describe, it, test,
 } from 'node:test';
 
-import { HttpDecodeError, HttpDecodeErrorCode } from '../errors.js';
+import { HttpDecodeError, HttpDecodeErrorCode } from './errors.js';
 import { decodeHttpLine, validateParameters } from './http-line.js';
 
 // 常量定义

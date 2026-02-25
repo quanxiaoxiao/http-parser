@@ -4,7 +4,7 @@ import {
   DecodeErrors,
   HttpDecodeError,
   HttpDecodeErrorCode,
-} from '../errors.js';
+} from './errors.js';
 import { getHeaderValues } from '../headers/headers.js';
 import {
   DEFAULT_CHUNKED_BODY_LIMITS,
