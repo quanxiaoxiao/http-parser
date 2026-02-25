@@ -1,8 +1,4 @@
-import {
-  DecodeErrors,
-  HttpDecodeError,
-  HttpDecodeErrorCode,
-} from '../errors.js';
+import { DecodeErrors } from '../errors.js';
 import { DEFAULT_START_LINE_LIMITS } from '../specs.js';
 import { STATUS_CODES } from '../status-codes.js';
 import type {
